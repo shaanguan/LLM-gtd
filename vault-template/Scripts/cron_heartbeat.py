@@ -44,6 +44,23 @@ def beat(name: str) -> None:
     print(f"[heartbeat] {name} ok")
 
 
+def _parse_iso(s: str) -> datetime:
+    """datetime.fromisoformat() with timezone support for Python <3.11."""
+    try:
+        return datetime.fromisoformat(s)
+    except ValueError:
+        # Python <3.11 can't parse +HH:MM suffix; strip and re-add manually
+        if "+" in s[10:]:
+            base, tz_part = s.rsplit("+", 1)
+            h, m = tz_part.split(":")
+            return datetime.fromisoformat(base).replace(
+                tzinfo=timezone(timedelta(hours=int(h), minutes=int(m)))
+            )
+        if s.endswith("Z"):
+            return datetime.fromisoformat(s[:-1]).replace(tzinfo=timezone.utc)
+        return datetime.fromisoformat(s)
+
+
 def check() -> None:
     expected = load_config()["cron_expectations"]
     d = _load()
@@ -54,7 +71,7 @@ def check() -> None:
         if not last:
             alerts.append(f"⚠️  {name} ({spec['schedule']}) has never beat")
             continue
-        last_dt = datetime.fromisoformat(last)
+        last_dt = _parse_iso(last)
         age_h = (now - last_dt).total_seconds() / 3600
         if age_h > spec["max_age_hours"]:
             alerts.append(

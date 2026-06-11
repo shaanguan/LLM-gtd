@@ -18,7 +18,14 @@ import sys
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-import yaml
+try:
+    import yaml  # type: ignore
+except ImportError:
+    sys.stderr.write(
+        "ERROR: PyYAML is required. Install it with:\n"
+        "  pip3 install pyyaml\n"
+    )
+    sys.exit(1)
 
 sys.path.insert(0, str(Path(__file__).parent / "Scripts"))
 from _config import (  # type: ignore  # noqa: E402
@@ -131,9 +138,15 @@ def inject(data: list[dict], sync_time: str, okr: dict, weeks: dict) -> None:
     html = p.read_text(encoding="utf-8")
 
     def replace_const(name: str, value: str, src: str) -> str:
-        # match `const NAME=…;` up to the first standalone `;` at end of line
-        pattern = rf"const {name}=.*?;(?=\s*\n)"
-        return re.sub(pattern, f"const {name}={value};", src, count=1, flags=re.DOTALL)
+        # Prefer marker comments: /* __NAME_START__ */ ... /* __NAME_END__ */
+        marker_pattern = rf"/\* __{name}_START__ \*/.*?/\* __{name}_END__ \*/"
+        marker_repl = f"/* __{name}_START__ */const {name}={value};/* __{name}_END__ */"
+        result, count = re.subn(marker_pattern, marker_repl, src, count=1, flags=re.DOTALL)
+        if count:
+            return result
+        # Fallback: legacy `const NAME=…;` single-line pattern
+        legacy_pattern = rf"const {name}=.*?;(?=\s*\n)"
+        return re.sub(legacy_pattern, f"const {name}={value};", src, count=1, flags=re.DOTALL)
 
     html = replace_const("DATA", json.dumps(data, ensure_ascii=False, separators=(",", ":")), html)
     html = replace_const("SYNC", f"'{sync_time}'", html)

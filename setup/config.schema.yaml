@@ -42,7 +42,7 @@ cron_expectations:
     schedule: "22:00 daily"
   weekly:
     max_age_hours: 170      # 7 days + 2h buffer
-    schedule: "Fri 18:30"
+    schedule: "Sun 21:00"
   git_snap:
     max_age_hours: 26
     schedule: "23:55 daily"

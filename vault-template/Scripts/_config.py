@@ -42,7 +42,7 @@ DEFAULTS: Dict[str, Any] = {
         "morning":   {"max_age_hours": 26,    "schedule": "10:30 daily"},
         "evening":   {"max_age_hours": 26,    "schedule": "22:30 daily"},
         "daily_doc": {"max_age_hours": 26,    "schedule": "22:00 daily"},
-        "weekly":    {"max_age_hours": 7*24+2, "schedule": "Fri 18:30"},
+        "weekly":    {"max_age_hours": 7*24+2, "schedule": "Sun 21:00"},
         "git_snap":  {"max_age_hours": 26,    "schedule": "23:55 daily"},
     },
     "inbox_sla_hours": 4,

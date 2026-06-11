@@ -9,10 +9,35 @@ Usage:
 
 from __future__ import annotations
 
+import re
 import sys
 from datetime import datetime, timedelta, timezone
 
 from _config import load_config, vault_subdir
+
+
+def _parse_created(path) -> datetime | None:
+    """Try to extract creation time from frontmatter 'date' or 'created' field."""
+    try:
+        text = path.read_text(encoding="utf-8")
+    except Exception:
+        return None
+    m = re.match(r"^---\n(.*?)\n---", text, re.DOTALL)
+    if not m:
+        return None
+    for line in m.group(1).splitlines():
+        for key in ("date:", "created:"):
+            if line.strip().startswith(key):
+                val = line.split(key, 1)[1].strip().strip("'\"")
+                try:
+                    return datetime.fromisoformat(val)
+                except ValueError:
+                    # Try common date-only format
+                    try:
+                        return datetime.strptime(val, "%Y-%m-%d")
+                    except ValueError:
+                        pass
+    return None
 
 
 def main():
@@ -34,8 +59,15 @@ def main():
     for f in inbox.glob("*.md"):
         if f.name.startswith("_"):
             continue
-        mtime = datetime.fromtimestamp(f.stat().st_mtime, tz)
-        age = now - mtime
+        # Prefer frontmatter date; fallback to mtime
+        created = _parse_created(f)
+        if created:
+            if created.tzinfo is None:
+                created = created.replace(tzinfo=tz)
+            age = now - created
+        else:
+            mtime = datetime.fromtimestamp(f.stat().st_mtime, tz)
+            age = now - mtime
         if age > threshold:
             overdue.append((f.name, age))
 
