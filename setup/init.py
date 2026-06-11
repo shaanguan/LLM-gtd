@@ -234,6 +234,16 @@ def main():
         )
         print(f"  ✓ Knowledge base linked at: {KNOWLEDGE_DIR / 'gtd'}")
 
+    # ── Dashboard.app (macOS only) ───────────────────────────────────────
+    import platform
+    if platform.system() == "Darwin":
+        try:
+            from create_app import create_dashboard_app
+            app_path = create_dashboard_app(str(vault_path), str(REPO_ROOT))
+            print(f"  ✓ GTD Dashboard.app installed → {app_path}")
+        except Exception as e:
+            print(f"  ⚠ Dashboard.app skipped: {e}")
+
     # ── Summary ─────────────────────────────────────────────────────────
     print()
     print("═" * 50)
