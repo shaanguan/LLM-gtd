@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM-GTD Quick Start</title>
+<style>
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  background: #fafaf9;
+  color: #1c1917;
+  line-height: 1.6;
+  padding: 48px 24px 80px;
+  max-width: 680px;
+  margin: 0 auto;
+}
+h1 {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+  letter-spacing: -0.5px;
+}
+.subtitle {
+  font-size: 15px;
+  color: #78716c;
+  margin-bottom: 48px;
+}
+.section {
+  margin-bottom: 40px;
+}
+.section-label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #a8a29e;
+  margin-bottom: 12px;
+}
+.card {
+  background: #fff;
+  border: 1px solid #e7e5e4;
+  border-radius: 12px;
+  padding: 20px 24px;
+  margin-bottom: 12px;
+}
+.card-title {
+  font-size: 16px;
+  font-weight: 600;
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.card-body {
+  font-size: 14px;
+  color: #57534e;
+}
+.card-body code {
+  background: #f5f5f4;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-family: "SF Mono", Menlo, monospace;
+}
+.kbd {
+  display: inline-block;
+  background: #f5f5f4;
+  border: 1px solid #d6d3d1;
+  border-radius: 5px;
+  padding: 2px 8px;
+  font-size: 12px;
+  font-family: "SF Mono", Menlo, monospace;
+  box-shadow: 0 1px 0 #d6d3d1;
+}
+.rhythm {
+  display: grid;
+  grid-template-columns: 72px 1fr;
+  gap: 8px 16px;
+  align-items: baseline;
+}
+.rhythm-time {
+  font-size: 13px;
+  font-weight: 600;
+  color: #78716c;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.rhythm-desc {
+  font-size: 14px;
+  color: #44403c;
+}
+.tip {
+  background: #fef3c7;
+  border-radius: 8px;
+  padding: 14px 18px;
+  font-size: 13px;
+  color: #92400e;
+  margin-top: 32px;
+}
+.footer {
+  margin-top: 56px;
+  font-size: 12px;
+  color: #a8a29e;
+  text-align: center;
+}
+</style>
+</head>
+<body>
+
+<h1>LLM-GTD Quick Start</h1>
+<p class="subtitle">你的 AI GTD 秘书已就位。5 件事让你上手。</p>
+
+<div class="section">
+  <div class="section-label">日常操作</div>
+
+  <div class="card">
+    <div class="card-title">📥 捕获想法</div>
+    <div class="card-body">
+      随时对 QoderWork 说：<code>帮我记：明天跟前端对齐动效方案</code><br>
+      macOS 用户也可以按 <span class="kbd">⌘</span> <span class="kbd">I</span> 唤出全局捕获面板，输入后回车即保存。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧹 处理收件箱</div>
+    <div class="card-body">
+      说 <code>帮我过一下 Inbox</code>，逐条按 GTD 决策树分拣：<br>
+      → 2 分钟能做？立刻做掉<br>
+      → 下一步是什么？→ Next Actions<br>
+      → 交给别人？→ Waiting For<br>
+      → 以后再说？→ Someday Maybe
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🎯 看今天做什么</div>
+    <div class="card-body">
+      说 <code>今天做什么</code>，列出不超过 3 条 MIT（Most Important Tasks）。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">📁 管理项目</div>
+    <div class="card-body">
+      说 <code>新建项目：App 首页改版</code>，自动创建项目文件并关联下一步行动。
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">✅ 完成任务</div>
+    <div class="card-body">
+      说 <code>xxx 做完了</code>，自动归档到 06 - Archive 并记录成就。
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-label">自动节奏（不用你操心）</div>
+  <div class="card" style="padding: 20px 24px;">
+    <div class="rhythm">
+      <span class="rhythm-time">每天早上</span>
+      <span class="rhythm-desc">推送播报：今日 MIT + 临近截止 + 等待回复提醒</span>
+      <span class="rhythm-time">每天晚上</span>
+      <span class="rhythm-desc">找你回顾：确认完成项、处理新 Inbox、更新周报</span>
+      <span class="rhythm-time">每周日</span>
+      <span class="rhythm-desc">完整周回顾：7 步清理，确保系统不腐化</span>
+      <span class="rhythm-time">每天 23:55</span>
+      <span class="rhythm-desc">静默 git commit，留底可回滚</span>
+    </div>
+  </div>
+</div>
+
+<div class="tip">
+  <strong>第一步建议：</strong>现在回到 QoderWork，把脑子里飘着的待办/承诺/想法一条条倒给它。说"帮我记：xxx"就行。积攒几条后说"帮我过一下 Inbox"开始分拣。
+</div>
+
+<div class="footer">
+  LLM-GTD · github.com/shaanguan/LLM-gtd
+</div>
+
+</body>
+</html>
