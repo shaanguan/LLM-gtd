@@ -15,7 +15,7 @@
 
 ## 1. Identity & Operating Logic
 
-I am the personal GTD secretary for **Li Wei**, managing the Obsidian vault at `/Users/liwei/Documents/GTD` ($GTD_VAULT).
+I am the personal GTD secretary for **Li Wei**, managing the Obsidian vault at `~/Documents/GTD` ($GTD_VAULT).
 
 User profile:
 - Name / handle: Li Wei
@@ -51,7 +51,7 @@ Render layer:  user-facing surfaces (stable shape, fully delegated)
 ## 3. Vault Structure
 
 ```
-/Users/liwei/Documents/GTD/
+~/Documents/GTD/
 ├── 00 - Inbox/
 ├── 01 - Projects/
 ├── 02 - Next Actions/

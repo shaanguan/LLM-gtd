@@ -356,7 +356,7 @@ Actionable?
 ```
 
 Items must not bounce between lists — once revisited, force a verdict.
-**Deep dive: `knowledge/gtd/wiki/gtd-process.md`, `knowledge/gtd/wiki/gtd-capture.md`**
+**Deep dive: `knowledge/gtd/wiki/inbox-processing.md`, `knowledge/gtd/wiki/capture.md`**
 
 ### 8.2 NA quality bar
 
@@ -364,13 +364,13 @@ Items must not bounce between lists — once revisited, force a verdict.
 - **Startable now** (anything blocked → WF)
 - **Verb-first** (vague phrasing → ask user to commit to a concrete action before filing)
 
-**Deep dive: `knowledge/gtd/wiki/gtd-next-action.md`, `knowledge/gtd/wiki/gtd-organize.md`, `knowledge/gtd/wiki/context-labels.md`**
+**Deep dive: `knowledge/gtd/wiki/next-action.md`, `knowledge/gtd/wiki/context-labels.md`**
 
 ### 8.3 Engagement four-criterion model (in order)
 
 context → time available → energy → priority
 
-**Deep dive: `knowledge/gtd/wiki/gtd-do.md`**
+**Deep dive: `knowledge/gtd/wiki/gtd-five-steps.md`**
 
 ### 8.4 MIT discipline
 
@@ -388,7 +388,7 @@ context → time available → energy → priority
     2. When a calendar event matches an existing vault NA → annotate the time anchor on the MIT (source is still vault)
     3. Show calendar density in the scheduling doc footer so requesters see how booked design time is
 
-**Deep dive: `knowledge/gtd/wiki/mit-most-important-task.md`**
+**Deep dive: `knowledge/gtd/wiki/next-action.md`**
 
 ### 8.5 Review discipline
 
@@ -396,23 +396,22 @@ context → time available → energy → priority
 - Weekly summary records what happened, not plans
 - 3 days without a review → proactive alert
 
-**Deep dive: `knowledge/gtd/wiki/weekly-review-guide.md`, `knowledge/gtd/wiki/gtd-review.md`**
+**Deep dive: `knowledge/gtd/wiki/weekly-review.md`**
 
 ### 8.6 Quick-reference index (when in doubt, read these)
 
 | Situation                          | Wiki page (under `{{repo.path}}/knowledge/gtd/wiki/`)        |
 |------------------------------------|--------------------------------------------------------------|
-| Inbox processing                   | gtd-process.md, gtd-capture.md                               |
-| NA naming / contexts               | context-labels.md, gtd-organize.md                           |
+| Inbox processing                   | inbox-processing.md, capture.md                              |
+| NA naming / contexts               | next-action.md, context-labels.md                            |
 | Two-minute rule                    | two-minute-rule.md                                           |
-| Weekly review                      | weekly-review-guide.md, gtd-review.md                        |
-| Picking MITs                       | mit-most-important-task.md                                   |
-| Goal pyramid / horizons            | horizons-of-focus.md, goal-pyramid.md                        |
-| Project definition                 | gtd-life-planning.md, starting-gtd.md, natural-planning-model.md |
-| Stuck / procrastination            | gtd-common-pitfalls.md, focus-and-concentration.md, procrastination.md |
-| Energy / rest                      | energy-management.md, mofat-rest-method.md                   |
-| Inbox Zero                         | inbox-zero.md                                                |
-| Mind like water (philosophy reset) | mind-like-water.md                                           |
+| Weekly review                      | weekly-review.md                                             |
+| Picking MITs                       | next-action.md                                               |
+| Goal pyramid / horizons            | horizons-of-focus.md                                         |
+| Project definition                 | project-definition.md                                        |
+| Someday / Maybe                    | someday-maybe.md                                             |
+| Waiting for / delegation           | waiting-for.md                                               |
+| GTD overview (five steps)          | gtd-five-steps.md                                            |
 
 ---
 
