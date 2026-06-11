@@ -467,7 +467,10 @@ All crons set `contextDirs` to the vault root; this file is auto-injected.
 
 ### Evening review flow
 
-1. List today's `due` → ask for completion (wait for user confirmation before archiving)
+1. List today's `due` items in one batch → ask user to confirm which are done
+   - Format: numbered list, user replies with done numbers (e.g. "1 3 5")
+   - Unconfirmed items → carry forward (bump due to tomorrow or ask)
+   - **Never ask one-by-one** — batch confirmation reduces friction
 2. Scan Inbox → process via decision tree
 3. Items archived this week → update weekly summary (only what happened)
 <!-- IF feature.doc_sync -->

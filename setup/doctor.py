@@ -116,7 +116,9 @@ def check_agents_md(vault: Path) -> list:
 
     # Check for unprocessed conditionals
     if "<!-- IF feature." in content:
-        issues.append(("WARN", "AGENTS.md still contains <!-- IF --> conditionals (not rendered?)"))
+        issues.append(("WARN", "AGENTS.md still contains <!-- IF feature. --> conditionals (not rendered?)"))
+    if "<!-- IF im." in content:
+        issues.append(("WARN", "AGENTS.md still contains <!-- IF im. --> conditionals (IM platform not resolved)"))
 
     # Basic size check
     lines = content.count("\n")
@@ -131,6 +133,35 @@ def check_state_dir(vault: Path) -> list:
     state = vault / ".llm-gtd"
     if not state.is_dir():
         issues.append(("WARN", "Missing .llm-gtd/ state directory (run init.py first?)"))
+    return issues
+
+
+def check_version(vault: Path) -> list:
+    """Check vault version against repo version for upgrade detection."""
+    issues = []
+    version_file = vault / ".llm-gtd" / "version"
+    if not version_file.is_file():
+        issues.append(("INFO", "No .llm-gtd/version file — cannot detect upgrades (pre-1.1.0 vault?)"))
+        return issues
+
+    # Import VERSION from init.py or fallback
+    repo_root = Path(__file__).resolve().parent.parent
+    init_py = repo_root / "setup" / "init.py"
+    repo_version = "unknown"
+    if init_py.is_file():
+        for line in init_py.read_text(encoding="utf-8").splitlines():
+            if line.startswith("VERSION"):
+                repo_version = line.split('"')[1] if '"' in line else line.split("'")[1]
+                break
+
+    vault_version = version_file.read_text(encoding="utf-8").strip()
+    if vault_version != repo_version and repo_version != "unknown":
+        issues.append((
+            "WARN",
+            f"Vault version {vault_version} < repo version {repo_version}. "
+            f"Run: python3 setup/init.py --vault \"{vault}\" to upgrade runtime files."
+        ))
+
     return issues
 
 
@@ -214,6 +245,7 @@ def main():
     parser = argparse.ArgumentParser(description="GTD Workbench Doctor — vault health check")
     parser.add_argument("--vault", type=str, help="Vault path (defaults to $GTD_VAULT)")
     parser.add_argument("--check-cron", action="store_true", help="Also verify cron task registration")
+    parser.add_argument("--fix", action="store_true", help="Auto-fix simple issues (missing dirs, state dir)")
     args = parser.parse_args()
 
     vault_str = args.vault or os.environ.get("GTD_VAULT")
@@ -226,6 +258,8 @@ def main():
     print()
     print("🩺 GTD Workbench Doctor")
     print(f"   Vault: {vault}")
+    if args.fix:
+        print("   Mode: --fix (will auto-repair where possible)")
     print("   " + "─" * 44)
 
     all_issues = []
@@ -236,6 +270,7 @@ def main():
         ("Scripts", check_scripts),
         ("AGENTS.md quality", check_agents_md),
         ("State directory", check_state_dir),
+        ("Version", check_version),
         ("Config YAML", check_config_yaml),
     ]
 
@@ -267,6 +302,27 @@ def main():
 
     print()
     print(f"   Summary: {len(fails)} error(s), {len(warns)} warning(s), {len(infos)} info(s)")
+
+    # --fix: auto-repair simple issues
+    if args.fix and (warns or fails):
+        print()
+        print("   🔧 Auto-fix results:")
+        fixed = 0
+        for level, msg in all_issues:
+            if "Missing directory:" in msg:
+                dirname = msg.split("Missing directory: ")[1].rstrip("/")
+                (vault / dirname).mkdir(parents=True, exist_ok=True)
+                print(f"      ✓ Created {dirname}/")
+                fixed += 1
+            elif "Missing .llm-gtd/ state directory" in msg:
+                (vault / ".llm-gtd").mkdir(exist_ok=True)
+                print(f"      ✓ Created .llm-gtd/")
+                fixed += 1
+        if fixed:
+            print(f"      Fixed {fixed} issue(s).")
+        else:
+            print(f"      No auto-fixable issues found (remaining issues need manual intervention).")
+
     print()
 
     sys.exit(1 if fails else 0)

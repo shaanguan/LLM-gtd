@@ -30,7 +30,12 @@ DEFAULT_MORNING = "10:30"
 DEFAULT_EVENING = "22:30"
 DEFAULT_WEEKLY = "Sun 21:00"
 
-FEATURES_ALL = ["okr", "dingtalk", "side_project", "knowledge_base"]
+FEATURES_ALL = ["okr", "doc_sync", "side_project", "knowledge_base"]
+
+IM_PLATFORMS = ["dingtalk", "feishu", "wecom", "wechat"]
+
+# Version written to .llm-gtd/version for upgrade detection
+VERSION = "1.1.0"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -71,6 +76,27 @@ def render_conditionals(text: str, features: dict) -> str:
             return if_block
         else:
             return else_block
+
+    return pattern.sub(replacer, text)
+
+
+def render_im_conditionals(text: str, im_platform: str) -> str:
+    """
+    Process <!-- IF im.xxx --> ... <!-- /IF --> blocks.
+    Keeps the block matching the chosen IM platform, removes all others.
+    """
+    pattern = re.compile(
+        r'<!-- IF im\.(\w+) -->\s*\n(.*?)<!-- /IF -->\s*\n',
+        re.DOTALL,
+    )
+
+    def replacer(m):
+        platform = m.group(1)
+        block = m.group(2)
+        if platform == im_platform:
+            return block
+        else:
+            return ""
 
     return pattern.sub(replacer, text)
 
@@ -147,14 +173,22 @@ def main():
     # ── Question 2: Features ────────────────────────────────────────────
     features = {
         "okr": True,
-        "dingtalk": True,
+        "doc_sync": True,
         "side_project": False,
         "knowledge_base": True,
     }
+    im_platform = "dingtalk"  # default
 
     if not args.non_interactive:
         features["okr"] = ask_yn("2/3  Enable OKR tracking? (links NAs to objectives)", True)
-        features["dingtalk"] = ask_yn("     Enable DingTalk document sync?", True)
+        features["doc_sync"] = ask_yn("     Enable document sync (shared scheduling/daily doc)?", True)
+        if features["doc_sync"]:
+            print("     IM platform for document sync:")
+            print("       1) DingTalk  2) Feishu  3) WeCom  4) WeChat")
+            im_choice = ask("     Choose [1-4]", "1")
+            im_platform = {"1": "dingtalk", "2": "feishu", "3": "wecom", "4": "wechat"}.get(im_choice, "dingtalk")
+        else:
+            im_platform = "none"
         features["side_project"] = ask_yn("     Track a personal side project (separate from work)?", False)
         features["knowledge_base"] = ask_yn("     Include GTD knowledge base references in AGENTS.md?", True)
         print()
@@ -179,10 +213,11 @@ def main():
     if features["side_project"] and not args.non_interactive:
         side_project_name = ask("     Side project name", "My Side Project")
 
+    im_names = {"dingtalk": "DingTalk", "feishu": "Feishu", "wecom": "WeCom", "wechat": "WeChat", "none": "IM"}
     variables = {
         "user.name": user_name,
         "user.role": user_role,
-        "user.im_channel": "DingTalk" if features["dingtalk"] else "IM",
+        "user.im_channel": im_names.get(im_platform, "IM"),
         "user.im_assistant": "assistant",
         "user.timezone": DEFAULT_TIMEZONE,
         "user.performance_cycle": "current cycle",
@@ -192,8 +227,8 @@ def main():
         "config.collaborators_file": "05 - Reference/collaborators.md",
         "config.rendered_at": datetime.now().strftime("%Y-%m-%d"),
         "repo.path": str(REPO_ROOT),
-        "dingtalk.scheduling_node_id": "<paste-your-node-id>",
-        "dingtalk.daily_node_id": "<paste-your-node-id>",
+        "doc.scheduling_id": "<paste-your-doc-id>",
+        "doc.daily_id": "<paste-your-doc-id>",
         "cron.morning_id": "<auto-assigned>",
         "cron.morning_time": f"daily {morning_time}",
         "cron.evening_id": "<auto-assigned>",
@@ -214,9 +249,13 @@ def main():
     state_dir = vault_path / ".llm-gtd"
     state_dir.mkdir(exist_ok=True)
 
+    # Write version for upgrade detection (#6)
+    (state_dir / "version").write_text(VERSION + "\n", encoding="utf-8")
+
     # ── Render AGENTS.md ────────────────────────────────────────────────
     agents_template = (TEMPLATE_DIR / "AGENTS.md").read_text(encoding="utf-8")
     rendered = render_conditionals(agents_template, features)
+    rendered = render_im_conditionals(rendered, im_platform)
     rendered = render_placeholders(rendered, variables)
 
     agents_dest = vault_path / "AGENTS.md"
@@ -278,8 +317,8 @@ def main():
     print(f'  3. In your AI agent, select this vault as the working folder')
     print(f'     (AGENTS.md will be auto-injected into every session)')
     print()
-    if features["dingtalk"]:
-        print(f'  4. Edit AGENTS.md §4 to paste your DingTalk document node IDs')
+    if features["doc_sync"]:
+        print(f'  4. Edit AGENTS.md §4 to paste your {im_names[im_platform]} document IDs')
         print()
     print(f'  5. Register cron jobs in your agent environment:')
     print(f'     • Morning brief:  {morning_time} daily')
