@@ -6,7 +6,7 @@ Usage:
     python3 setup/init.py [--vault PATH]
 
 Walks you through 3 questions, renders vault-template/ into your vault,
-and prints cron-registration guidance for QoderWork.
+and prints cron-registration guidance.
 """
 
 import os
@@ -127,7 +127,7 @@ def main():
     print()
     print("╔══════════════════════════════════════════════╗")
     print("║   GTD Workbench — Interactive Setup          ║")
-    print("║   Your AI GTD secretary, powered by QoderWork║")
+    print("║   Your AI GTD secretary                      ║")
     print("╚══════════════════════════════════════════════╝")
     print()
 
@@ -275,13 +275,13 @@ def main():
     print(f'  2. Open the vault in Obsidian:')
     print(f'     Open Obsidian → "Open folder as vault" → select {vault_path}')
     print()
-    print(f'  3. In QoderWork, select this vault as your working folder')
-    print(f'     (the AGENTS.md will be auto-injected into every session)')
+    print(f'  3. In your AI agent, select this vault as the working folder')
+    print(f'     (AGENTS.md will be auto-injected into every session)')
     print()
     if features["dingtalk"]:
         print(f'  4. Edit AGENTS.md §4 to paste your DingTalk document node IDs')
         print()
-    print(f'  5. Register cron jobs in QoderWork:')
+    print(f'  5. Register cron jobs in your agent environment:')
     print(f'     • Morning brief:  {morning_time} daily')
     print(f'     • Evening review: {evening_time} daily')
     print(f'     • Weekly review:  {weekly_time}')

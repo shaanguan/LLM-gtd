@@ -6,13 +6,13 @@
 Not deeply. The system implements GTD for you — the agent handles the methodology. But reading David Allen's "Getting Things Done" (or at least the knowledge-base wiki pages) will help you understand why the system behaves the way it does.
 
 **Q: Can I use this without QoderWork?**
-The vault template and scripts work standalone with any Obsidian setup. However, the AGENTS.md is specifically designed for QoderWork's agent injection — without it, you lose the automated cron flows, IM briefs, and DingTalk sync.
+Yes! The system works with any AI agent that can read AGENTS.md as context. QoderWork has the best integration (built-in cron, IM connectors), but Claude Desktop, Cursor, or any MCP-compatible agent can run the core workflow. You just need to set up cron externally (launchd / crontab) for automated flows.
 
 **Q: Is my data stored in the cloud?**
-No. Your vault lives entirely on your local filesystem. QoderWork processes it locally. The only external communication happens if you enable DingTalk sync (which pushes summaries to your DingTalk docs) or if your QoderWork agent model uses a cloud API.
+No. Your vault lives entirely on your local filesystem. The agent processes it locally. The only external communication happens if you enable IM document sync (which pushes summaries to shared docs) or if your agent model uses a cloud API.
 
 **Q: Can multiple people share one vault?**
-Not recommended. GTD is inherently personal — your Next Actions, contexts, and priorities are yours. For team coordination, use the DingTalk scheduling doc (which exposes only delivery milestones, not your full task list).
+Not recommended. GTD is inherently personal — your Next Actions, contexts, and priorities are yours. For team coordination, use the shared scheduling doc (which exposes only delivery milestones, not your full task list).
 
 ## Setup
 
@@ -20,7 +20,7 @@ Not recommended. GTD is inherently personal — your Next Actions, contexts, and
 Yes. Run `init.py` pointing at your existing vault. It will create the GTD directories alongside your existing folders and add AGENTS.md. It never overwrites existing files.
 
 **Q: What if I don't use DingTalk?**
-Disable it during `init.py` setup. The conditional sections in AGENTS.md will be removed, and the agent won't attempt any DingTalk operations.
+No problem. During `init.py` setup, choose your preferred IM platform (Feishu, WeCom, WeChat) or select none. If you choose none, the conditional doc-sync sections in AGENTS.md will be removed and the agent won't attempt any IM operations.
 
 **Q: Can I change features after initial setup?**
 Yes. Either re-run `init.py` (it won't overwrite your data files) or manually edit the `<!-- IF feature.X -->` blocks in AGENTS.md.
@@ -54,10 +54,10 @@ Yes. Add `.md` files to `knowledge/gtd/wiki/` following the schema in `knowledge
 Rules belong in AGENTS.md, not just in conversation memory. If you established something important, verify it's written into the appropriate section. AGENTS.md is re-injected every session — memory can fade, this file can't.
 
 **Q: Cron jobs aren't running.**
-Check: (1) QoderWork is open, (2) the scheduled task exists in the tasks panel, (3) `contextDirs` points to your vault, (4) run `python3 Scripts/preflight.py` to verify the environment is healthy.
+Check: (1) your agent environment is running, (2) scheduled tasks are registered (QoderWork panel / launchd / crontab), (3) `contextDirs` points to your vault, (4) run `python3 Scripts/preflight.py` to verify the environment is healthy.
 
-**Q: DingTalk updates are failing with 5xx.**
-The DingTalk MCP has rate limits. The agent is designed to retry once after 5 seconds. If it persists, check your DingTalk connector status in QoderWork settings. Also ensure you haven't exceeded 8 API calls per cron cycle.
+**Q: IM document sync is failing.**
+IM APIs have rate limits. The agent is designed to retry once after a few seconds. If it persists, check your IM connector status. For DingTalk, ensure you haven't exceeded 8 API calls per cron cycle.
 
 **Q: I accidentally deleted a file.**
 If the agent did it, it should have moved it to `~/.Trash/` (macOS) or the system recycle bin. Check there first. The nightly git snapshot (23:55 cron) also provides a safety net — `git log` and `git checkout` to recover.

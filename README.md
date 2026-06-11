@@ -1,6 +1,6 @@
 # LLM-GTD
 
-> Your AI GTD secretary, lives inside QoderWork.
+> Your AI GTD secretary — works with QoderWork, Claude Desktop, or any agent that reads AGENTS.md.
 
 让 AI 帮你管理待办事项，而不是你管理 AI。
 
@@ -10,7 +10,7 @@
 
 LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统**。你只需要三样东西：
 
-1. **QoderWork** — AI Agent 运行环境（定时任务、对话、钉钉集成）
+1. **一个 AI Agent 环境** — QoderWork / Claude Desktop / 任何支持 AGENTS.md 或 MCP 的工具
 2. **Obsidian** — 你的笔记本（Markdown 文件就是你的数据）
 3. **一个浏览器** — 打开 Dashboard.html 看全局状态
 
@@ -32,16 +32,25 @@ LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统*
 | "帮我看看 Inbox" | 逐条过 GTD 决策树：该做的建 NA，该等的建 WF，该扔的问你 |
 | "这周进展怎么样" | 汇总本周归档项，对比 OKR 进度 |
 
+## 支持的 Agent 平台
+
+| 平台 | 定时任务 | IM 推送 | 文档同步 |
+|------|---------|---------|---------|
+| QoderWork | ✅ 内置 cron | ✅ 钉钉/飞书/企微 | ✅ 钉钉/飞书文档 |
+| Claude Desktop | ⚠️ 需外部 cron (launchd/crontab) | ⚠️ 需 MCP 插件 | ⚠️ 需 MCP 插件 |
+| 其他 (Cursor, Windsurf...) | ⚠️ 手动触发 | ❌ | ❌ |
+
+核心功能（vault 管理 + Dashboard + 对话）在所有平台上都能工作。定时播报和 IM 推送是增值功能，依赖平台能力。
+
 ## 谁适合用？
 
 - 用 Obsidian 记笔记，想让任务管理也住在同一个地方的人
 - 想要 GTD 的系统性，但懒得自己维护清单的人
-- 团队协作用钉钉，想让同事看到你的排期但不暴露全部细节的人
+- 团队协作需要让同事看到你的排期但不暴露全部细节的人
 - 对 AI Agent 感兴趣，想看一个真实落地案例的人
 
 ## 不适合谁？
 
-- 不用 QoderWork 的人（Agent 运行时强依赖它）
 - 偏好 GUI 任务管理器（Todoist / Things / TickTick）的人
 - 不接受文件都是 Markdown 的人
 
@@ -49,13 +58,13 @@ LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统*
 
 ## 快速上手（5 分钟）
 
-### 推荐方式：在 QoderWork 中对话完成
+### 推荐方式：在 Agent 中对话完成
 
-打开 QoderWork，直接说：
+打开你的 AI Agent（QoderWork / Claude Desktop），直接说：
 
 > "帮我设置 LLM-GTD"
 
-Agent 会自动完成以下所有步骤 — 你只需要回答几个偏好问题（vault 放哪、开哪些功能、定时任务时间），然后确认即可。
+Agent 会自动完成以下所有步骤 — 你只需要回答几个偏好问题（vault 放哪、IM 平台、开哪些功能、播报时间），然后确认即可。
 
 唯一需要你手动做的一步：打开 Obsidian → "Open folder as vault" → 选 Agent 生成的路径。（之后所有操作都可以在对话中完成）
 
@@ -67,16 +76,18 @@ Agent 会自动完成以下所有步骤 — 你只需要回答几个偏好问题
 
 ```bash
 # 1. 克隆仓库
-git clone https://github.com/<your-org>/llm-gtd.git
-cd llm-gtd
+git clone https://github.com/shaanguan/LLM-gtd.git
+cd LLM-gtd
 
-# 2. 运行初始化（交互式，问 3 组问题）
+# 2. 运行初始化（交互式，问几组问题）
 python3 setup/init.py
 
 # 3. 用 Obsidian 打开生成的目录
 #    Open Obsidian → "Open folder as vault" → 选刚才指定的路径
 
-# 4. 在 QoderWork 中选择这个文件夹作为工作目录
+# 4. 在 Agent 环境中指定这个文件夹为工作目录
+#    - QoderWork: 选择文件夹
+#    - Claude Desktop: 在 project settings 里加路径
 
 # 5. 注册定时任务（或让 Agent 帮你注册）
 
@@ -91,13 +102,13 @@ python3 setup/doctor.py --vault ~/Documents/GTD
 ```
 ┌─────────────────────────────────────────────────────────┐
 │                  你看到的（渲染层）                        │
-│  Dashboard.html  │  钉钉每日工作安排  │  钉钉需求排期表   │
+│  Dashboard.html  │  IM 每日播报  │  共享文档（可选）      │
 └────────┬─────────────────┬────────────────────┬─────────┘
          │                 │                    │
-         │   export_dashboard.py    DingTalk MCP│
+         │   export_dashboard.py      IM MCP    │
          │                 │                    │
 ┌────────▼─────────────────▼────────────────────▼─────────┐
-│              AI Agent 层（QoderWork）                     │
+│         AI Agent 层（QoderWork / Claude Desktop）         │
 │  AGENTS.md 17 节操作规范 + 知识库 + 定时任务              │
 └────────┬────────────────────────────────────────────────┘
          │  读 / 写 / 移动 / 归档
@@ -121,7 +132,7 @@ python3 setup/doctor.py --vault ~/Documents/GTD
 | 功能 | 默认 | 说明 |
 |------|------|------|
 | OKR 追踪 | 开 | 每条任务可关联 OKR，周回顾自动对比进度 |
-| 钉钉同步 | 开 | 自动更新钉钉文档（排期表 + 每日安排），同事能看到 |
+| 文档同步 | 开 | 自动更新共享文档（排期表 + 每日安排），同事能看到（需钉钉或飞书） |
 | 副项目隔离 | 关 | 个人项目单独追踪，不混入工作输出 |
 | 知识库引用 | 开 | Agent 处理 Inbox 时参考 GTD 方法论 wiki |
 

@@ -2,19 +2,19 @@
 
 ## Overview
 
-GTD Workbench is a three-layer system that turns an Obsidian vault into a fully automated Getting Things Done workflow, driven by an AI agent running inside QoderWork.
+GTD Workbench is a three-layer system that turns an Obsidian vault into a fully automated Getting Things Done workflow, driven by an AI agent (QoderWork, Claude Desktop, or any AGENTS.md-compatible environment).
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                        RENDER LAYER                              │
-│  Dashboard.html │ Daily IM Brief │ Scheduling Doc (DingTalk)    │
+│  Dashboard.html │ Daily IM Brief │ Scheduling Doc (optional)    │
 └────────────┬───────────────┬──────────────────┬─────────────────┘
              │               │                  │
-             │    export_dashboard.py            │  DingTalk MCP
+             │    export_dashboard.py            │  IM MCP
              │               │                  │
 ┌────────────▼───────────────▼──────────────────▼─────────────────┐
 │                        AGENT LAYER                               │
-│  QoderWork + AGENTS.md (auto-injected context)                  │
+│  AI Agent + AGENTS.md (auto-injected context)                   │
 │  • Cron jobs: morning brief, evening review, weekly review      │
 │  • On-demand: user conversations, inbox processing              │
 │  • Knowledge base: knowledge/gtd/wiki/ (methodology reference)  │

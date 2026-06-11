@@ -4,18 +4,18 @@
 
 Before you begin, make sure you have:
 
-1. **QoderWork** desktop app installed (macOS or Windows)
+1. **An AI Agent environment** — QoderWork, Claude Desktop, or any tool that supports AGENTS.md context injection
 2. **Obsidian** installed (any version)
 3. **Python 3.9+** available (for the helper scripts)
-4. A DingTalk account (optional, for team-facing document sync)
+4. An IM platform account (optional, for team-facing document sync — DingTalk, Feishu, or WeCom supported)
 
 ## Quick Start (5 minutes)
 
 ### Step 1: Clone the repo
 
 ```bash
-git clone https://github.com/<your-org>/llm-gtd.git
-cd llm-gtd
+git clone https://github.com/shaanguan/LLM-gtd.git
+cd LLM-gtd
 ```
 
 ### Step 2: Run the initializer
@@ -24,9 +24,10 @@ cd llm-gtd
 python3 setup/init.py
 ```
 
-The script asks three questions:
+The script asks a few questions:
 - **Where to create your vault** — e.g. `~/Documents/GTD`
-- **Which features to enable** — OKR, DingTalk, side project, knowledge base
+- **IM platform** — DingTalk, Feishu, WeCom, WeChat, or none
+- **Which features to enable** — OKR, document sync, side project, knowledge base
 - **Cron schedule** — when to run morning brief, evening review, weekly review
 
 It then copies the vault template, renders your personalized `AGENTS.md`, and prints next steps.
@@ -35,13 +36,23 @@ It then copies the vault template, renders your personalized `AGENTS.md`, and pr
 
 Open Obsidian → "Open folder as vault" → select the path you chose in Step 2.
 
-### Step 4: Point QoderWork at your vault
+### Step 4: Point your Agent at the vault
 
-In QoderWork, select this vault folder as your working directory. The `AGENTS.md` file will be auto-injected into every agent session from now on.
+Depending on your platform:
+- **QoderWork** — select this vault folder as your working directory
+- **Claude Desktop** — add the vault path to your project settings
+- **Other** — ensure your agent can read/write this directory
+
+The `AGENTS.md` file will be auto-injected into every agent session from now on.
 
 ### Step 5: Register cron jobs
 
-In QoderWork, create scheduled tasks matching the times you chose:
+Set up scheduled tasks for automated flows:
+- **QoderWork** — use the built-in scheduled tasks panel
+- **Claude Desktop** — use macOS `launchd` or Linux `crontab` to trigger the agent
+- **Other** — trigger manually or set up your own scheduler
+
+Tasks to register:
 - Morning brief (e.g. daily 10:30)
 - Evening review (e.g. daily 22:30)
 - Weekly review (e.g. Sunday 21:00)
@@ -63,7 +74,7 @@ Once set up, your daily flow looks like this:
 
 **Throughout the day** — Capture anything by telling the agent ("add to inbox: call back the vendor about pricing") or dropping a note in `00 - Inbox/` via Obsidian / Raycast.
 
-**Evening** — The agent asks which of today's tasks were completed. Confirmed items get archived to `06 - Archive/` and logged in `07 - Achievements/`. It sweeps Inbox for anything unprocessed, updates the Dashboard, and refreshes DingTalk docs.
+**Evening** — The agent asks which of today's tasks were completed. Confirmed items get archived to `06 - Archive/` and logged in `07 - Achievements/`. It sweeps Inbox for anything unprocessed, updates the Dashboard, and refreshes shared docs (if enabled).
 
 **Weekly** — A deeper review: walk every list, check for stalled projects, review Someday Maybe for activation, plan next week, and align with OKR progress.
 
@@ -84,20 +95,22 @@ inbox_sla_hours: 2          # stricter inbox processing SLA
 dashboard_freshness_hours: 6
 ```
 
-### DingTalk integration
+### IM document sync
 
-After running `init.py` with DingTalk enabled:
-1. Create two DingTalk documents (one for scheduling, one for daily brief)
-2. Note down their `nodeId` values from the URL
-3. Edit your `AGENTS.md` §4 — replace `<paste-your-node-id>` with the real IDs
-4. Grant the QoderWork DingTalk connector access to those docs
+After running `init.py` with document sync enabled:
+1. Create shared documents on your IM platform (scheduling table + daily brief)
+2. Note down their document IDs from the URL
+3. Edit your `AGENTS.md` §4 — replace the placeholder IDs with the real ones
+4. Grant your agent's IM connector access to those docs
+
+Supported platforms: DingTalk (钉钉), Feishu (飞书). WeCom and WeChat support message push only (no shared documents).
 
 ### Adding a side project
 
 If you enable `side_project` during init, a dedicated section appears in AGENTS.md. Side project items:
 - Live in `02 - Next Actions/` like everything else
 - Are tagged or prefixed to distinguish them
-- Never appear in DingTalk docs or work briefs
+- Never appear in shared docs or work briefs
 - Get their own cadence (you set this in AGENTS.md §13)
 
 ### Knowledge base
@@ -134,5 +147,5 @@ Run `python3 setup/doctor.py` for automated diagnostics. Common issues:
 |---------|-----|
 | "AGENTS.md has unresolved placeholders" | Re-run `init.py` or manually fill in the `{{...}}` values |
 | Dashboard shows stale data | Run `cd $GTD_VAULT && python3 export_dashboard.py` |
-| Cron not firing | Check QoderWork scheduled tasks panel; ensure vault is set as contextDir |
-| DingTalk 5xx errors | Rate limit — the agent auto-retries; if persistent, check DingTalk connector status |
+| Cron not firing | Check your scheduled tasks setup; ensure vault is set as context directory |
+| IM doc sync errors | Rate limit — the agent auto-retries; if persistent, check your IM connector status |

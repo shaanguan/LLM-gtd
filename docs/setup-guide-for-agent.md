@@ -1,7 +1,8 @@
 # Agent Setup Guide
 
-> This file is for the AI agent (QoderWork) to read when a user asks to set up LLM-GTD.
+> This file is for the AI agent to read when a user asks to set up LLM-GTD.
 > It is NOT a user-facing document — it's operational instructions for the agent.
+> Works with QoderWork, Claude Desktop, or any AGENTS.md-compatible environment.
 
 ## When to use this
 
@@ -21,13 +22,20 @@ Ask these questions in ONE batch:
 - `~/Documents/GTD` (recommended)
 - Custom path
 
-**Q2: 功能开关** (multi-select)
+**Q2: IM 平台**
+- 钉钉（DingTalk）— 支持文档同步+群消息推送
+- 飞书（Feishu）— 支持文档同步+群消息推送
+- 企业微信（WeCom）— 支持机器人消息推送
+- 微信（WeChat）— 个人用，仅消息推送
+- 无 — 不需要 IM 推送
+
+**Q3: 功能开关** (multi-select)
 - OKR 追踪（工作任务关联目标）
-- 钉钉文档同步（排期表+每日安排自动更新）
+- 文档同步（排期表+每日安排自动更新，需钉钉或飞书）
 - 副项目隔离（个人项目不混入工作输出）
 - GTD 知识库引用（Agent 处理 Inbox 时参考方法论）
 
-**Q3: 定时任务时间**
+**Q4: 定时任务时间**
 - 早间播报时间（默认 10:30）
 - 晚间回顾时间（默认 22:30）
 - 周回顾（默认 Sun 21:00）
@@ -52,13 +60,16 @@ Alternatively, just run the full init flow directly in Python:
 2. Render AGENTS.md (replace placeholders + strip disabled conditionals)
 3. Create .llm-gtd/ state directory
 
-### Step 3: Set QoderWork working folder
+### Step 3: Set working folder
 
-Use the QoderWork action tool to select the vault as the working folder:
+**QoderWork:** Use the action tool to select the vault as the working folder:
 ```
 mcp__builtin_qoderwork__action: key="workspace.folder", action="update", params={path: "<vault-path>"}
 ```
-(Check available actions first via query)
+
+**Claude Desktop:** Guide user to add the vault path in their project settings.
+
+**Other:** Ensure the agent has read/write access to the vault directory and AGENTS.md is loaded as context.
 
 ### Step 4: Register cron jobs
 
