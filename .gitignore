@@ -13,3 +13,5 @@ private/
 # IDE
 .idea/
 .vscode/
+audit-report.md
+审计报告.md
