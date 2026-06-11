@@ -64,7 +64,7 @@ Render layer:  user-facing surfaces (stable shape, fully delegated)
 ├── Scripts/
 ├── Dashboard.html
 ├── export_dashboard.py
-├── .gtd-workbench/
+├── .llm-gtd/
 └── AGENTS.md
 ```
 

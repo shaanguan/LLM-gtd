@@ -1,12 +1,12 @@
 """
-gtd-workbench shared config loader.
+llm-gtd shared config loader.
 
 Resolution order:
   1. $GTD_VAULT env var (path to vault root) — required
-  2. $GTD_VAULT/.gtd-workbench/config.yaml — optional overrides
+  2. $GTD_VAULT/.llm-gtd/config.yaml — optional overrides
   3. Built-in defaults (this file)
 
-State files (heartbeat / PTO flag) live under $GTD_VAULT/.gtd-workbench/state/
+State files (heartbeat / PTO flag) live under $GTD_VAULT/.llm-gtd/state/
 so they travel with the vault when synced (Dropbox/iCloud) and never leak into
 arbitrary $HOME paths.
 """
@@ -69,8 +69,8 @@ def get_vault() -> Path:
 
 
 def state_dir() -> Path:
-    """Return $GTD_VAULT/.gtd-workbench/state, creating it if needed."""
-    d = get_vault() / ".gtd-workbench" / "state"
+    """Return $GTD_VAULT/.llm-gtd/state, creating it if needed."""
+    d = get_vault() / ".llm-gtd" / "state"
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -86,9 +86,9 @@ def _deep_merge(base: Dict[str, Any], override: Dict[str, Any]) -> Dict[str, Any
 
 
 def load_config() -> Dict[str, Any]:
-    """Defaults merged with optional $GTD_VAULT/.gtd-workbench/config.yaml."""
+    """Defaults merged with optional $GTD_VAULT/.llm-gtd/config.yaml."""
     cfg = dict(DEFAULTS)
-    cfg_path = get_vault() / ".gtd-workbench" / "config.yaml"
+    cfg_path = get_vault() / ".llm-gtd" / "config.yaml"
     if cfg_path.exists() and yaml is not None:
         try:
             user = yaml.safe_load(cfg_path.read_text(encoding="utf-8")) or {}

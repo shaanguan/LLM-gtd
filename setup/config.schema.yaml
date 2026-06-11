@@ -1,6 +1,6 @@
-# gtd-workbench config schema (reference + defaults)
+# llm-gtd config schema (reference + defaults)
 #
-# Drop this at $GTD_VAULT/.gtd-workbench/config.yaml to override defaults.
+# Drop this at $GTD_VAULT/.llm-gtd/config.yaml to override defaults.
 # Every key is optional — anything you omit falls back to the value below.
 
 # ─── Vault directory layout ───────────────────────────────────────────

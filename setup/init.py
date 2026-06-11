@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gtd-workbench interactive initializer.
+llm-gtd interactive initializer.
 
 Usage:
     python3 setup/init.py [--vault PATH]
@@ -211,7 +211,7 @@ def main():
     copy_template(TEMPLATE_DIR, vault_path)
 
     # Create state directory
-    state_dir = vault_path / ".gtd-workbench"
+    state_dir = vault_path / ".llm-gtd"
     state_dir.mkdir(exist_ok=True)
 
     # ── Render AGENTS.md ────────────────────────────────────────────────
@@ -225,7 +225,7 @@ def main():
 
     # ── Symlink or copy knowledge base (if enabled) ─────────────────────
     if features["knowledge_base"] and KNOWLEDGE_DIR.exists():
-        kb_dest = vault_path / ".gtd-workbench" / "knowledge-link.txt"
+        kb_dest = vault_path / ".llm-gtd" / "knowledge-link.txt"
         kb_dest.write_text(
             f"# GTD Knowledge Base location\n"
             f"# The AGENTS.md references pages from here.\n"

@@ -96,8 +96,8 @@ In-conversation sync checklist (run before turn end if I touched the vault):
 │   └── preflight.py          # pre-cron self-check + PTO toggle
 ├── Dashboard.html          # local dashboard (auto-reloads on focus after 5min)
 ├── export_dashboard.py     # vault → Dashboard one-way export
-├── .gtd-workbench/         # state: heartbeat.json, optional config.yaml
-└── AGENTS.md               # this file (rendered from gtd-workbench template)
+├── .llm-gtd/         # state: heartbeat.json, optional config.yaml
+└── AGENTS.md               # this file (rendered from llm-gtd template)
 ```
 
 ### `05 - Reference/` rules

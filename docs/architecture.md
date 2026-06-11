@@ -29,7 +29,7 @@ GTD Workbench is a three-layer system that turns an Obsidian vault into a fully 
 │  │05-Ref    │06-Archive│07-Achieve│Templates │Scripts     │    │
 │  └──────────┴──────────┴──────────┴──────────┴────────────┘    │
 │  + AGENTS.md  + Dashboard.html  + export_dashboard.py           │
-│  + .gtd-workbench/ (state: heartbeat, config)                   │
+│  + .llm-gtd/ (state: heartbeat, config)                   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 

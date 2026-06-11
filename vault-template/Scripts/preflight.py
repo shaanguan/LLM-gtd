@@ -3,7 +3,7 @@
 preflight.py — environment self-check executed before each cron job.
 
 Checks:
-  1. PTO flag (if $GTD_VAULT/.gtd-workbench/state/pto exists, skip cron body)
+  1. PTO flag (if $GTD_VAULT/.llm-gtd/state/pto exists, skip cron body)
   2. vault directory readable
   3. python3 yaml package available
 

@@ -1,7 +1,7 @@
-# gtd-workbench
+# LLM-GTD
 
-> An AI GTD secretary that lives inside QoderWork.
-> Status: **Phase 1 scaffold** — see `docs/` (work in progress).
+> Your AI GTD secretary, lives inside QoderWork.
+> *LLM-driven Getting Things Done — from chaos to clarity.*
 
 A reference implementation of a Getting Things Done workflow built on:
 
@@ -13,7 +13,7 @@ A reference implementation of a Getting Things Done workflow built on:
 ## What's here today
 
 ```
-gtd-workbench/
+llm-gtd/
 ├── LICENSE                 — MIT
 ├── README.md               — this file
 ├── setup/
@@ -60,8 +60,8 @@ gtd-workbench/
 
 ```bash
 # Clone the repo
-git clone https://github.com/<your-org>/gtd-workbench.git
-cd gtd-workbench
+git clone https://github.com/<your-org>/llm-gtd.git
+cd llm-gtd
 
 # Run the interactive initializer
 python3 setup/init.py

@@ -6,9 +6,9 @@
 *.tmp
 *.swp
 
-# gtd-workbench state (heartbeat / PTO flag) is local-only
-.gtd-workbench/state/
-.gtd-workbench/config.local.yaml
+# llm-gtd state (heartbeat / PTO flag) is local-only
+.llm-gtd/state/
+.llm-gtd/config.local.yaml
 
 # /tmp scratch reports
 gtd-sync-report.md

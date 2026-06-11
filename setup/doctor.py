@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-gtd-workbench doctor — verify your vault setup is healthy.
+llm-gtd doctor — verify your vault setup is healthy.
 
 Usage:
     python3 setup/doctor.py [--vault PATH]
@@ -12,7 +12,7 @@ Checks:
   4. Scripts/ present and importable
   5. Dashboard.html exists
   6. export_dashboard.py exists
-  7. .gtd-workbench/ state directory exists
+  7. .llm-gtd/ state directory exists
   8. config.yaml (optional) is valid YAML if present
 """
 
@@ -127,15 +127,15 @@ def check_agents_md(vault: Path) -> list:
 
 def check_state_dir(vault: Path) -> list:
     issues = []
-    state = vault / ".gtd-workbench"
+    state = vault / ".llm-gtd"
     if not state.is_dir():
-        issues.append(("WARN", "Missing .gtd-workbench/ state directory (run init.py first?)"))
+        issues.append(("WARN", "Missing .llm-gtd/ state directory (run init.py first?)"))
     return issues
 
 
 def check_config_yaml(vault: Path) -> list:
     issues = []
-    config = vault / ".gtd-workbench" / "config.yaml"
+    config = vault / ".llm-gtd" / "config.yaml"
     if config.is_file():
         try:
             import yaml

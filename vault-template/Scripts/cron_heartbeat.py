@@ -6,7 +6,7 @@ Usage:
   python3 cron_heartbeat.py beat <cron_name>     # mark a successful run
   python3 cron_heartbeat.py check                # report any stale jobs
 
-State file: $GTD_VAULT/.gtd-workbench/state/heartbeat.json
+State file: $GTD_VAULT/.llm-gtd/state/heartbeat.json
 Expected jobs and their max-age windows are read from config.yaml
 (falls back to built-in defaults in _config.py).
 """

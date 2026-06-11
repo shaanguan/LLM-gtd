@@ -14,8 +14,8 @@ Before you begin, make sure you have:
 ### Step 1: Clone the repo
 
 ```bash
-git clone https://github.com/<your-org>/gtd-workbench.git
-cd gtd-workbench
+git clone https://github.com/<your-org>/llm-gtd.git
+cd llm-gtd
 ```
 
 ### Step 2: Run the initializer
@@ -71,7 +71,7 @@ Once set up, your daily flow looks like this:
 
 ### config.yaml (optional)
 
-Create `$GTD_VAULT/.gtd-workbench/config.yaml` to override any default. See `setup/config.schema.yaml` for the full reference.
+Create `$GTD_VAULT/.llm-gtd/config.yaml` to override any default. See `setup/config.schema.yaml` for the full reference.
 
 Common overrides:
 ```yaml
@@ -112,10 +112,10 @@ export GTD_KB_SRC="$HOME/path/to/your/knowledge"
 
 ## Updating
 
-When the upstream `gtd-workbench` repo gets new features:
+When the upstream `llm-gtd` repo gets new features:
 
 ```bash
-cd gtd-workbench && git pull
+cd llm-gtd && git pull
 
 # Re-run init if the template changed significantly:
 python3 setup/init.py --vault ~/Documents/GTD
