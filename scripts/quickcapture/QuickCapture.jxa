@@ -1,31 +1,18 @@
 #!/usr/bin/osascript -l JavaScript
 // QuickCapture.jxa — JXA fallback for users without Swift toolchain.
-// Usage: osascript QuickCapture.jxa
-// This version uses file-based toggle (/tmp/gtd-toggle) triggered by a
-// keyboard shortcut (configured via Shortcuts.app or Automator).
-// For the full experience (global Cmd+I hotkey), use the Swift version.
+// Single-line capture: type → Enter saves to Inbox → process exits.
+// Triggered externally via LaunchAgent + keyboard shortcut.
 
 ObjC.import("Cocoa");
-ObjC.import("objc");
 
-// --- Config (init.py replaces __INBOX_DIR__ at install time) ---
+// --- Config (__INBOX_DIR__ replaced by install_quickcapture.py at install time) ---
 var inboxDir = "__INBOX_DIR__";
 if (inboxDir.indexOf("__") === 0) {
     var home = $.NSHomeDirectory().js;
     inboxDir = home + "/Documents/GTD/00 - Inbox";
 }
 
-var pidFile = "/tmp/gtd-quick-capture.pid";
-var toggleFile = "/tmp/gtd-toggle";
-var draftFile = "/tmp/gtd-capture-draft.txt";
 var fm = $.NSFileManager.defaultManager;
-var SHIFT = 131072;
-var RETURN_KEY = 36;
-var ESC_KEY = 53;
-
-// PID
-$.NSString.alloc.initWithUTF8String("" + $.NSProcessInfo.processInfo.processIdentifier)
-    .writeToFileAtomicallyEncodingError(pidFile, true, $.NSUTF8StringEncoding, null);
 
 function saveToInbox(text) {
     var now = new Date();
@@ -41,180 +28,101 @@ function saveToInbox(text) {
             inboxDir + "/" + filename, true, $.NSUTF8StringEncoding, null);
     var sa = Application.currentApplication();
     sa.includeStandardAdditions = true;
-    sa.displayNotification("Captured: " + title, { withTitle: "GTD" });
-}
-
-function saveDraft() {
-    var text = ObjC.unwrap(tv.string);
-    if (text.length > 0) {
-        $.NSString.alloc.initWithUTF8String(text)
-            .writeToFileAtomicallyEncodingError(draftFile, true, $.NSUTF8StringEncoding, null);
-    } else {
-        fm.removeItemAtPathError(draftFile, null);
-    }
-}
-
-function loadDraft() {
-    if (fm.fileExistsAtPath(draftFile)) {
-        var draft = ObjC.unwrap(
-            $.NSString.stringWithContentsOfFileEncodingError(draftFile, $.NSUTF8StringEncoding, null));
-        if (draft && draft.length > 0) {
-            tv.setString(draft);
-            tv.setSelectedRange($.NSMakeRange(draft.length, 0));
-            return;
-        }
-    }
-    tv.setString("");
-}
-
-function showWindow() {
-    loadDraft();
-    panel.makeKeyAndOrderFront(panel);
-    panel.makeFirstResponder(tv);
-    nsApp.activateIgnoringOtherApps(true);
-}
-
-function hideWindow() {
-    saveDraft();
-    panel.orderOut(panel);
+    sa.displayNotification("Captured: " + title, { withTitle: "GTD Quick Capture" });
 }
 
 // App
 var nsApp = $.NSApplication.sharedApplication;
 nsApp.setActivationPolicy($.NSApplicationActivationPolicyAccessory);
 
-// Panel
-var W = 600, H = 120;
+// Panel - HUD style, single-line
+var W = 560, H = 52;
 var panel = $.NSPanel.alloc.initWithContentRectStyleMaskBackingDefer(
     $.NSMakeRect(0, 0, W, H),
-    $.NSWindowStyleMaskTitled | $.NSWindowStyleMaskFullSizeContentView,
+    $.NSWindowStyleMaskNonactivatingPanel | $.NSWindowStyleMaskTitled |
+    $.NSWindowStyleMaskFullSizeContentView | $.NSWindowStyleMaskHUDWindow,
     $.NSBackingStoreBuffered, false);
+panel.setFloatingPanel(true);
+panel.setLevel($.NSFloatingWindowLevel);
 panel.setTitlebarAppearsTransparent(true);
 panel.setTitleVisibility($.NSWindowTitleHidden);
 panel.setOpaque(false);
 panel.setBackgroundColor($.NSColor.clearColor);
 panel.setHasShadow(true);
-panel.setLevel($.NSFloatingWindowLevel);
 panel.setMovableByWindowBackground(true);
 
+// Center on screen
 var scr = $.NSScreen.mainScreen.visibleFrame;
 panel.setFrameOrigin($.NSMakePoint(
     scr.origin.x + (scr.size.width - W) / 2,
     scr.origin.y + scr.size.height * 0.65));
 
-// Glass
+// Container
+var container = $.NSView.alloc.initWithFrame($.NSMakeRect(0, 0, W, H));
+
+// Glass background
 var blur = $.NSVisualEffectView.alloc.initWithFrame($.NSMakeRect(0, 0, W, H));
 blur.setAutoresizingMask($.NSViewWidthSizable | $.NSViewHeightSizable);
 blur.setBlendingMode($.NSVisualEffectBlendingModeBehindWindow);
 blur.setMaterial($.NSVisualEffectMaterialHUDWindow);
 blur.setState($.NSVisualEffectStateActive);
 blur.setWantsLayer(true);
-blur.layer.setCornerRadius(16);
+blur.layer.setCornerRadius(14);
 blur.layer.setMasksToBounds(true);
+container.addSubview(blur);
 
 // Icon
 var icon = $.NSTextField.labelWithString("\uD83D\uDCE5");
-icon.setFont($.NSFont.systemFontOfSize(22));
-icon.setFrame($.NSMakeRect(18, H - 44, 32, 32));
+icon.setFont($.NSFont.systemFontOfSize(18));
+icon.setFrame($.NSMakeRect(16, 11, 30, 30));
 icon.setEditable(false);
 icon.setBezeled(false);
 icon.setDrawsBackground(false);
-blur.addSubview(icon);
+container.addSubview(icon);
 
-// Hint
-var hint = $.NSTextField.labelWithString("\u23CE save   \u21E7\u23CE newline   Esc close");
-hint.setFont($.NSFont.systemFontOfSizeWeight(11, $.NSFontWeightRegular));
-hint.setTextColor($.NSColor.tertiaryLabelColor);
-hint.setFrame($.NSMakeRect(W - 230, H - 22, 220, 14));
-hint.setAlignment($.NSTextAlignmentRight);
-hint.setEditable(false);
-hint.setBezeled(false);
-hint.setDrawsBackground(false);
-blur.addSubview(hint);
+// Text field (single line)
+var textField = $.NSTextField.alloc.initWithFrame($.NSMakeRect(48, 11, W - 64, 30));
+textField.setPlaceholderString("Capture to Inbox...");
+textField.setFont($.NSFont.systemFontOfSizeWeight(18, $.NSFontWeightRegular));
+textField.setBezeled(false);
+textField.setDrawsBackground(false);
+textField.setFocusRingType($.NSFocusRingTypeNone);
+textField.setTextColor($.NSColor.whiteColor);
+textField.cell.setWraps(false);
+textField.cell.setScrollable(true);
+container.addSubview(textField);
 
-// Subclass NSTextView
+// TextField delegate via subclass
 ObjC.registerSubclass({
-    name: "CaptureTV",
-    superclass: "NSTextView",
-    methods: {
-        "keyDown:": {
-            types: ["void", ["id"]],
-            implementation: function(event) {
-                var keyCode = event.keyCode;
-                var flags = event.modifierFlags;
-
-                if (keyCode === RETURN_KEY) {
-                    if (flags & SHIFT) {
-                        this.insertNewlineIgnoringFieldEditor(this);
-                    } else {
-                        var text = ObjC.unwrap(this.string).trim();
-                        if (text.length > 0) saveToInbox(text);
-                        fm.removeItemAtPathError(draftFile, null);
-                        hideWindow();
-                    }
-                    return;
-                }
-
-                if (keyCode === ESC_KEY) {
-                    hideWindow();
-                    return;
-                }
-
-                ObjC.msgSend(this, "super", { "keyDown:": event });
-            }
-        }
-    }
-});
-
-// Text view
-var tvFrame = $.NSMakeRect(0, 0, W - 72, H - 48);
-var tv = $.CaptureTV.alloc.initWithFrame(tvFrame);
-tv.setFont($.NSFont.systemFontOfSizeWeight(20, $.NSFontWeightLight));
-tv.setTextColor($.NSColor.labelColor);
-tv.setDrawsBackground(false);
-tv.setRichText(false);
-tv.setAllowsUndo(true);
-tv.setAutomaticQuoteSubstitutionEnabled(false);
-tv.setAutomaticDashSubstitutionEnabled(false);
-tv.setAutomaticTextReplacementEnabled(false);
-tv.textContainer.setWidthTracksTextView(true);
-tv.textContainer.setContainerSize($.NSMakeSize(W - 72, 10000));
-tv.setHorizontallyResizable(false);
-tv.setVerticallyResizable(true);
-tv.setInsertionPointColor($.NSColor.labelColor);
-
-var scrollView = $.NSScrollView.alloc.initWithFrame($.NSMakeRect(54, 8, W - 72, H - 40));
-scrollView.setHasVerticalScroller(false);
-scrollView.setHasHorizontalScroller(false);
-scrollView.setDrawsBackground(false);
-scrollView.setBorderType($.NSNoBorder);
-scrollView.setDocumentView(tv);
-blur.addSubview(scrollView);
-
-panel.setContentView(blur);
-
-// Toggle poller (triggered by `touch /tmp/gtd-toggle`)
-ObjC.registerSubclass({
-    name: "TogglePoller",
+    name: "CaptureDelegate",
     superclass: "NSObject",
+    protocols: ["NSControlTextEditingDelegate"],
     methods: {
-        "poll:": {
-            types: ["void", ["id"]],
-            implementation: function(timer) {
-                if (fm.fileExistsAtPath(toggleFile)) {
-                    fm.removeItemAtPathError(toggleFile, null);
-                    if (panel.isVisible) {
-                        hideWindow();
-                    } else {
-                        showWindow();
-                    }
+        "control:textView:doCommandBySelector:": {
+            types: ["bool", ["id", "id", "SEL"]],
+            implementation: function(control, tv, sel) {
+                var selName = ObjC.unwrap($.NSStringFromSelector(sel));
+                if (selName === "insertNewline:") {
+                    var text = ObjC.unwrap(control.stringValue).trim();
+                    if (text.length > 0) saveToInbox(text);
+                    nsApp.terminate(nsApp);
+                    return true;
                 }
+                if (selName === "cancelOperation:") {
+                    nsApp.terminate(nsApp);
+                    return true;
+                }
+                return false;
             }
         }
     }
 });
 
-$.NSTimer.scheduledTimerWithTimeIntervalTargetSelectorUserInfoRepeats(
-    0.08, $.TogglePoller.alloc.init, "poll:", null, true);
+var del = $.CaptureDelegate.alloc.init;
+textField.setDelegate(del);
 
+panel.setContentView(container);
+panel.makeKeyAndOrderFront(panel);
+panel.makeFirstResponder(textField);
+nsApp.activateIgnoringOtherApps(true);
 nsApp.run();
