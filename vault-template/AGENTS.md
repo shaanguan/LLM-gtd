@@ -67,9 +67,15 @@ Render quality checklist (run after every sync):
 
 In-conversation sync checklist (run before turn end if I touched the vault):
 1. `python3 export_dashboard.py` — refresh Dashboard `DATA` + `SYNC`
-<!-- IF feature.dingtalk -->
+<!-- IF feature.doc_sync -->
+<!-- IF im.dingtalk -->
 2. Did this turn affect the scheduling doc? (new/removed/postponed NA, archived item, due change) → if yes, full-scan `02 - Next Actions/` then block-level update of the scheduling table.
 3. Did this turn affect the daily IM brief? (tomorrow's MIT changed) → if yes, full-scan then overwrite the daily doc.
+<!-- /IF -->
+<!-- IF im.feishu -->
+2. Did this turn affect the scheduling doc? → if yes, full-scan `02 - Next Actions/` then update the Feishu scheduling doc.
+3. Did this turn affect the daily brief? → if yes, full-scan then overwrite the Feishu daily doc.
+<!-- /IF -->
 <!-- ENDIF -->
 4. Audit: do the new render outputs include items the user may have manually captured outside this turn? (Always read the directory full state, never just push the diff.)
 
@@ -130,10 +136,11 @@ Reference files referenced by other sections:
 
 ---
 
-## 4. DingTalk Document Operations
-<!-- IF feature.dingtalk -->
+## 4. Document Sync Operations
+<!-- IF feature.doc_sync -->
 
-### 4.1 Scheduling table (`{{dingtalk.scheduling_node_id}}`)
+<!-- IF im.dingtalk -->
+### 4.1 Scheduling table (`{{doc.scheduling_id}}`)
 
 Document block layout (6 blocks, index 0–5):
 - block 0: blockquote disclaimer "AI-generated" — **don't touch**
@@ -154,7 +161,7 @@ Update procedure:
 
 DingTalk MCP rate-limit guard:
 - Between ≥3 consecutive `update_document_block` calls → `sleep 2-3s`, otherwise the HSF backend returns 5xx
-- On 5xx / rate limit → wait 5s, retry once → if still failing, skip that block and push an alert to `{{user.im_assistant}}` ("DingTalk sync failed for block X, retry next cron"), don't block the rest
+- On 5xx / rate limit → wait 5s, retry once → if still failing, skip that block and push an alert to `{{user.im_assistant}}` ("sync failed for block X, retry next cron"), don't block the rest
 - `list_document_blocks` doesn't count — call as often as needed
 - Total DingTalk calls per cron ≤ 8 (1 list + 1 schedule update + 1 footer + headroom)
 
@@ -179,7 +186,7 @@ Hard limits:
 - Block 2 (the request table) is sacred — it's the colleagues' input channel
 - **No markdown overwrite of the whole document** — kills the 40×40 gif metadata
 - **No `insert_document_block`** for new tables — old tables without blockIds become un-deletable
-- Always confirm `nodeId` matches the document title before any write (we have lost a Wiki page this way)
+- Always confirm document ID matches the document title before any write
 - jsonml image `width / height` must be a number, not a string
 
 Schedule table content rule (show judgement, don't search-replace):
@@ -188,7 +195,7 @@ Schedule table content rule (show judgement, don't search-replace):
 - "If users want everything they can open the Dashboard" — be selective
 - Decision criteria: external requester? independent deadline? independent deliverable?
 
-### 4.2 Daily work brief (`{{dingtalk.daily_node_id}}`)
+### 4.2 Daily work brief (`{{doc.daily_id}}`)
 
 - Plain-text doc, no images → `update_document` overwrite mode is safe
 - Structure: today's MIT + tomorrow preview + history table
@@ -208,14 +215,79 @@ Schedule table content rule (show judgement, don't search-replace):
 
 ### 4.4 General rules
 
-- Side projects / personal items never appear in DingTalk docs
+- Side projects / personal items never appear in shared docs
 - `date` first, never infer weekday from chat history
-- It's "DingTalk", not WeChat — match the user's terminology
-- Always confirm nodeId + title before any write — we lost a personal Wiki this way once
+- Always confirm document ID + title before any write — we lost a personal Wiki this way once
+<!-- /IF -->
+
+<!-- IF im.feishu -->
+### 4.1 Scheduling table (`{{doc.scheduling_id}}`)
+
+Use Feishu Docs MCP to maintain a scheduling document shared with teammates.
+
+Update procedure:
+1. Read document content via Feishu docs API to confirm document identity
+2. Rebuild the schedule table from vault NA items with external requester + deadline
+3. Update the document content — Feishu supports full markdown overwrite safely
+4. Append footer timestamp
+
+Table columns: Task | Project | Requester | Due | Status
+
+Status color scheme (use Feishu text color marks):
+- Overdue: red | Today: orange | In progress: blue | Pending: gray | Done: green
+
+Hard limits:
+- Always confirm document token matches the title before write
+- Side projects / personal items never appear in shared docs
+- Selective content: only items with external requesters or independent deadlines
+
+### 4.2 Daily work brief (`{{doc.daily_id}}`)
+
+- Overwrite the Feishu doc with today's snapshot: MIT + tomorrow preview + history table
+- Exclude side projects and personal items
+- Short and scannable — colleagues glance "is this person busy?" in 3 seconds
+
+### 4.3 Two-doc synchronization (iron rule)
+
+- **Run `date` before touching either doc.** Relative phrases are derived fresh each time.
+- **Both docs refresh together.** Stale date on either is incident-grade.
+- **First touch of the day → daily-rollover first**: migrate yesterday → regenerate today → realign phrases.
+
+### 4.4 General rules
+
+- `date` first, never infer weekday from chat history
+- Always confirm document token + title before any write
+- Rate limit: space out rapid writes by 1-2s
+<!-- /IF -->
+
+<!-- IF im.wecom -->
+### 4.1 Message push (WeCom bot)
+
+No shared document — push daily brief as a bot message to the designated group.
+
+- Morning: push MIT list + today's schedule as a text/markdown message
+- Weekly: push next week's key deliverables
+- Keep messages concise (≤10 lines) — bot messages have limited readability
+
+### 4.2 General rules
+
+- Side projects / personal items excluded from group messages
+- `date` first, never infer weekday from chat history
+<!-- /IF -->
+
+<!-- IF im.wechat -->
+### 4.1 Message delivery (WeChat)
+
+No shared document — deliver daily brief via WeChat message.
+
+- Morning: send MIT list + today's focus items
+- Keep messages concise and conversational
+- No team-facing artifacts (WeChat is personal)
+<!-- /IF -->
 
 <!-- ELSE -->
 
-DingTalk integration is disabled. Skip this section.
+Document sync is disabled. Skip this section.
 
 <!-- ENDIF -->
 
@@ -227,7 +299,7 @@ DingTalk integration is disabled. Skip this section.
 2. **Don't touch Dashboard structure** — only `DATA / WEEKS / SYNC` lines, never CSS / JS / DOM.
 3. **Don't archive without explicit user confirmation** — "completed" is a user word.
 <!-- IF feature.side_project -->
-4. **Side projects don't carry `okr`** — and don't appear in the daily brief or DingTalk docs.
+4. **Side projects don't carry `okr`** — and don't appear in the daily brief or shared docs.
 <!-- ENDIF -->
 5. **`knowledge/gtd/raw/` is read-only** (if you sync raw sources at all).
 6. **Don't make business decisions for the user** — when ownership / priority / timing is unclear, ask.
@@ -368,8 +440,13 @@ context → time available → energy → priority
 | {{cron.morning_id}} | GTD morning brief | {{cron.morning_time}} | skip | {{user.im_assistant}} |
 | {{cron.evening_id}} | GTD evening review | {{cron.evening_time}} | skip | {{user.im_assistant}} |
 | {{cron.weekly_id}} | GTD weekly review | {{cron.weekly_time}} | run_latest | {{user.im_assistant}} |
-<!-- IF feature.dingtalk -->
-| {{cron.daily_doc_id}} | Daily DingTalk doc refresh | {{cron.daily_doc_time}} | — | DingTalk |
+<!-- IF feature.doc_sync -->
+<!-- IF im.dingtalk -->
+| {{cron.daily_doc_id}} | Daily doc refresh | {{cron.daily_doc_time}} | — | DingTalk doc |
+<!-- /IF -->
+<!-- IF im.feishu -->
+| {{cron.daily_doc_id}} | Daily doc refresh | {{cron.daily_doc_time}} | — | Feishu doc |
+<!-- /IF -->
 <!-- ENDIF -->
 | {{cron.git_snap_id}} | Vault git snapshot | 23:55 daily | skip | local commit |
 
@@ -382,8 +459,8 @@ All crons set `contextDirs` to the vault root; this file is auto-injected.
 3. Filter `due` in next 7 days → upcoming
 4. Filter `due` empty → unscheduled
 5. Scan WF → group by `owner`, "waiting N days", > 7 days suggest a nudge
-<!-- IF feature.dingtalk -->
-6. Scan scheduling doc table 1 → if new rows, capture into vault Inbox
+<!-- IF feature.doc_sync -->
+6. Scan scheduling doc → if new rows (colleague requests), capture into vault Inbox
 <!-- ENDIF -->
 <!-- IF feature.knowledge_base -->
 7. Pull one page from `{{repo.path}}/knowledge/gtd/wiki/` → one-line insight
@@ -394,8 +471,8 @@ All crons set `contextDirs` to the vault root; this file is auto-injected.
 1. List today's `due` → ask for completion (wait for user confirmation before archiving)
 2. Scan Inbox → process via decision tree
 3. Items archived this week → update weekly summary (only what happened)
-<!-- IF feature.dingtalk -->
-4. Scan scheduling doc table 1 + sync schedule to table 2
+<!-- IF feature.doc_sync -->
+4. Sync scheduling doc (scan request table + update schedule table)
 <!-- ENDIF -->
 5. If vault changed → run `export_dashboard.py` → refresh render surfaces
 6. User-confirmed completions → write Achievement record
@@ -439,7 +516,7 @@ New person → ask user for tier + role → store in collaborators file → use 
 ## 13. Side Project ({{user.side_project_name}})
 
 - Nature: personal project, not work
-- Skips `okr`, daily brief, DingTalk docs
+- Skips `okr`, daily brief, shared docs
 - Cadence: independent block of N hours per day
 - Tracking: separate card series in `02 - Next Actions/`
 - I track progress, but don't mix with work output
@@ -470,16 +547,18 @@ Rules:
 |---------|---------|
 | Missed Inbox scan | First tool call of every conversation must be `ls Inbox` |
 | Wrong weekday inference | Run `date`, never infer from chat history |
-<!-- IF feature.dingtalk -->
+<!-- IF feature.doc_sync -->
 | Mechanical vault mirror in scheduling doc | Analyze task nature, only show independent deliveries |
+<!-- IF im.dingtalk -->
 | DingTalk image dims lost | Schedule doc: only blocks 4/5; never markdown-overwrite the whole doc |
-| Wrong-document overwrite | Confirm nodeId + title before every write |
+<!-- /IF -->
+| Wrong-document overwrite | Confirm document ID + title before every write |
 <!-- ENDIF -->
 | Substituting business decisions | When unclear → AskUserQuestion, prefer asking |
 | NA piling up unarchived | Evening review proactively asks |
 | Same NA postponed repeatedly | Second postpone → force "drop / Someday / actually do" decision |
 <!-- IF feature.side_project -->
-| Side project leaks into work surfaces | All DingTalk docs and work briefs exclude side-project items |
+| Side project leaks into work surfaces | All shared docs and work briefs exclude side-project items |
 <!-- ENDIF -->
 | WF black hole | Morning scan WF, > 7 days suggest a nudge |
 | Date assertion wrong | ALWAYS `date`. We've shifted a P0 due by 1 day this way. |
@@ -490,10 +569,14 @@ Rules:
 
 ## 16. Lessons Learned (real incidents)
 
-1. **Wiki page overwritten** — given a nodeId, didn't verify title/content before overwrite. Turned out to be a personal Wiki, not the request doc. Attachments lost permanently. *Lesson: always `get_document_content` before any DingTalk write.*
-2. **Wrong weekday assertion** — claimed "today is Monday" when it was Tuesday, set a P0 due to the wrong date. Almost missed a critical review. *Lesson: `date` first, every time, before any weekday claim.*
+<!-- IF feature.doc_sync -->
+1. **Document overwritten** — didn't verify title/content before overwrite. Turned out to be a personal doc, not the target. Attachments lost permanently. *Lesson: always read document content before any write.*
+<!-- IF im.dingtalk -->
 3. **Image sizes lost** — used markdown-overwrite mode on the schedule doc; two 40×40 gifs reset to default. *Lesson: schedule doc is block-level update only, never whole-doc overwrite.*
-4. **Duplicate table from `insert`** — tried `insert_document_block` to add a new schedule table; old table had no blockId, couldn't be deleted. Doc ended up with two schedule tables. Recovery cost a markdown overwrite (lost images again) and a jsonml restore. *Lesson: `update_document_block` for existing blocks, never `insert` as a replacement.*
+4. **Duplicate table from `insert`** — tried `insert_document_block` to add a new schedule table; old table had no blockId, couldn't be deleted. *Lesson: `update_document_block` for existing blocks, never `insert` as a replacement.*
+<!-- /IF -->
+<!-- ENDIF -->
+2. **Wrong weekday assertion** — claimed "today is Monday" when it was Tuesday, set a P0 due to the wrong date. Almost missed a critical review. *Lesson: `date` first, every time, before any weekday claim.*
 
 ---
 
