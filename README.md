@@ -14,13 +14,13 @@
 
 ## 快速上手
 
-**1. 安装 Skill**
+**1. 安装 Setup Skill**
 
-```bash
-mkdir -p ~/.qoderwork/skills/llm-gtd-setup && \
-curl -fsSL https://raw.githubusercontent.com/shaanguan/LLM-gtd/main/skills/llm-gtd-setup/SKILL.md \
-  -o ~/.qoderwork/skills/llm-gtd-setup/SKILL.md
-```
+把 setup 流程装进你的 Agent，让它知道怎么帮你搭系统：
+
+- **Claude Desktop（推荐）** — 新建 Project，把 [SKILL.md](skills/llm-gtd-setup/SKILL.md) 内容粘到 Project Instructions
+- **QoderWork** — 技能市场搜索 `llm-gtd-setup`，点击安装
+- **其他 Agent** — 把 SKILL.md 内容粘到 system prompt 或对应的指令配置里
 
 **2. 对 Agent 说：**
 
@@ -30,7 +30,7 @@ curl -fsSL https://raw.githubusercontent.com/shaanguan/LLM-gtd/main/skills/llm-g
 
 ## 需要什么
 
-- 一个 AI Agent 环境（QoderWork / Claude Desktop / 其他支持 AGENTS.md 的工具）
+- 一个 AI Agent 环境（Claude Desktop / QoderWork / 其他支持 system prompt 的工具）
 - Obsidian
 - Python 3.9+
 
@@ -38,8 +38,8 @@ curl -fsSL https://raw.githubusercontent.com/shaanguan/LLM-gtd/main/skills/llm-g
 
 | 平台 | 定时任务 | IM 推送 | 文档同步 |
 |------|---------|---------|---------|
-| QoderWork | ✅ 内置 | ✅ 钉钉/飞书/企微 | ✅ 钉钉/飞书文档 |
 | Claude Desktop | 需外部 cron | 需 MCP 插件 | 需 MCP 插件 |
+| QoderWork | ✅ 内置 | ✅ 钉钉/飞书/企微 | ✅ 钉钉/飞书文档 |
 | 其他 | 手动触发 | — | — |
 
 核心功能（vault 管理 + Dashboard + 对话）在所有平台都能跑。
