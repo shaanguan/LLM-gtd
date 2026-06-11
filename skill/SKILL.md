@@ -1,7 +1,7 @@
 ---
 name: llm-gtd-setup
 description: 一键设置 LLM-GTD 系统（AI 驱动的 GTD 工作流）。当用户说"设置 GTD""setup LLM-GTD""帮我搞 GTD 系统""初始化 GTD"或使用 /llm-gtd-setup 时触发。克隆仓库、问偏好、生成 vault、注册定时任务，全程对话完成。
-version: 1.0.0
+version: 1.2.0
 ---
 
 # LLM-GTD Setup
@@ -46,13 +46,19 @@ git clone https://github.com/<org>/llm-gtd.git ~/Projects/llm-gtd
 - `~/GTD`
 - 自定义路径（Other）
 
-**问题 2 — "功能开关"**（header: "功能", multiSelect: true）
+**问题 2 — "IM 平台"**（header: "IM平台"）
+- 钉钉 — 阿里系，支持文档同步+群消息推送
+- 飞书 — 字节系，支持文档同步+群消息推送
+- 企业微信 — 腾讯系，支持机器人消息推送
+- 微信 — 个人用，仅消息推送（无文档同步）
+
+**问题 3 — "功能开关"**（header: "功能", multiSelect: true）
 - OKR 追踪 — 工作任务关联目标，周回顾自动对齐进度
-- 钉钉同步 — 排期表+每日安排自动推送钉钉文档
+- 文档同步 — 排期表+每日安排自动推送到团队共享文档（需钉钉或飞书）
 - 副项目隔离 — 个人项目单独追踪，不混入工作输出
 - 知识库引用 — Agent 处理 Inbox 时参考 GTD 方法论 wiki
 
-**问题 3 — "定时播报"**（header: "早报时间"）
+**问题 4 — "定时播报"**（header: "早报时间"）
 - 09:00
 - 10:00
 - 10:30（推荐）
@@ -73,31 +79,45 @@ python3 $REPO_PATH/setup/init.py --vault "$VAULT_PATH" --non-interactive
 
 如果 init.py 已经跑过（vault 已存在），告诉用户"检测到已有 vault，是否重新初始化？"
 
-### 4. 钉钉文档创建（仅开启钉钉同步时）
+### 4. IM 频道连接检测
 
-如果用户在问题 2 中选了"钉钉同步"，进入此步。用自然语言向用户介绍并征询：
+检查用户选的 IM 平台在 QoderWork 中是否已连接。
 
-> "钉钉同步开好了。我推荐配套创建两个钉钉文档：
+- 已连接 → 继续
+- 未连接 → 引导用户去 QoderWork 设置 → 频道 页面扫码连接，等连好后继续
+
+同时检测"小Q"（QoderWork 小助手）是否开启：
+- 已开启 → 好，cron 结果会推到这里
+- 未开启 → 建议用户开启："建议开启小Q频道，这样我能主动把播报推给你，否则你得自己打开 QoderWork 来看结果。"
+
+### 5. 文档创建（钉钉/飞书用户，且开启了文档同步时）
+
+如果用户选了"文档同步"且 IM 平台是钉钉或飞书，进入此步。用自然语言介绍并征询：
+
+> "文档同步开好了。我推荐配套创建两个共享文档：
 >
 > **排期表** — 我每周把你的项目排期推上去，同事能直接看到你这周做什么、什么时候交付，减少被追问'这个啥时候好'。
 >
 > **每日安排** — 每天早间播报把今日 MIT + 会议 + 等待回复的事贴上去，相当于你的对外'今日状态'。
 >
-> 这两个适合你吗？还是你有别的想推到钉钉的内容？"
+> 这两个适合你吗？还是你有别的想推到文档的内容？"
 
-根据用户回答：
-- 用户同意 → 用 `mcp__钉钉文档__create_document` 创建对应文档，拿到返回的 nodeId
+根据用户回答和平台：
+- **钉钉用户** → 用 `mcp__钉钉文档__create_document` 创建文档，拿到 nodeId
+- **飞书用户** → 用飞书文档 MCP 创建文档，拿到 token
 - 用户只要其中一个 → 只创建那个
 - 用户说想要别的（比如"周报""会议纪要"）→ 按他说的创建
-- 用户说不需要 → 跳过，AGENTS.md 里对应 nodeId 留空，后续随时可以再配
+- 用户说不需要 → 跳过
 
-创建完成后，将 nodeId 直接写入 AGENTS.md §4 对应位置（替换 `<paste-your-node-id>`）。
+创建完成后，将文档 ID 写入 AGENTS.md §4 对应位置。
 
-### 5. 设置 QoderWork 工作文件夹
+**企业微信/微信用户**：跳过此步（这两个平台无文档能力），AGENTS.md §4 文档同步段落自动移除。
+
+### 6. 设置 QoderWork 工作文件夹
 
 将 vault 路径设为 QoderWork 当前工作目录。提示用户在界面上选择文件夹（当前无法程序化完成此步）。
 
-### 6. 注册定时任务
+### 7. 注册定时任务
 
 用 `qoder_cron` 注册 4 个任务（根据用户选择的时间调整 cron expr）：
 
@@ -142,7 +162,7 @@ missedRunPolicy: "skip"
 cd "$VAULT_PATH" && git init && git add -A && git commit -m "initial vault setup"
 ```
 
-### 7. 运行 doctor 验证
+### 8. 运行 doctor 验证
 
 ```bash
 python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
@@ -150,7 +170,7 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 
 确认零 error 零 warning。
 
-### 8. 告知用户完成 + 唯一手动步
+### 9. 告知用户完成 + 唯一手动步
 
 输出类似：
 
@@ -175,7 +195,8 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 - `contextDirs` 指向 vault（AGENTS.md 所在处），不是 repo
 - 如果用户已有 Obsidian vault 想复用，init.py 不会覆盖已有文件，可以安全执行
 - 如果 qoder_cron 注册失败（比如权限问题），告诉用户手动在 QoderWork 定时任务面板创建
-- 钉钉文档创建失败时（如 MCP 未连接），告诉用户手动创建文档后把 URL 发过来，Agent 从 URL 提取 nodeId 填入
+- 钉钉/飞书文档创建失败时（如 MCP 未连接），告诉用户手动创建文档后把 URL 发过来，Agent 从 URL 提取文档 ID 填入
+- 企微/微信用户如果后续想加文档同步，需要先绑定一个有文档能力的平台（钉钉或飞书）
 
 ## Verification
 
