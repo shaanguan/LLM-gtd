@@ -1,7 +1,7 @@
 ---
 name: llm-gtd-setup
 description: "LLM-GTD — 让 AI 做你的 GTD 秘书。每天早上推送今日重点，晚上帮你回顾归档，每周自动清理系统。你只管随时把想法丢给它，剩下的它来管。说\"设置 GTD\"或 /llm-gtd-setup 开始安装。"
-version: 1.6.0
+version: 1.7.0
 ---
 
 # LLM-GTD Setup
@@ -21,6 +21,30 @@ version: 1.6.0
 **行为规则**：用户只输入 skill 名称（如 `/llm-gtd-setup`）而不附加其他说明时，直接开始 Step 1，无需再问"你要做什么"。
 
 ## Steps
+
+### 0. 检测是否已安装
+
+在做任何事之前，先检测当前环境是否已有 LLM-GTD：
+
+```bash
+# 检查工作目录或常见位置是否有 AGENTS.md（LLM-GTD 的标志文件）
+find ~/Documents ~/Projects ~ -maxdepth 3 -name "AGENTS.md" -path "*/0[0-7]*" 2>/dev/null | head -5
+```
+
+同时检查定时任务是否已注册（按名称含"GTD"匹配）。
+
+**如果检测到已安装**，不要继续安装流程，直接告诉用户：
+
+> "检测到你已经安装过 LLM-GTD，vault 在 `$VAULT_PATH`。
+>
+> 你想要：
+> - **重新配置** — 保留数据，重跑偏好设置（IM/功能开关/定时任务时间）
+> - **修复** — 跑一遍 doctor 检查，修复有问题的部分
+> - **卸载重装** — 清除后从头来"
+
+选"重新配置"→ 跳到 Step 2 问偏好，跳过克隆和 init。
+选"修复"→ 跳到 Step 8 跑 doctor。
+选"卸载重装"→ 跳到「卸载 LLM-GTD」章节，完成后再从 Step 1 开始。
 
 ### 1. 克隆仓库
 
