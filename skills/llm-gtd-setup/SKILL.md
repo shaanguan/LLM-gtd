@@ -232,7 +232,15 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 
 **此步骤不可跳过**——即使前面所有步骤都已完成，必须执行以下两个动作：
 
-**A. 在浏览器打开 QUICKSTART.html（必做）：**
+**A. 确认引导任务存在：**
+
+init.py 会把 `00 - Inbox/Getting Started with GTD.md` 复制到用户 vault。验证它存在：
+```bash
+ls "$VAULT_PATH/00 - Inbox/Getting Started with GTD.md"
+```
+这条引导任务是冷启动的核心——它让用户的第一次播报不是空的，且引导用户亲手走通 GTD 全流程（Inbox → Project → NA → due → MIT）。
+
+**B. 在浏览器打开 QUICKSTART.html（必做）：**
 
 立即使用浏览器工具导航到：
 ```
@@ -246,17 +254,19 @@ open "$VAULT_PATH/QUICKSTART.html"
 
 告诉用户："我已在浏览器打开了 Quick Start 引导页，你可以收藏备用。"
 
-**B. 在对话里立即发起 brain dump（必做）：**
+**C. 在对话里立即发起 brain dump（必做）：**
 
 > 搞定了。我刚在浏览器打开了 Quick Start 页面，随时可以回看。
+>
+> 另外我在你的 Inbox 里放了一条「开始使用 GTD」引导任务——明天你可以跟着它走一遍完整流程，5 步跑通。
 >
 > 现在咱们把系统填上——你脑子里飘着哪些事？待办、承诺、想法都行，一条一条告诉我。
 
 之后进入对话循环：用户每说一条，Agent 立即写入 `00 - Inbox/`，回复"收到，还有吗？"。直到用户说"没了"或"先这样"，Agent 回应：
 
-"好，收了 N 条。随时对我说'帮我过一下 Inbox'，我帮你逐条分拣。或者等明早播报时我会提醒你。"
+"好，收了 N 条（加上引导任务共 N+1 条）。明早播报会提醒你处理。或者你现在就可以说'帮我过一下 Inbox'开始分拣。"
 
-**关键**：这一步是 setup 不可分割的一部分。空 vault 无法产生有意义的播报，brain dump 让系统第一天就有内容可操作。
+**关键**：引导任务 + brain dump 双保险，确保第一次早间播报至少有内容可报。
 
 ## Pitfalls
 
