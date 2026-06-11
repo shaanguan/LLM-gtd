@@ -1,6 +1,6 @@
 ---
 name: llm-gtd-setup
-description: "一键设置 LLM-GTD 系统（AI 驱动的 GTD 工作流）。当用户说\"设置 GTD\"\"setup LLM-GTD\"\"帮我搞 GTD 系统\"\"初始化 GTD\"或使用 /llm-gtd-setup 时触发。克隆仓库、问偏好、生成 vault、注册定时任务，全程对话完成。"
+description: "LLM-GTD — 让 AI 做你的 GTD 秘书。每天早上推送今日重点，晚上帮你回顾归档，每周自动清理系统。你只管随时把想法丢给它，剩下的它来管。说\"设置 GTD\"或 /llm-gtd-setup 开始安装。"
 version: 1.5.0
 ---
 
