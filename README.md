@@ -49,48 +49,40 @@ LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统*
 
 ## 快速上手（5 分钟）
 
-### 1. 克隆仓库
+### 推荐方式：在 QoderWork 中对话完成
+
+打开 QoderWork，直接说：
+
+> "帮我设置 LLM-GTD"
+
+Agent 会自动完成以下所有步骤 — 你只需要回答几个偏好问题（vault 放哪、开哪些功能、定时任务时间），然后确认即可。
+
+唯一需要你手动做的一步：打开 Obsidian → "Open folder as vault" → 选 Agent 生成的路径。（之后所有操作都可以在对话中完成）
+
+---
+
+### 手动方式：命令行
+
+如果你更喜欢自己掌控，6 步搞定：
 
 ```bash
+# 1. 克隆仓库
 git clone https://github.com/<your-org>/llm-gtd.git
 cd llm-gtd
-```
 
-### 2. 运行初始化
-
-```bash
+# 2. 运行初始化（交互式，问 3 组问题）
 python3 setup/init.py
-```
 
-它会问你 3 组问题：
-- vault 放哪里（比如 `~/Documents/GTD`）
-- 开启哪些功能（OKR 追踪、钉钉同步、副项目隔离、知识库引用）
-- 定时任务时间（早报几点发、晚上几点回顾、周回顾哪天）
+# 3. 用 Obsidian 打开生成的目录
+#    Open Obsidian → "Open folder as vault" → 选刚才指定的路径
 
-跑完自动生成完整的 vault 结构 + 渲染好的 AGENTS.md。
+# 4. 在 QoderWork 中选择这个文件夹作为工作目录
 
-### 3. 用 Obsidian 打开生成的目录
+# 5. 注册定时任务（或让 Agent 帮你注册）
 
-Open Obsidian → "Open folder as vault" → 选你刚才指定的路径。
-
-### 4. 在 QoderWork 中选择这个文件夹
-
-选为工作文件夹后，AGENTS.md 会在每次对话开始时自动注入 — Agent 立刻知道怎么帮你。
-
-### 5. 注册定时任务
-
-在 QoderWork 的定时任务面板中创建：
-- 早间播报（如每天 10:30）
-- 晚间回顾（如每天 22:30）
-- 周回顾（如周日 21:00）
-
-### 6. 验证一切正常
-
-```bash
+# 6. 验证
 python3 setup/doctor.py --vault ~/Documents/GTD
 ```
-
-看到 ✅ All checks passed 就说明搞定了。
 
 ---
 
