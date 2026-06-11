@@ -1,7 +1,7 @@
 ---
-name: "llm-gtd-setup"
+name: llm-gtd-setup
 description: "一键设置 LLM-GTD 系统（AI 驱动的 GTD 工作流）。当用户说\"设置 GTD\"\"setup LLM-GTD\"\"帮我搞 GTD 系统\"\"初始化 GTD\"或使用 /llm-gtd-setup 时触发。克隆仓库、问偏好、生成 vault、注册定时任务，全程对话完成。"
-version: 1.4.0
+version: 1.5.0
 ---
 
 # LLM-GTD Setup
