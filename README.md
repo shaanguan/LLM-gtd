@@ -31,6 +31,14 @@
 
 它会问你几个问题（vault 放哪、用什么 IM、几点播报），然后全自动搭好。
 
+## 卸载
+
+不想用了？对 Agent 说：
+
+> "卸载 GTD"
+
+它会停掉所有定时任务、清除系统文件（Scripts、Dashboard、AGENTS.md）。你写的笔记默认保留，也可以选择一并删除。干干净净，不留残余。
+
 ## 需要什么
 
 - 一个 AI Agent 环境（Claude Desktop / QoderWork / 其他支持 system prompt 的工具）
