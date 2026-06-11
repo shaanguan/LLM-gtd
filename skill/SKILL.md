@@ -1,7 +1,7 @@
 ---
 name: llm-gtd-setup
 description: 一键设置 LLM-GTD 系统（AI 驱动的 GTD 工作流）。当用户说"设置 GTD""setup LLM-GTD""帮我搞 GTD 系统""初始化 GTD"或使用 /llm-gtd-setup 时触发。克隆仓库、问偏好、生成 vault、注册定时任务，全程对话完成。
-version: 1.2.0
+version: 1.3.0
 ---
 
 # LLM-GTD Setup
@@ -32,7 +32,7 @@ ls ~/Projects/llm-gtd 2>/dev/null || ls ~/llm-gtd 2>/dev/null
 
 ```bash
 mkdir -p ~/Projects
-git clone https://github.com/<org>/llm-gtd.git ~/Projects/llm-gtd
+git clone https://github.com/shaanguan/LLM-gtd.git ~/Projects/LLM-gtd
 ```
 
 记住仓库路径为 `$REPO_PATH`。
