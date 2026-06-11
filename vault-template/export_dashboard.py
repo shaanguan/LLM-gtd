@@ -65,7 +65,7 @@ def is_side_project(fm: dict) -> bool:
     if side_prefix and project.startswith(side_prefix):
         return True
     tags = fm.get("tags") or []
-    return "side-project" in tags or "baseline" in tags
+    return "side-project" in tags
 
 
 def build_item(path: Path, item_type: str) -> dict:

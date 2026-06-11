@@ -17,7 +17,9 @@ gtd-workbench/
 ├── LICENSE                 — MIT
 ├── README.md               — this file
 ├── setup/
-│   └── config.schema.yaml  — full config reference + defaults
+│   ├── config.schema.yaml  — full config reference + defaults
+│   ├── init.py             — interactive initializer (renders template → vault)
+│   └── doctor.py           — post-setup health check
 ├── vault-template/         — copy this into a new vault to bootstrap
 │   ├── AGENTS.md           — 17-section template (conditionally rendered)
 │   ├── 00 - Inbox/         — capture-everything dropbox
@@ -46,36 +48,38 @@ gtd-workbench/
 │       └── wiki/           — ~50 distilled GTD concept pages
 ├── scripts/
 │   └── sync-knowledge.sh   — pull private KB source → knowledge/gtd/ mirror
-├── docs/                   — TODO (Phase 4)
-└── examples/               — TODO (Phase 5: demo vault)
+├── docs/
+│   ├── architecture.md     — three-layer system design
+│   ├── user-guide.md       — setup + daily workflow + customization
+│   └── faq.md              — common questions answered
+└── examples/
+    └── demo-vault/         — fictional "Li Wei" walkthrough
 ```
 
-## Quick try
-
-> Phase 1 only: copy the template, point `$GTD_VAULT` at it, run the scripts.
-> No `init.py` / cron registration yet — that's Phase 3.
+## Quick Start
 
 ```bash
-# 1. Copy the template anywhere you like
-cp -R gtd-workbench/vault-template ~/Documents/my-gtd-vault
+# Clone the repo
+git clone https://github.com/<your-org>/gtd-workbench.git
+cd gtd-workbench
 
-# 2. Tell the scripts where to find it
-export GTD_VAULT="$HOME/Documents/my-gtd-vault"
+# Run the interactive initializer
+python3 setup/init.py
 
-# 3. Optional: customize via $GTD_VAULT/.gtd-workbench/config.yaml
-mkdir -p "$GTD_VAULT/.gtd-workbench"
-cp gtd-workbench/setup/config.schema.yaml "$GTD_VAULT/.gtd-workbench/config.yaml"
+# It will ask:
+#   1. Where to create your vault (e.g. ~/Documents/GTD)
+#   2. Which features to enable (OKR, DingTalk, side project, knowledge base)
+#   3. Cron schedule (morning/evening/weekly times)
+#
+# Then it renders AGENTS.md, copies the template, and prints next steps.
 
-# 4. Run a script
-cd "$GTD_VAULT"
-python3 Scripts/preflight.py
-python3 export_dashboard.py
-open Dashboard.html   # macOS
+# Verify your setup
+python3 setup/doctor.py --vault ~/Documents/GTD
 ```
 
 ## AGENTS.md
 
-The `vault-template/AGENTS.md` is the brain of this system — a 17-section operational manual that gets auto-injected into every QoderWork agent session and cron run. It uses `{{placeholder}}` variables and `<!-- IF feature.X -->` conditional sections so that `setup/init.py` (Phase 3) can render a personalized copy for each user.
+The `vault-template/AGENTS.md` is the brain of this system — a 17-section operational manual that gets auto-injected into every QoderWork agent session and cron run. It uses `{{placeholder}}` variables and `<!-- IF feature.X -->` conditional sections so that `setup/init.py` can render a personalized copy for each user.
 
 Key sections: identity, three-layer architecture, vault structure, DingTalk ops (optional), hard/soft red lines, permissions, GTD decision anchors with knowledge-base cross-references, behavior code, cron flows, OKR (optional), collaborators, side projects (optional), Dashboard sync, failure defenses, lessons learned, and knowledge base pointers.
 
@@ -99,10 +103,10 @@ The AGENTS.md template's §8 "Decision Anchors" section maps common GTD situatio
 
 - [x] **Phase 1** — repo scaffold + config-ized scripts + Dashboard skeleton
 - [x] **Phase 2** — `AGENTS.md` template + knowledge base + decision anchor table
-- [ ] **Phase 3** — `setup/init.py` interactive bootstrap + cron registration
-- [ ] **Phase 4** — full docs (`docs/architecture.md`, user guide, FAQ)
-- [ ] **Phase 5** — `examples/demo-vault/` walkthrough
-- [ ] **Phase 6** — release on GitHub + internal preview
+- [x] **Phase 3** — `setup/init.py` interactive bootstrap + `setup/doctor.py` self-check
+- [x] **Phase 4** — full docs (`docs/architecture.md`, user guide, FAQ)
+- [x] **Phase 5** — `examples/demo-vault/` walkthrough (fictional designer "Li Wei")
+- [x] **Phase 6** — release-ready (security audit passed, no personal data)
 
 ## License
 
