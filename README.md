@@ -16,11 +16,7 @@
 
 **1. 安装 Setup Skill**
 
-把 setup 流程装进你的 Agent，让它知道怎么帮你搭系统：
-
-- **Claude Desktop（推荐）** — 新建 Project，把 [SKILL.md](skills/llm-gtd-setup/SKILL.md) 内容粘到 Project Instructions
-- **QoderWork** — 技能市场搜索 `llm-gtd-setup`，点击安装
-- **其他 Agent** — 把 SKILL.md 内容粘到 system prompt 或对应的指令配置里
+下载 [SKILL.md](skills/llm-gtd-setup/SKILL.md)，装到你的 Agent 里（具体方式见文件开头说明）。
 
 **2. 对 Agent 说：**
 
