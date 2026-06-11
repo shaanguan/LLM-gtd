@@ -73,11 +73,31 @@ python3 $REPO_PATH/setup/init.py --vault "$VAULT_PATH" --non-interactive
 
 如果 init.py 已经跑过（vault 已存在），告诉用户"检测到已有 vault，是否重新初始化？"
 
-### 4. 设置 QoderWork 工作文件夹
+### 4. 钉钉文档创建（仅开启钉钉同步时）
 
-将 vault 路径设为 QoderWork 当前工作目录。使用 QoderWork action 工具（如可用），或者提示用户在界面上选择文件夹。
+如果用户在问题 2 中选了"钉钉同步"，进入此步。用自然语言向用户介绍并征询：
 
-### 5. 注册定时任务
+> "钉钉同步开好了。我推荐配套创建两个钉钉文档：
+>
+> **排期表** — 我每周把你的项目排期推上去，同事能直接看到你这周做什么、什么时候交付，减少被追问'这个啥时候好'。
+>
+> **每日安排** — 每天早间播报把今日 MIT + 会议 + 等待回复的事贴上去，相当于你的对外'今日状态'。
+>
+> 这两个适合你吗？还是你有别的想推到钉钉的内容？"
+
+根据用户回答：
+- 用户同意 → 用 `mcp__钉钉文档__create_document` 创建对应文档，拿到返回的 nodeId
+- 用户只要其中一个 → 只创建那个
+- 用户说想要别的（比如"周报""会议纪要"）→ 按他说的创建
+- 用户说不需要 → 跳过，AGENTS.md 里对应 nodeId 留空，后续随时可以再配
+
+创建完成后，将 nodeId 直接写入 AGENTS.md §4 对应位置（替换 `<paste-your-node-id>`）。
+
+### 5. 设置 QoderWork 工作文件夹
+
+将 vault 路径设为 QoderWork 当前工作目录。提示用户在界面上选择文件夹（当前无法程序化完成此步）。
+
+### 6. 注册定时任务
 
 用 `qoder_cron` 注册 4 个任务（根据用户选择的时间调整 cron expr）：
 
@@ -122,7 +142,7 @@ missedRunPolicy: "skip"
 cd "$VAULT_PATH" && git init && git add -A && git commit -m "initial vault setup"
 ```
 
-### 6. 运行 doctor 验证
+### 7. 运行 doctor 验证
 
 ```bash
 python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
@@ -130,7 +150,7 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 
 确认零 error 零 warning。
 
-### 7. 告知用户完成 + 唯一手动步
+### 8. 告知用户完成 + 唯一手动步
 
 输出类似：
 
@@ -155,7 +175,7 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 - `contextDirs` 指向 vault（AGENTS.md 所在处），不是 repo
 - 如果用户已有 Obsidian vault 想复用，init.py 不会覆盖已有文件，可以安全执行
 - 如果 qoder_cron 注册失败（比如权限问题），告诉用户手动在 QoderWork 定时任务面板创建
-- 钉钉功能开启后，需要用户后续自己填 nodeId（AGENTS.md §4），提醒一下
+- 钉钉文档创建失败时（如 MCP 未连接），告诉用户手动创建文档后把 URL 发过来，Agent 从 URL 提取 nodeId 填入
 
 ## Verification
 
