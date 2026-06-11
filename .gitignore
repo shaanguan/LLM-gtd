@@ -1,0 +1,15 @@
+# Build artifacts / OS clutter
+.DS_Store
+*.pyc
+__pycache__/
+*.swp
+*.tmp
+
+# Local work, never commit
+scratch/
+private/
+*.local.*
+
+# IDE
+.idea/
+.vscode/

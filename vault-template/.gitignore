@@ -1,0 +1,14 @@
+.DS_Store
+.obsidian/workspace*
+.obsidian/cache
+.obsidian/snippets/
+.trash/
+*.tmp
+*.swp
+
+# gtd-workbench state (heartbeat / PTO flag) is local-only
+.gtd-workbench/state/
+.gtd-workbench/config.local.yaml
+
+# /tmp scratch reports
+gtd-sync-report.md

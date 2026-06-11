@@ -1,0 +1,62 @@
+# gtd-workbench config schema (reference + defaults)
+#
+# Drop this at $GTD_VAULT/.gtd-workbench/config.yaml to override defaults.
+# Every key is optional — anything you omit falls back to the value below.
+
+# ─── Vault directory layout ───────────────────────────────────────────
+# Map logical roles → folder names (relative to $GTD_VAULT).
+# Rename folders here if you prefer a different language or convention.
+vault_dirs:
+  inbox: "00 - Inbox"
+  projects: "01 - Projects"
+  next_actions: "02 - Next Actions"
+  waiting_for: "03 - Waiting For"
+  someday: "04 - Someday Maybe"
+  reference: "05 - Reference"
+  archive: "06 - Archive"
+  achievements: "07 - Achievements"
+  templates: "Templates"
+
+# ─── Dashboard ────────────────────────────────────────────────────────
+dashboard_file: "Dashboard.html"
+
+# Hours after which the Dashboard SYNC marker is considered stale.
+dashboard_freshness_hours: 12
+
+# ─── Time zone ────────────────────────────────────────────────────────
+# Offset hours from UTC. Asia/Shanghai = 8, US/Pacific = -8, UTC = 0.
+timezone_offset_hours: 8
+
+# ─── Cron heartbeat expectations ──────────────────────────────────────
+# `max_age_hours`: alert if a heartbeat is older than this.
+# `schedule`: human-readable label, shown in alerts.
+cron_expectations:
+  morning:
+    max_age_hours: 26
+    schedule: "10:30 daily"
+  evening:
+    max_age_hours: 26
+    schedule: "22:30 daily"
+  daily_doc:
+    max_age_hours: 26
+    schedule: "22:00 daily"
+  weekly:
+    max_age_hours: 170      # 7 days + 2h buffer
+    schedule: "Fri 18:30"
+  git_snap:
+    max_age_hours: 26
+    schedule: "23:55 daily"
+
+# ─── Inbox SLA ────────────────────────────────────────────────────────
+# Items older than this trigger a `inbox_sla.py` warning.
+inbox_sla_hours: 4
+
+# ─── Inbox dedup ──────────────────────────────────────────────────────
+# Bigram jaccard similarity ≥ this flags two Inbox titles as likely duplicates.
+dup_inbox_jaccard_threshold: 0.4
+
+# ─── Side projects ────────────────────────────────────────────────────
+# Project frontmatter values starting with this prefix are dimmed on the
+# Dashboard (rendered in the side-projects section instead of the main grid).
+# Leave empty to disable; you can also tag with `tags: [side-project]`.
+side_project_prefix: ""
