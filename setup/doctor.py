@@ -3,7 +3,7 @@
 llm-gtd doctor — verify your vault setup is healthy.
 
 Usage:
-    python3 setup/doctor.py [--vault PATH]
+    python3 setup/doctor.py [--vault PATH] [--check-cron]
 
 Checks:
   1. $GTD_VAULT is set and directory exists
@@ -14,6 +14,7 @@ Checks:
   6. export_dashboard.py exists
   7. .llm-gtd/ state directory exists
   8. config.yaml (optional) is valid YAML if present
+  9. --check-cron: verify expected cron tasks are registered
 """
 
 import os
@@ -156,6 +157,53 @@ def check_env_var() -> list:
     return issues
 
 
+EXPECTED_CRON_NAMES = [
+    "GTD 早间播报",
+    "GTD 晚间回顾",
+    "GTD 周回顾",
+    "GTD Vault 快照",
+]
+
+
+def check_cron(vault: Path) -> list:
+    """Check that expected cron tasks are registered (platform-agnostic heuristic)."""
+    issues = []
+
+    # Try QoderWork cron list (json file if available)
+    cron_state = vault / ".llm-gtd" / "cron_ids.txt"
+    if cron_state.is_file():
+        registered = cron_state.read_text(encoding="utf-8").strip().splitlines()
+        if len(registered) < len(EXPECTED_CRON_NAMES):
+            issues.append((
+                "WARN",
+                f"Expected {len(EXPECTED_CRON_NAMES)} cron tasks, "
+                f"but cron_ids.txt only lists {len(registered)}. "
+                f"Missing tasks may not fire."
+            ))
+        return issues
+
+    # Fallback: check macOS launchd for git snapshot
+    import subprocess
+    try:
+        result = subprocess.run(
+            ["launchctl", "list"],
+            capture_output=True, text=True, timeout=5
+        )
+        if "com.gtd" not in result.stdout:
+            issues.append(("INFO", "No com.gtd.* LaunchAgents found (cron tasks may be agent-managed)"))
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        pass
+
+    # If we can't verify cron state, leave an info
+    if not issues:
+        issues.append((
+            "INFO",
+            "Cannot verify cron registration automatically. "
+            "Ask your Agent: 'list my scheduled tasks' to confirm 4 GTD tasks are active."
+        ))
+    return issues
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -165,6 +213,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="GTD Workbench Doctor — vault health check")
     parser.add_argument("--vault", type=str, help="Vault path (defaults to $GTD_VAULT)")
+    parser.add_argument("--check-cron", action="store_true", help="Also verify cron task registration")
     args = parser.parse_args()
 
     vault_str = args.vault or os.environ.get("GTD_VAULT")
@@ -189,6 +238,9 @@ def main():
         ("State directory", check_state_dir),
         ("Config YAML", check_config_yaml),
     ]
+
+    if args.check_cron:
+        checks.append(("Cron tasks", check_cron))
 
     # Also check env var
     env_issues = check_env_var()

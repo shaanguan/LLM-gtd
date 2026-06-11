@@ -166,15 +166,19 @@ python3 $REPO_PATH/setup/create_app.py "$VAULT_PATH" "$REPO_PATH"
 - 用户说想要别的（比如"周报""会议纪要"）→ 按他说的创建
 - 用户说不需要 → 跳过
 
-创建完成后，将文档 ID 写入 AGENTS.md §4 对应位置。
+创建完成后，将文档 ID 写入 AGENTS.md §4 对应占位符：
+
+```bash
+# 假设排期表 nodeId 为 $SCHED_ID, 日报 nodeId 为 $DAILY_ID
+sed -i '' "s/{{doc.scheduling_id}}/$SCHED_ID/g" "$VAULT_PATH/AGENTS.md"
+sed -i '' "s/{{doc.daily_id}}/$DAILY_ID/g" "$VAULT_PATH/AGENTS.md"
+```
+
+如果用户只创建了其中一个，只替换对应的占位符，另一个保留（不影响运行，doc sync 会跳过空 ID）。
 
 **企业微信/微信用户**：跳过此步（这两个平台无文档能力），AGENTS.md §4 文档同步段落自动移除。
 
-### 6. 设置工作文件夹
-
-将 vault 路径设为 AI 助手当前工作目录/项目文件夹。提示用户在界面上选择文件夹（当前各平台均需手动操作）。
-
-### 7. 注册定时任务
+### 6. 注册定时任务
 
 用环境提供的定时任务工具注册 4 个任务（根据用户选择的时间调整 cron 表达式）：
 
@@ -245,7 +249,7 @@ missedRunPolicy: skip
 cd "$VAULT_PATH" && git init && git add -A && git commit -m "initial vault setup"
 ```
 
-### 8. 运行 doctor 验证
+### 7. 运行 doctor 验证
 
 ```bash
 python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
@@ -253,7 +257,7 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 
 确认零 error 零 warning。
 
-### 9. 冷启动：导入已有待办或引导上手
+### 8. 冷启动：导入已有待办或引导上手
 
 **此步骤不可跳过。**
 
@@ -314,7 +318,7 @@ Setup 完成后，问用户一个选择：
 
 **注意**：A/B/C 三条路可以混合使用。用户导完一批后 Agent 应该主动问"还有别的来源要导入吗？"，直到用户说够了为止。
 
-### 10. Quick Start 自动弹出
+### 9. Quick Start 自动弹出
 
 `init.py` 运行结束时会自动调用 `open QUICKSTART.html`，浏览器直接弹出来，不需要 Agent 额外操作。
 
@@ -324,6 +328,18 @@ open "$VAULT_PATH/QUICKSTART.html"
 ```
 
 不需要告诉用户"我打开了"——他已经看到了。
+
+### 10. 设置工作文件夹（最后一步）
+
+**此步为什么放最后**：切换工作文件夹会导致当前会话上下文清零。所有安装逻辑必须在切之前完成。
+
+告诉用户：
+
+> "安装全部完成。最后一步：把 vault 设为工作文件夹，这样以后每次对话我都能直接操作你的 GTD 系统。
+>
+> 请在界面上选择文件夹，指向 `$VAULT_PATH`。
+>
+> 切完后如果对话断了，直接跟我说'继续'就行——我会从 AGENTS.md 恢复上下文。"
 
 ---
 
