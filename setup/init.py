@@ -244,6 +244,19 @@ def main():
         except Exception as e:
             print(f"  ⚠ Dashboard.app skipped: {e}")
 
+    # ── Auto-open QUICKSTART.html ──────────────────────────────────────
+    quickstart = vault_path / "QUICKSTART.html"
+    if quickstart.exists():
+        import platform
+        import subprocess
+        if platform.system() == "Darwin":
+            subprocess.Popen(["open", str(quickstart)])
+        elif platform.system() == "Linux":
+            subprocess.Popen(["xdg-open", str(quickstart)])
+        else:
+            # Windows
+            os.startfile(str(quickstart))
+
     # ── Summary ─────────────────────────────────────────────────────────
     print()
     print("═" * 50)

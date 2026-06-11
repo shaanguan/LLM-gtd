@@ -289,17 +289,16 @@ Setup 完成后，问用户一个选择：
 
 **注意**：A/B/C 三条路可以混合使用。用户导完一批后 Agent 应该主动问"还有别的来源要导入吗？"，直到用户说够了为止。
 
-### 10. 打开 Quick Start
+### 10. Quick Start 自动弹出
 
-**必须自动打开，怼脸呈现，不能指望用户自己找。**
+`init.py` 运行结束时会自动调用 `open QUICKSTART.html`，浏览器直接弹出来，不需要 Agent 额外操作。
 
-优先级从高到低，用第一个能用的方式：
+如果因为某些原因没弹出来（比如 headless 环境），兜底执行：
+```bash
+open "$VAULT_PATH/QUICKSTART.html"
+```
 
-1. `open "$VAULT_PATH/QUICKSTART.html"` — macOS 默认浏览器直接弹出来
-2. `xdg-open "$VAULT_PATH/QUICKSTART.html"` — Linux
-3. 浏览器工具导航到 `file://$VAULT_PATH/QUICKSTART.html`
-
-不需要告诉用户"我打开了"——他已经看到了。直接说下一步该干嘛就行。
+不需要告诉用户"我打开了"——他已经看到了。
 
 ## Pitfalls
 
