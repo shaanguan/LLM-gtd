@@ -19,7 +19,9 @@ LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统*
 - 🌅 **每天早上** — 自动推送今日重点（最多 3 件 MIT），提醒临近截止和等待超时
 - 🌙 **每天晚上** — 问你哪些做完了，帮你归档、更新进度、刷新 Dashboard
 - 📅 **每周一次** — 完整回顾：清 Inbox、检查项目、激活 Someday、对齐 OKR
+- ⌨️ **全局快捷键 Cmd+I（macOS）** — 任何 App 里按一下，弹出输入框，一句话直接落进 Inbox，不用切窗口
 - 💬 **随时对话** — 说一句"帮我记一下：明天给设计稿加动效"，它就落进系统
+- 📄 **共享文档自动同步**（可选） — 排期表 + 每日安排自动推到钉钉/飞书文档，同事一眼看到你这周做什么、今天忙什么
 - 📊 **Dashboard** — 本地 HTML 仪表盘，一眼看到所有任务状态，无需服务器
 
 ## 它能帮你做什么？
@@ -31,6 +33,30 @@ LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统*
 | "今天忙什么" | 从 vault 实时扫描，列出今日 MIT + 逾期 + 等待中 |
 | "帮我看看 Inbox" | 逐条过 GTD 决策树：该做的建 NA，该等的建 WF，该扔的问你 |
 | "这周进展怎么样" | 汇总本周归档项，对比 OKR 进度 |
+
+## 两个高频亮点
+
+### ⌨️ Cmd+I 全局捕获（QuickCapture，macOS）
+
+灵感来自 GTD 的"两分钟法则"和"心如止水"——脑子里一冒出念头就立刻清出去，不要在心里反复打转。
+
+- 在浏览器、IDE、微信、PDF 里都能按 **Cmd+I**，弹出极简输入框
+- 一句话回车，自动写入 `00 - Inbox/`，文件名带时间戳，附带来源 App
+- 不打断你正在做的事，不抢焦点，不需要切窗口找笔记本
+- 第一次按会让你授权"辅助功能"权限，setup 时会提示
+
+这一项装好后会通过 LaunchAgent 开机自启，`launchctl list | grep com.gtd.quickcapture` 能看到进程。
+
+### 📄 共享文档自动同步（钉钉/飞书）
+
+工作场景里同事经常追问"这个啥时候好？""你这周做什么？"——这套同步把答案前置到一份共享文档里。
+
+- **排期表** — 每周把 Projects 的里程碑和交付日期推到一份钉钉/飞书文档，同事直接看
+- **每日安排** — 早间播报把今日 MIT、会议、等待回复的事贴上去，相当于你的对外"今日状态"
+- **隐私分级** — 只推摘要（任务名+日期+状态），不推任务正文/纪要/思考过程
+- **块级更新** — 历史不重写，只追加/改动当天的块，文档评论历史不丢
+
+setup 时选了"文档同步"且 IM 平台是钉钉或飞书，Agent 会自动帮你创建这两份文档并把 nodeId 写进 AGENTS.md。
 
 ## 支持的 Agent 平台
 
@@ -58,7 +84,39 @@ LLM-GTD 是一套开箱即用的 **AI 驱动 GTD（Getting Things Done）系统*
 
 ## 快速上手（5 分钟）
 
-### 推荐方式：在 Agent 中对话完成
+### Step 0：安装 Setup Skill（必做，约 30 秒）
+
+Agent 默认不知道"怎么帮你装 LLM-GTD"——你需要先把 setup 流程作为一个 skill 装到 Agent 里。装好之后，下面"对话完成"那一步才能 work。
+
+**方式 A：一行命令（推荐 macOS / Linux）**
+
+```bash
+mkdir -p ~/.qoderwork/skills/llm-gtd-setup && \
+curl -fsSL https://raw.githubusercontent.com/shaanguan/LLM-gtd/main/skills/llm-gtd-setup/SKILL.md \
+  -o ~/.qoderwork/skills/llm-gtd-setup/SKILL.md
+```
+
+**方式 B：手动下载 SKILL.md**
+
+1. 打开 [skills/llm-gtd-setup/SKILL.md](https://github.com/shaanguan/LLM-gtd/blob/main/skills/llm-gtd-setup/SKILL.md)，点右上角 **Raw** → 另存为 `SKILL.md`
+2. 放到下面这个路径（不存在就新建）：
+   - macOS / Linux：`~/.qoderwork/skills/llm-gtd-setup/SKILL.md`
+   - Windows：`%USERPROFILE%\.qoderwork\skills\llm-gtd-setup\SKILL.md`
+3. Claude Desktop / 其他 Agent 用户：把 SKILL.md 内容粘到对应的 skill / system prompt 配置里
+
+**方式 C：克隆仓库 + 软链接（开发者）**
+
+```bash
+git clone https://github.com/shaanguan/LLM-gtd.git ~/Projects/LLM-gtd
+mkdir -p ~/.qoderwork/skills
+ln -sfn ~/Projects/LLM-gtd/skills/llm-gtd-setup ~/.qoderwork/skills/llm-gtd-setup
+```
+
+**验证**：重启 Agent，输入 `/llm-gtd-setup` 或说"帮我设置 LLM-GTD"，能识别到就行。
+
+---
+
+### Step 1：在 Agent 中对话完成（推荐）
 
 打开你的 AI Agent（QoderWork / Claude Desktop），直接说：
 
@@ -70,9 +128,9 @@ Agent 会自动完成以下所有步骤 — 你只需要回答几个偏好问题
 
 ---
 
-### 手动方式：命令行
+### 手动方式：命令行（不依赖 skill）
 
-如果你更喜欢自己掌控，6 步搞定：
+如果你更喜欢自己掌控，或者不想装 skill，6 步搞定：
 
 ```bash
 # 1. 克隆仓库
