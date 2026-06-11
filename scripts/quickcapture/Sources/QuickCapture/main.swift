@@ -2,10 +2,10 @@ import Cocoa
 import Carbon
 
 // MARK: - Config
-// __INBOX_DIR__ is replaced by init.py with the user's actual vault inbox path.
+// /Users/zhoubo/Documents/待办事项/00 - Inbox is replaced by init.py with the user's actual vault inbox path.
 // If running from source without replacement, defaults to ~/Documents/GTD/00 - Inbox
 let inboxDir: URL = {
-    let placeholder = "__INBOX_DIR__"
+    let placeholder = "/Users/zhoubo/Documents/待办事项/00 - Inbox"
     if placeholder.hasPrefix("__") {
         return FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent("Documents/GTD/00 - Inbox")

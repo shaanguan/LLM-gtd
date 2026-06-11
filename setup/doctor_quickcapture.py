@@ -9,9 +9,10 @@ Returns a list of (level, message) tuples:
 import subprocess
 import platform
 from pathlib import Path
+from typing import List, Tuple
 
 
-def check(vault_path: str) -> list[tuple[str, str]]:
+def check(vault_path: str) -> List[Tuple[str, str]]:
     """Run QuickCapture health checks. Returns list of (level, message)."""
     results = []
 

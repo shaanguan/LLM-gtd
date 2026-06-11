@@ -19,6 +19,7 @@ import shutil
 import subprocess
 import platform
 from pathlib import Path
+from typing import Optional
 
 
 def is_macos():
@@ -37,7 +38,7 @@ def has_swift():
         return False
 
 
-def build_swift(repo_path: Path) -> Path | None:
+def build_swift(repo_path: Path) -> Optional[Path]:
     """Build QuickCapture Swift package. Returns binary path or None."""
     pkg_dir = repo_path / "scripts" / "quickcapture"
     if not (pkg_dir / "Package.swift").exists():
