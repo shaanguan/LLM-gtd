@@ -14,19 +14,19 @@
 
 ## 快速上手
 
-打开你的 AI Agent，说：
-
-> "帮我设置 LLM-GTD"
-
-它会问你几个问题（vault 放哪、用什么 IM、几点播报），然后全自动搭好。
-
-如果 Agent 不认识这个命令，先装 skill：
+**1. 安装 Skill**
 
 ```bash
 mkdir -p ~/.qoderwork/skills/llm-gtd-setup && \
 curl -fsSL https://raw.githubusercontent.com/shaanguan/LLM-gtd/main/skills/llm-gtd-setup/SKILL.md \
   -o ~/.qoderwork/skills/llm-gtd-setup/SKILL.md
 ```
+
+**2. 对 Agent 说：**
+
+> "帮我设置 LLM-GTD"
+
+它会问你几个问题（vault 放哪、用什么 IM、几点播报），然后全自动搭好。
 
 ## 需要什么
 
