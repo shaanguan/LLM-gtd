@@ -228,19 +228,46 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 
 确认零 error 零 warning。
 
-### 9. 打开 Quick Start + 发起 Brain Dump
+### 9. 冷启动：导入内容或引导任务
 
-**此步骤不可跳过**——即使前面所有步骤都已完成，必须执行以下两个动作：
+**此步骤不可跳过。**
 
-**A. 确认引导任务存在：**
+Setup 完成后，问用户一个选择：
 
-init.py 会把 `00 - Inbox/Getting Started with GTD.md` 复制到用户 vault。验证它存在：
-```bash
-ls "$VAULT_PATH/00 - Inbox/Getting Started with GTD.md"
-```
-这条引导任务是冷启动的核心——它让用户的第一次播报不是空的，且引导用户亲手走通 GTD 全流程（Inbox → Project → NA → due → MIT）。
+> "系统搭好了。接下来有两个选项：
+>
+> **A. 立刻导入** — 你现在把脑子里的待办、想法、承诺一条条告诉我，我帮你存进 Inbox。适合手上已经有一堆事要管的人。
+>
+> **B. 7 天上手** — 我帮你导入一套 7 天引导任务，每天一个小任务带你走通 GTD 全流程。适合想先跟着节奏体验一遍的人。
+>
+> 选哪个？"
 
-**B. 在浏览器打开 QUICKSTART.html（必做）：**
+**如果用户选 A（立刻导入）：**
+
+进入 brain dump 对话循环。用户每说一条，Agent 立即写入 `00 - Inbox/`，回复"收到，还有吗？"。直到用户说"没了"或"先这样"，Agent 回应：
+
+"好，收了 N 条。明早播报会提醒你处理。或者你现在就可以说'帮我过一下 Inbox'开始分拣。"
+
+**如果用户选 B（7 天上手）：**
+
+将仓库 `vault-template/00 - Inbox/` 里的 Day 1-7 文件复制到用户 vault 的 `00 - Inbox/`，同时把 due 日期设置为从今天起的连续 7 天（Day 1 = 今天，Day 2 = 明天 ...）。
+
+7 个任务分别是：
+1. **Day 1：把脑子清空** — 练习 Capture，至少收集 10 条
+2. **Day 2：清空收件箱** — 练习 Clarify + Organize，Inbox 归零
+3. **Day 3：选出今日 MIT** — 练习 Engage，选 3 条最重要的执行
+4. **Day 4：建一个真实项目** — 练习拆解，建项目 + 拆 Next Actions
+5. **Day 5：追踪等别人的事** — 练习 Waiting For，记录 2 条
+6. **Day 6：存"以后再说"的事** — 练习 Someday Maybe，存 3 条
+7. **Day 7：做一次周回顾** — 练习 Weekly Review，走完 7 步
+
+导入后告诉用户：
+
+"好，7 天引导任务已就位。从今天开始每天的早间播报会提醒你当天的任务。Day 1 是把脑子清空——随时对我说'帮我收集'就能开始。"
+
+### 10. 打开 Quick Start
+
+**A. 在浏览器打开 QUICKSTART.html（必做）：**
 
 立即使用浏览器工具导航到：
 ```
@@ -252,21 +279,7 @@ file://$VAULT_PATH/QUICKSTART.html
 open "$VAULT_PATH/QUICKSTART.html"
 ```
 
-告诉用户："我已在浏览器打开了 Quick Start 引导页，你可以收藏备用。"
-
-**C. 在对话里立即发起 brain dump（必做）：**
-
-> 搞定了。我刚在浏览器打开了 Quick Start 页面，随时可以回看。
->
-> 另外我在你的 Inbox 里放了一条「开始使用 GTD」引导任务——明天你可以跟着它走一遍完整流程，5 步跑通。
->
-> 现在咱们把系统填上——你脑子里飘着哪些事？待办、承诺、想法都行，一条一条告诉我。
-
-之后进入对话循环：用户每说一条，Agent 立即写入 `00 - Inbox/`，回复"收到，还有吗？"。直到用户说"没了"或"先这样"，Agent 回应：
-
-"好，收了 N 条（加上引导任务共 N+1 条）。明早播报会提醒你处理。或者你现在就可以说'帮我过一下 Inbox'开始分拣。"
-
-**关键**：引导任务 + brain dump 双保险，确保第一次早间播报至少有内容可报。
+告诉用户："我在浏览器打开了 Quick Start 引导页，可以收藏备用。"
 
 ## Pitfalls
 
