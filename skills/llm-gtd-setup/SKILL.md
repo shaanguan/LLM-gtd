@@ -1,7 +1,7 @@
 ---
 name: llm-gtd-setup
 description: "LLM-GTD — 让 AI 做你的 GTD 秘书。每天早上推送今日重点，晚上帮你回顾归档，每周自动清理系统。你只管随时把想法丢给它，剩下的它来管。说\"设置 GTD\"或 /llm-gtd-setup 开始安装。"
-version: 1.5.0
+version: 1.6.0
 ---
 
 # LLM-GTD Setup
@@ -16,6 +16,7 @@ version: 1.5.0
 - "帮我搞 GTD 系统"
 - "初始化 GTD" / "init GTD"
 - "我要用 LLM-GTD"
+- "卸载 GTD" / "uninstall GTD" / "删掉 LLM-GTD" / "我不想用了" → 跳到「卸载 LLM-GTD」章节
 
 **行为规则**：用户只输入 skill 名称（如 `/llm-gtd-setup`）而不附加其他说明时，直接开始 Step 1，无需再问"你要做什么"。
 
@@ -299,6 +300,91 @@ open "$VAULT_PATH/QUICKSTART.html"
 ```
 
 不需要告诉用户"我打开了"——他已经看到了。
+
+---
+
+## 卸载 LLM-GTD
+
+### 触发条件
+
+用户说以下任何一种：
+- "卸载 GTD" / "uninstall GTD"
+- "删掉 LLM-GTD"
+- "我不想用了，清掉"
+- "remove GTD system"
+
+### 卸载流程
+
+**Step 1 — 确认意图**
+
+> "确认卸载 LLM-GTD？我会清除以下内容：
+>
+> - 4 个定时任务（早间播报、晚间回顾、周回顾、每日快照）
+> - vault 里的系统文件（AGENTS.md、Scripts/、Dashboard.html、.gtd-workbench/）
+> - QuickCapture 快捷键（macOS）
+> - GTD Dashboard.app（macOS）
+>
+> **你写的笔记和任务文件默认保留**（00-Inbox 到 07-Achievements 里的 .md 文件）。
+>
+> 要连笔记一起删除吗？"
+
+两个选项：
+- **保留笔记，只删系统** — 保留所有用户创建的 .md 文件
+- **全部删除** — 整个 vault 目录移入废纸篓
+
+**Step 2 — 停定时任务**
+
+删除所有 LLM-GTD 相关的 cron 任务（按名称匹配含"GTD"的任务）。
+
+**Step 3 — 卸载 QuickCapture（macOS）**
+
+```bash
+launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.gtd.quickcapture.plist 2>/dev/null
+rm -f ~/Library/LaunchAgents/com.gtd.quickcapture.plist
+rm -f "$VAULT_PATH/Scripts/QuickCapture.bin"
+```
+
+**Step 4 — 删除 Dashboard.app（macOS）**
+
+```bash
+rm -rf ~/Applications/GTD\ Dashboard.app
+```
+
+**Step 5 — 清除系统文件**
+
+```bash
+rm -f "$VAULT_PATH/AGENTS.md"
+rm -f "$VAULT_PATH/Dashboard.html"
+rm -f "$VAULT_PATH/QUICKSTART.html"
+rm -f "$VAULT_PATH/export_dashboard.py"
+rm -rf "$VAULT_PATH/Scripts/"
+rm -rf "$VAULT_PATH/Templates/"
+rm -rf "$VAULT_PATH/.gtd-workbench/"
+```
+
+**Step 6 — 如果用户选了"全部删除"**
+
+将整个 vault 目录移入废纸篓（不要 rm -rf）：
+
+```bash
+# macOS
+mv "$VAULT_PATH" ~/.Trash/
+
+# Linux
+gio trash "$VAULT_PATH"
+```
+
+**Step 7 — 清理仓库（可选）**
+
+问用户是否删除克隆的 llm-gtd 仓库目录。是则移入废纸篓。
+
+**Step 8 — 确认完成**
+
+> "LLM-GTD 已卸载。定时任务已停止，系统文件已清除。[笔记文件保留在原位 / vault 已移入废纸篓]。
+>
+> 如果之后想重新安装，随时对我说'设置 GTD'。"
+
+---
 
 ## Pitfalls
 
