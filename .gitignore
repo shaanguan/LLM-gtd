@@ -5,6 +5,10 @@ __pycache__/
 *.swp
 *.tmp
 
+# Swift build products
+scripts/quickcapture/.build/
+*.bin
+
 # Local work, never commit
 scratch/
 private/

@@ -1,7 +1,7 @@
 ---
 name: llm-gtd-setup
 description: 一键设置 LLM-GTD 系统（AI 驱动的 GTD 工作流）。当用户说"设置 GTD""setup LLM-GTD""帮我搞 GTD 系统""初始化 GTD"或使用 /llm-gtd-setup 时触发。克隆仓库、问偏好、生成 vault、注册定时任务，全程对话完成。
-version: 1.3.0
+version: 1.4.0
 ---
 
 # LLM-GTD Setup
@@ -78,6 +78,22 @@ python3 $REPO_PATH/setup/init.py --vault "$VAULT_PATH" --non-interactive
 - 根据功能开关，手动处理 `<!-- IF feature.X -->` 块（init.py --non-interactive 默认全开，需要按用户选择关闭未选的）
 
 如果 init.py 已经跑过（vault 已存在），告诉用户"检测到已有 vault，是否重新初始化？"
+
+### 3.5. 安装 QuickCapture（macOS 用户）
+
+在 vault 生成后，安装全局快捷键捕获工具：
+
+```bash
+python3 $REPO_PATH/setup/install_quickcapture.py --vault "$VAULT_PATH" --repo "$REPO_PATH"
+```
+
+此步骤会：
+- 检测 Swift toolchain（无则回退 JXA 版）
+- 编译并安装 QuickCapture.bin 到 vault/Scripts/
+- 注册 LaunchAgent（登录自动启动）
+- 提示用户授权辅助功能（首次 Cmd+I 时 macOS 弹窗）
+
+非 macOS 用户自动跳过此步。
 
 ### 4. IM 频道连接检测
 
@@ -179,14 +195,15 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 > - Vault: `$VAULT_PATH`
 > - 功能: OKR / 钉钉 / 知识库（根据实际）
 > - 定时任务: 早 10:30 / 晚 22:30 / 周日 21:00 / 快照 23:55
+> - ⌨️ **快捷键 Cmd+I**：随时按下唤出捕获面板，输入文字按回车即保存到 Inbox
 >
 > **还有一步需要你手动做**：打开 Obsidian → 左下角 "Open another vault" → "Open folder as vault" → 选择上面的路径。这样你可以在 Obsidian 里浏览笔记。
 >
 > 不过即使不开 Obsidian，系统也能正常工作 —— 我直接读写文件。
 >
 > **现在可以试试**：
-> - 对我说"帮我记一下：买咖啡豆"
-> - 或者说"帮我看看 Inbox"
+> - 按 **Cmd+I** → 输入"买咖啡豆" → 按回车（自动保存为 `00 - Inbox/20260611-153000 买咖啡豆.md`）
+> - 或者对我说"帮我看看 Inbox"
 > - 或者等明天早上收到第一次播报 ☀️
 
 ## Pitfalls
@@ -204,3 +221,4 @@ python3 $REPO_PATH/setup/doctor.py --vault "$VAULT_PATH"
 - 在 vault 里 `ls "00 - Inbox/"` 能看到目录
 - AGENTS.md 存在且无 `{{` 残留
 - `qoder_cron list` 能看到 4 个新任务
+- macOS: `launchctl list | grep com.gtd.quickcapture` 有输出（QuickCapture 运行中）
