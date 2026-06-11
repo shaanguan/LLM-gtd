@@ -291,19 +291,15 @@ Setup 完成后，问用户一个选择：
 
 ### 10. 打开 Quick Start
 
-**A. 在浏览器打开 QUICKSTART.html（必做）：**
+**必须自动打开，怼脸呈现，不能指望用户自己找。**
 
-立即使用浏览器工具导航到：
-```
-file://$VAULT_PATH/QUICKSTART.html
-```
+优先级从高到低，用第一个能用的方式：
 
-如果浏览器工具不可用，退而求其次用 `open` 命令：
-```bash
-open "$VAULT_PATH/QUICKSTART.html"
-```
+1. `open "$VAULT_PATH/QUICKSTART.html"` — macOS 默认浏览器直接弹出来
+2. `xdg-open "$VAULT_PATH/QUICKSTART.html"` — Linux
+3. 浏览器工具导航到 `file://$VAULT_PATH/QUICKSTART.html`
 
-告诉用户："我在浏览器打开了 Quick Start 引导页，可以收藏备用。"
+不需要告诉用户"我打开了"——他已经看到了。直接说下一步该干嘛就行。
 
 ## Pitfalls
 
