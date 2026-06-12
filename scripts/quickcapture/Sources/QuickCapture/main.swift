@@ -149,7 +149,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // === Header ===
         let headerY = H - headerH
 
-        let iconLabel = NSTextField(labelWithString: "\u{1F4E5}")
+        let iconLabel = NSTextField(labelWithString: "📥")
         iconLabel.font = .systemFont(ofSize: 20)
         iconLabel.sizeToFit()
         let iconW = iconLabel.frame.width
@@ -162,7 +162,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         )
         blur.addSubview(iconLabel)
 
-        let title = NSTextField(labelWithString: "GTD Inbox")
+        let title = NSTextField(labelWithString: "GTD 收集箱")
         title.font = .systemFont(ofSize: 14, weight: .medium)
         title.textColor = .secondaryLabelColor
         title.sizeToFit()
@@ -178,7 +178,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         title.drawsBackground = false
         blur.addSubview(title)
 
-        let hint = NSTextField(labelWithString: "\u{2318}I hide  \u{23CE} save  \u{21E7}\u{23CE} newline  esc discard")
+        let hint = NSTextField(labelWithString: "⌘I 收起  ⏎ 保存  ⇧⏎ 换行  esc 丢弃")
         hint.font = .monospacedSystemFont(ofSize: 11, weight: .regular)
         hint.textColor = .tertiaryLabelColor
         hint.alignment = .right
@@ -237,7 +237,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .paragraphStyle: paraStyle
         ]
 
-        captureTV.placeholderText = "Capture to Inbox..."
+        captureTV.placeholderText = "记录想法…"
         captureTV.onSubmit = { [weak self] in self?.submit() }
         captureTV.onCancel = { [weak self] in self?.cancel() }
 
@@ -308,7 +308,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let task = Process()
             task.executableURL = URL(fileURLWithPath: "/usr/bin/osascript")
             task.arguments = ["-e",
-                "display notification \"Captured: \(title)\" with title \"GTD\""]
+                "display notification \"已收录：\(title)\" with title \"GTD\""]
             try? task.run()
         }
     }
