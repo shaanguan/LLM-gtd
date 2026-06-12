@@ -24,14 +24,11 @@ def check(vault_path: str) -> List[Tuple[str, str]]:
 
     # 1. Check binary exists
     bin_path = vault / "Scripts" / "QuickCapture.bin"
-    jxa_path = vault / "Scripts" / "QuickCapture.jxa"
 
     if bin_path.exists():
         results.append(("ok", f"QuickCapture binary: {bin_path}"))
-    elif jxa_path.exists():
-        results.append(("ok", f"QuickCapture JXA fallback: {jxa_path}"))
     else:
-        results.append(("warn", "QuickCapture not installed (no .bin or .jxa in Scripts/)"))
+        results.append(("warn", "QuickCapture not installed (no QuickCapture.bin in Scripts/)"))
         return results
 
     # 2. Check LaunchAgent plist exists

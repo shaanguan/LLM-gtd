@@ -2,7 +2,7 @@
 
 A lightweight macOS-only global hotkey tool that lets you instantly capture thoughts into your GTD Inbox from anywhere.
 
-**Platform**: macOS 13+ only. Linux/Windows users should skip this component.
+**Platform**: macOS 13+ only. Linux/Windows users should skip this component. **Requires Xcode Command Line Tools** (`xcode-select --install`).
 
 ## How it works
 
@@ -55,16 +55,6 @@ launchctl unload ~/Library/LaunchAgents/com.gtd.quickcapture.plist
 rm ~/Library/LaunchAgents/com.gtd.quickcapture.plist
 rm "$GTD_VAULT/Scripts/QuickCapture.bin"
 ```
-
-## JXA fallback
-
-If you don't have the Swift toolchain (Xcode / Command Line Tools), the setup script installs `QuickCapture.jxa` instead. This version uses a file-based toggle (`touch /tmp/gtd-toggle`) rather than a native global hotkey.
-
-To trigger it, create a Shortcut (Shortcuts.app) or Automator service that runs:
-```bash
-touch /tmp/gtd-toggle
-```
-Then assign your preferred keyboard shortcut to that Shortcut.
 
 ## Changing the hotkey
 

@@ -6,9 +6,9 @@ Usage:
     python3 install_quickcapture.py --vault /path/to/vault --repo /path/to/llm-gtd
 
 This script:
-1. Checks for Swift toolchain (xcrun --find swift)
-2. Builds the Swift package (or falls back to JXA)
-3. Copies binary/script to $VAULT/Scripts/
+1. Checks for Swift toolchain (xcrun --find swift) — required
+2. Builds the Swift package
+3. Copies binary to $VAULT/Scripts/
 4. Renders & installs LaunchAgent plist
 5. Loads the LaunchAgent
 """
@@ -70,23 +70,6 @@ def install_binary(binary_path: Path, vault_path: Path) -> Path:
     shutil.copy2(str(binary_path), str(dest))
     os.chmod(str(dest), 0o755)
     print(f"  Installed: {dest}")
-    return dest
-
-
-def install_jxa_fallback(repo_path: Path, vault_path: Path) -> Path:
-    """Copy JXA script as fallback."""
-    src = repo_path / "scripts" / "quickcapture" / "QuickCapture.jxa"
-    dest_dir = vault_path / "Scripts"
-    dest_dir.mkdir(parents=True, exist_ok=True)
-    dest = dest_dir / "QuickCapture.jxa"
-
-    # Replace __INBOX_DIR__ placeholder
-    inbox_dir = str(vault_path / "00 - Inbox")
-    content = src.read_text(encoding="utf-8")
-    content = content.replace("__INBOX_DIR__", inbox_dir)
-    dest.write_text(content, encoding="utf-8")
-    os.chmod(str(dest), 0o755)
-    print(f"  Installed JXA fallback: {dest}")
     return dest
 
 
@@ -185,60 +168,25 @@ def main():
     # Check for legacy Automator services that conflict with hotkeys
     check_legacy_automator_services()
 
-    if has_swift():
-        # Patch inbox dir before building
-        patch_inbox_dir_in_swift(repo_path, vault_path)
-        binary = build_swift(repo_path)
-        if binary:
-            dest = install_binary(binary, vault_path)
-            install_launchagent(dest, repo_path)
-            print("\n  ** First time you press Cmd+I, macOS will ask for Accessibility permission.")
-            print("  ** Go to: System Settings > Privacy & Security > Accessibility")
-            print("  ** Check the box next to QuickCapture.bin\n")
-            return 0
+    if not has_swift():
+        print("  [!] Swift toolchain not found.")
+        print("  QuickCapture requires Xcode Command Line Tools. Install with:")
+        print("      xcode-select --install")
+        print("  Then re-run setup. Skipping QuickCapture for now.")
+        return 0
 
-    # Fallback to JXA
-    print("  Swift not available, using JXA fallback...")
-    jxa_dest = install_jxa_fallback(repo_path, vault_path)
+    # Patch inbox dir before building
+    patch_inbox_dir_in_swift(repo_path, vault_path)
+    binary = build_swift(repo_path)
+    if not binary:
+        print("  [!] Swift build failed. Skipping QuickCapture install.")
+        return 1
 
-    # For JXA, the LaunchAgent runs osascript
-    # Create a wrapper plist manually
-    la_dir = Path.home() / "Library" / "LaunchAgents"
-    la_dir.mkdir(parents=True, exist_ok=True)
-    plist_dest = la_dir / "com.gtd.quickcapture.plist"
-
-    plist_content = f"""<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-\t<key>Label</key>
-\t<string>com.gtd.quickcapture</string>
-\t<key>ProgramArguments</key>
-\t<array>
-\t\t<string>/usr/bin/osascript</string>
-\t\t<string>-l</string>
-\t\t<string>JavaScript</string>
-\t\t<string>{jxa_dest}</string>
-\t</array>
-\t<key>RunAtLoad</key>
-\t<true/>
-\t<key>KeepAlive</key>
-\t<true/>
-\t<key>StandardOutPath</key>
-\t<string>/dev/null</string>
-\t<key>StandardErrorPath</key>
-\t<string>/dev/null</string>
-</dict>
-</plist>"""
-
-    if plist_dest.exists():
-        subprocess.run(["launchctl", "unload", str(plist_dest)], capture_output=True, timeout=10)
-    plist_dest.write_text(plist_content, encoding="utf-8")
-    subprocess.run(["launchctl", "load", "-w", str(plist_dest)], capture_output=True, timeout=10)
-
-    print(f"  LaunchAgent installed (JXA mode).")
-    print("\n  Note: JXA version uses file-based toggle (touch /tmp/gtd-toggle).")
-    print("  Create a Shortcut or Automator service with a hotkey to trigger it.\n")
+    dest = install_binary(binary, vault_path)
+    install_launchagent(dest, repo_path)
+    print("\n  ** First time you press Cmd+I, macOS will ask for Accessibility permission.")
+    print("  ** Go to: System Settings > Privacy & Security > Accessibility")
+    print("  ** Check the box next to QuickCapture.bin\n")
     return 0
 
 
