@@ -233,6 +233,10 @@ def main():
         "config.morning_time": morning_time,
         "config.evening_time": evening_time,
         "config.weekly_time": weekly_time,
+        # QUICKSTART links
+        "dashboard_url": f"file://{vault_path}/Dashboard.html",
+        "doc_scheduling_url": "#",
+        "doc_daily_url": "#",
     }
 
     # ── Create vault ────────────────────────────────────────────────────
@@ -256,6 +260,15 @@ def main():
     agents_dest = vault_path / "CLAUDE.md"
     agents_dest.write_text(rendered, encoding="utf-8")
     print(f"  ✓ CLAUDE.md rendered ({len(rendered):,} chars)")
+
+    # ── Render QUICKSTART.html ──────────────────────────────────────────
+    quickstart_src = vault_path / "QUICKSTART.html"
+    if quickstart_src.exists():
+        qs_text = quickstart_src.read_text(encoding="utf-8")
+        qs_text = render_conditionals(qs_text, features)
+        qs_text = render_placeholders(qs_text, variables)
+        quickstart_src.write_text(qs_text, encoding="utf-8")
+        print(f"  ✓ QUICKSTART.html rendered")
 
     # ── Symlink or copy knowledge base (if enabled) ─────────────────────
     if features["knowledge_base"] and KNOWLEDGE_DIR.exists():

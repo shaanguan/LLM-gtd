@@ -126,6 +126,16 @@ If user selected DingTalk or Feishu:
 
 If they say now → guide through MCP server setup + create documents + backfill IDs into CLAUDE.md §4.
 
+After documents are created, also backfill QUICKSTART.html links:
+```python
+# Replace placeholder URLs in QUICKSTART.html with actual DingTalk doc URLs
+quickstart = Path(f"{VAULT_PATH}/QUICKSTART.html")
+text = quickstart.read_text()
+text = text.replace("#", f"https://alidocs.dingtalk.com/i/nodes/{scheduling_node_id}", 1)  # first # = scheduling
+text = text.replace("#", f"https://alidocs.dingtalk.com/i/nodes/{daily_node_id}", 1)  # second # = daily
+quickstart.write_text(text)
+```
+
 If WeCom/WeChat → skip (no doc API). Tell user doc sync isn't available for their platform.
 
 ### 8. Run doctor verification

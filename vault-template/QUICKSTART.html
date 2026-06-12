@@ -189,8 +189,38 @@ h1 {
   </div>
 </div>
 
+<div class="section">
+  <div class="section-label">你的工具</div>
+
+  <a href="{{dashboard_url}}" class="card" style="text-decoration:none; color:inherit; display:block; transition: border-color .15s;" onmouseover="this.style.borderColor='#a8a29e'" onmouseout="this.style.borderColor='#e7e5e4'">
+    <div class="card-title">📊 Dashboard</div>
+    <div class="card-body">
+      你的 GTD 指挥中心。一页看清：今日重点、逾期项、等待回复、活跃项目。<br>
+      <span style="font-size:12px;color:#a8a29e;">点击打开 → 建议收藏到浏览器书签栏</span>
+    </div>
+  </a>
+
+  <!-- IF feature.doc_sync -->
+  <a href="{{doc_scheduling_url}}" class="card" style="text-decoration:none; color:inherit; display:block; transition: border-color .15s;" onmouseover="this.style.borderColor='#a8a29e'" onmouseout="this.style.borderColor='#e7e5e4'">
+    <div class="card-title">📋 排期表</div>
+    <div class="card-body">
+      同事看到的你的交付排期。只展示有独立交付物的事项，自动从 vault 同步。<br>
+      <span style="font-size:12px;color:#a8a29e;">点击打开钉钉文档</span>
+    </div>
+  </a>
+
+  <a href="{{doc_daily_url}}" class="card" style="text-decoration:none; color:inherit; display:block; transition: border-color .15s;" onmouseover="this.style.borderColor='#a8a29e'" onmouseout="this.style.borderColor='#e7e5e4'">
+    <div class="card-title">📝 每日安排</div>
+    <div class="card-body">
+      你的每日工作简报。今日 MIT + 明日预览 + 历史记录，同事一眼看出你忙不忙。<br>
+      <span style="font-size:12px;color:#a8a29e;">点击打开钉钉文档</span>
+    </div>
+  </a>
+  <!-- ENDIF -->
+</div>
+
 <div class="tip">
-  <strong>第一步建议：</strong>现在回到 Claude Desktop，把脑子里飘着的待办/承诺/想法一条条倒给它。说"帮我记：xxx"就行。积攒几条后说"帮我过一下 Inbox"开始分拣。
+  <strong>第一步建议：</strong>先点上面的 Dashboard 看看（目前是空的，正常）。然后回到对话，把脑子里飘着的待办/承诺/想法一条条倒给它。说"帮我记：xxx"就行。积攒几条后说"帮我过一下 Inbox"开始分拣——Dashboard 会实时刷新。
 </div>
 
 <div class="footer">
