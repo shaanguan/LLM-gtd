@@ -12,7 +12,6 @@ let inboxDir: URL = {
     }
     return URL(fileURLWithPath: placeholder)
 }()
-
 let draftPath = "/tmp/gtd-capture-draft.txt"
 let togglePath = "/tmp/gtd-toggle"
 let pidPath = "/tmp/gtd-quick-capture.pid"
@@ -47,7 +46,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var scrollView: NSScrollView!
     var timer: Timer?
     var hotKeyRef: EventHotKeyRef?
-    var hotKeyIsDown = false
+    var hotKeyIsDown = false  // track key state to ignore repeats
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         try? "\(ProcessInfo.processInfo.processIdentifier)"
@@ -59,7 +58,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     // MARK: - Hotkey state
     func hotKeyPressed() {
-        if hotKeyIsDown { return }
+        if hotKeyIsDown { return }  // ignore key-repeat events
         hotKeyIsDown = true
         toggle()
     }
@@ -68,15 +67,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         hotKeyIsDown = false
     }
 
-    // MARK: - Register Global Hotkey (Cmd+I by default)
-    // To change the shortcut, modify kVK_ANSI_I below.
-    // Key codes: https://developer.apple.com/documentation/carbon/1542474-summary
-    // Common alternatives: kVK_ANSI_Period (0x2F), kVK_Space (0x31)
+    // MARK: - Register Global Hotkey ⌘I
     func registerGlobalHotKey() {
         let hotKeyID = EventHotKeyID(
-            signature: OSType(0x47544400),  // "GTD\0"
+            signature: OSType(0x47544400),
             id: 1
         )
+        // Listen to both pressed AND released
         var eventTypes = [
             EventTypeSpec(
                 eventClass: OSType(kEventClassKeyboard),
@@ -97,8 +94,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             nil
         )
         RegisterEventHotKey(
-            UInt32(kVK_ANSI_I),   // ← Change this to use a different key
-            UInt32(cmdKey),        // ← Change this for different modifiers
+            UInt32(kVK_ANSI_I),
+            UInt32(cmdKey),
             hotKeyID,
             GetApplicationEventTarget(),
             0,
@@ -257,11 +254,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func hide() {
+        // ⌘I hide: save draft, next ⌘I restores it
         saveDraft()
         panel.orderOut(nil)
     }
 
     func cancel() {
+        // Esc: discard everything
         textView.string = ""
         clearDraft()
         panel.orderOut(nil)
@@ -336,7 +335,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         try? FileManager.default.removeItem(atPath: draftPath)
     }
 
-    // MARK: - Poller (fallback for `touch /tmp/gtd-toggle`)
+    // MARK: - Poller (fallback for touch /tmp/gtd-toggle)
     func startPoller() {
         timer = Timer.scheduledTimer(withTimeInterval: 0.05, repeats: true) { [weak self] _ in
             if FileManager.default.fileExists(atPath: togglePath) {
