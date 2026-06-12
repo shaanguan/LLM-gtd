@@ -1,7 +1,7 @@
-# AGENTS.md
+# CLAUDE.md
 
-> Auto-injected as context on every agent session and every cron run for the
-> $GTD_VAULT vault. Edits take effect immediately.
+> Project instructions for Claude Desktop. This file is loaded automatically
+> when the vault is added as a Claude Project.
 > Last rendered: {{config.rendered_at}}
 >
 > Maintenance discipline:
@@ -103,7 +103,7 @@ In-conversation sync checklist (run before turn end if I touched the vault):
 ├── Dashboard.html          # local dashboard (auto-reloads on focus after 5min)
 ├── export_dashboard.py     # vault → Dashboard one-way export
 ├── .llm-gtd/         # state: heartbeat.json, optional config.yaml
-└── AGENTS.md               # this file (rendered from llm-gtd template)
+└── CLAUDE.md               # this file (rendered from llm-gtd template)
 ```
 
 ### `05 - Reference/` rules
@@ -432,24 +432,23 @@ context → time available → energy → priority
 
 ---
 
-## 10. Cron Architecture
+## 10. Scheduled Routines
 
-| ID | Name | Schedule | Missed-run | Output |
-|----|------|----------|-----------|--------|
-| {{cron.morning_id}} | GTD morning brief | {{cron.morning_time}} | skip | {{user.im_assistant}} |
-| {{cron.evening_id}} | GTD evening review | {{cron.evening_time}} | skip | {{user.im_assistant}} |
-| {{cron.weekly_id}} | GTD weekly review | {{cron.weekly_time}} | run_latest | {{user.im_assistant}} |
-<!-- IF feature.doc_sync -->
-<!-- IF im.dingtalk -->
-| {{cron.daily_doc_id}} | Daily doc refresh | {{cron.daily_doc_time}} | — | DingTalk doc |
-<!-- /IF -->
-<!-- IF im.feishu -->
-| {{cron.daily_doc_id}} | Daily doc refresh | {{cron.daily_doc_time}} | — | Feishu doc |
-<!-- /IF -->
-<!-- ENDIF -->
-| {{cron.git_snap_id}} | Vault git snapshot | 23:55 daily | skip | local commit |
+The following routines are triggered by the user at conversation start or by
+an external scheduler (macOS launchd / cron). Claude does not run autonomously;
+these are protocols to follow when the user invokes them.
 
-All crons set `contextDirs` to the vault root; this file is auto-injected.
+| Trigger keyword | Routine | What to do |
+|-----------------|---------|-----------|
+| "morning" / "早" / session start before noon | Morning brief | Run morning flow below |
+| "review" / "回顾" / "evening" | Evening review | Run evening flow below |
+| "weekly" / "周回顾" | Weekly review | Run weekly flow below |
+
+Automated scripts (run by system scheduler, not Claude):
+- `export_dashboard.py` — refreshes Dashboard.html data (every 30min or after vault change)
+- `git snapshot` — `cd $GTD_VAULT && git add -A && git commit -m "auto: $(date)"` (daily 23:55)
+
+Claude should run `python3 export_dashboard.py` after any vault write during conversation.
 
 ### Morning brief flow
 
@@ -556,7 +555,7 @@ Rules:
 <!-- /IF -->
 | Wrong-document overwrite | Confirm document ID + title before every write |
 <!-- ENDIF -->
-| Substituting business decisions | When unclear → AskUserQuestion, prefer asking |
+| Substituting business decisions | When unclear → ask the user, prefer asking |
 | NA piling up unarchived | Evening review proactively asks |
 | Same NA postponed repeatedly | Second postpone → force "drop / Someday / actually do" decision |
 <!-- IF feature.side_project -->

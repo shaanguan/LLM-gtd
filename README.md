@@ -1,76 +1,98 @@
 # LLM-GTD
 
-> 让 AI 帮你管理待办事项，而不是你管理 AI。
+> Let AI manage your tasks — not the other way around.
 
-一套 AI 驱动的 GTD 系统：
+An AI-powered GTD system built on **Claude Desktop + Obsidian**:
 
-- **Obsidian Vault** — 所有数据是本地 Markdown，你拥有完整控制权
-- **Capture Hotkey** — 随时一键呼出，说句话就收进收集箱
-- **Agent** — AI 帮你分拣、拆解、提醒、归档，你只管说话
-- **Dashboard** — 一页看清今日重点、等待回复、活跃项目
-- **Doc** — 自动生成日报/周报，可分享给同事查看
-- **Cron Task** — 早间播报、晚间回顾、每周清理，全自动
+- **Local-first** — All data is Markdown in your Obsidian vault. You own everything.
+- **Claude as secretary** — Captures, organizes, reminds, archives. You just talk.
+- **Dashboard** — One HTML page: today's focus, waiting-for, active projects.
+- **Automated** — export_dashboard + git snapshots run via launchd. Zero maintenance.
+- **Optional doc sync** — Push a scheduling table to DingTalk/Feishu docs (MCP server required).
 
-## 30 秒看懂
+## 30-Second Overview
 
 ```
-你说一句话 → Agent 写入 vault → 定时播报提醒你 → 做完了归档
+You say something → Claude writes to vault → Dashboard refreshes → You review at end of day
 ```
 
-每天早上推今日重点，晚上帮你回顾归档，每周清理一遍系统。中间随时可以对它说"帮我记一下 xxx"。
+Say "morning" for today's brief. Say "review" for evening wrap-up. Say anything else and Claude captures or acts on it.
 
-## 快速上手
+## Quick Start
 
-**1. 安装 Setup Skill**
+```bash
+# 1. Clone
+git clone https://github.com/shaanguan/LLM-gtd.git ~/Projects/LLM-gtd
 
-下载 [SKILL.md](skills/llm-gtd-setup/SKILL.md)，装到你的 Agent 里（具体方式见文件开头说明）。
+# 2. Run setup
+python3 ~/Projects/LLM-gtd/setup/init.py
 
-**2. 对 Agent 说：**
+# 3. Add vault as Claude Desktop Project
+#    Claude Desktop → Projects → Add folder → select your vault path
 
-> "帮我设置 LLM-GTD"
+# 4. Install automation (macOS)
+python3 ~/Projects/LLM-gtd/setup/create_launchd.py --vault ~/Documents/GTD
 
-它会问你几个问题（vault 放哪、用什么 IM、几点播报），然后全自动搭好。
+# 5. Verify
+python3 ~/Projects/LLM-gtd/setup/doctor.py --vault ~/Documents/GTD --check-cron
+```
 
-## 卸载
+Then open a conversation in your Claude Desktop project and say **"morning"**.
 
-不想用了？对 Agent 说：
-
-> "卸载 GTD"
-
-它会停掉所有定时任务、清除系统文件（Scripts、Dashboard、AGENTS.md）。你写的笔记默认保留，也可以选择一并删除。干干净净，不留残余。
-
-## 架构
+## Architecture
 
 ```
 ┌─────────────────────────────────────────┐
-│           输入（你说 / 你按）             │
-│  对话  /  快捷键捕获  /  批量导入         │
-└──────────────────┬──────────────────────┘
+│           Input (you talk / hotkey)       │
+│  Conversation  /  Quick Capture  /  Paste │
+└──────────────────┬───────────────────────┘
                    │
-┌──────────────────▼──────────────────────┐
-│         AI Agent（操作层）               │
-│  AGENTS.md 操作规范 + Cron 定时任务      │
-└─────┬────────────────────────────┬──────┘
-      │ 读 / 写 / 归档             │ 渲染
+┌──────────────────▼───────────────────────┐
+│         Claude Desktop (agent layer)      │
+│  CLAUDE.md instructions + MCP tools       │
+└─────┬────────────────────────────┬───────┘
+      │ read / write / archive     │ render
 ┌─────▼──────────────────┐  ┌─────▼──────────────────┐
-│  Obsidian Vault（数据层）│  │  输出（你看到的）       │
-│  Inbox / Projects / NA  │  │  Dashboard / 共享文档   │
-│  WF / Archive           │  │  IM 播报               │
+│  Obsidian Vault (data)  │  │  Outputs (you see)      │
+│  Inbox / Projects / NA  │  │  Dashboard.html         │
+│  WF / Archive           │  │  Shared docs (optional) │
 └─────────────────────────┘  └─────────────────────────┘
+
+Automation (launchd):
+  • export_dashboard.py — every 30 min
+  • git snapshot — daily 23:55
 ```
 
-数据通过对话、快捷键、批量导入进入系统；Agent 处理后存入 vault；渲染层输出给你和同事看。
+## Requirements
 
-## 需要什么
+- **Claude Desktop** (with Projects feature)
+- **Obsidian** (for viewing/editing vault)
+- **Python 3.9+**
+- **macOS** (for launchd; Linux users can use crontab)
 
-- 一个 AI Agent 环境（Claude Desktop / QoderWork / 其他支持 system prompt 的工具）
-- Obsidian
-- Python 3.9+
+## Daily Workflow
 
-## 更多
+| Time | What happens |
+|------|-------------|
+| Morning | Say "morning" → Claude scans vault, reports today's MIT + upcoming + waiting |
+| During day | Talk to Claude: capture ideas, process Inbox, update tasks |
+| Evening | Say "review" → Claude lists today's due items for batch confirmation, archives completed |
+| Weekly | Say "weekly review" → Full system audit (7 steps, ~1 hour) |
 
-- [用户指南](docs/user-guide.md)
-- [系统架构](docs/architecture.md)
+## Uninstall
+
+```bash
+# Remove automation
+python3 ~/Projects/LLM-gtd/setup/create_launchd.py --vault ~/Documents/GTD --uninstall
+
+# Remove the vault from Claude Desktop Projects (manual)
+# Your vault files remain as plain Markdown — delete if you want
+```
+
+## Docs
+
+- [Setup Guide](skills/llm-gtd-setup/SKILL.md) — Full installation walkthrough
+- [Architecture](docs/architecture.md)
 - [FAQ](docs/faq.md)
 
 ## License

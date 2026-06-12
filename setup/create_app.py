@@ -30,6 +30,11 @@ PLIST_TEMPLATE = """\
 
 LAUNCH_TEMPLATE = """\
 #!/bin/bash
+export GTD_VAULT="{vault_path}"
+if ! /usr/bin/curl -fsS "http://127.0.0.1:8765/health" >/dev/null 2>&1; then
+  /usr/bin/nohup /usr/bin/python3 "{refresh_server_path}" >/tmp/llm-gtd-dashboard-refresh.log 2>&1 &
+  sleep 0.4
+fi
 open -a "Google Chrome" "file://{dashboard_path}"
 """
 
@@ -63,8 +68,15 @@ def create_dashboard_app(vault_path: str, repo_path: str, install_dir: str = Non
 
     # Launch script
     launch_path = os.path.join(macos_dir, "launch")
+    refresh_server_path = os.path.join(vault_path, "Scripts", "dashboard_refresh_server.py")
     with open(launch_path, "w") as f:
-        f.write(LAUNCH_TEMPLATE.format(dashboard_path=dashboard_html))
+        f.write(
+            LAUNCH_TEMPLATE.format(
+                vault_path=vault_path,
+                dashboard_path=dashboard_html,
+                refresh_server_path=refresh_server_path,
+            )
+        )
     os.chmod(launch_path, os.stat(launch_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
 
     # Icons

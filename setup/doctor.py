@@ -8,13 +8,13 @@ Usage:
 Checks:
   1. $GTD_VAULT is set and directory exists
   2. Required directories present (00-Inbox through 07-Achievements)
-  3. AGENTS.md exists and has no unresolved {{placeholders}}
+  3. CLAUDE.md exists and has no unresolved {{placeholders}}
   4. Scripts/ present and importable
   5. Dashboard.html exists
   6. export_dashboard.py exists
   7. .llm-gtd/ state directory exists
   8. config.yaml (optional) is valid YAML if present
-  9. --check-cron: verify expected cron tasks are registered
+  9. --check-cron: verify launchd plists are loaded
 """
 
 import os
@@ -40,7 +40,7 @@ REQUIRED_DIRS = [
 ]
 
 REQUIRED_FILES = [
-    "AGENTS.md",
+    "CLAUDE.md",
     "Dashboard.html",
     "export_dashboard.py",
 ]
@@ -51,6 +51,7 @@ REQUIRED_SCRIPTS = [
     "Scripts/verify_sync.py",
     "Scripts/inbox_sla.py",
     "Scripts/preflight.py",
+    "Scripts/dashboard_refresh_server.py",
 ]
 
 
@@ -96,13 +97,13 @@ def check_scripts(vault: Path) -> list:
     return issues
 
 
-def check_agents_md(vault: Path) -> list:
+def check_claude_md(vault: Path) -> list:
     issues = []
-    agents = vault / "AGENTS.md"
-    if not agents.is_file():
+    claude_md = vault / "CLAUDE.md"
+    if not claude_md.is_file():
         return issues  # already caught by check_files
 
-    content = agents.read_text(encoding="utf-8")
+    content = claude_md.read_text(encoding="utf-8")
 
     # Check for unresolved placeholders
     unresolved = re.findall(r'\{\{([a-z_][a-z0-9_.]*)\}\}', content)
@@ -110,20 +111,20 @@ def check_agents_md(vault: Path) -> list:
         unique = sorted(set(unresolved))
         issues.append((
             "WARN",
-            f"AGENTS.md has {len(unique)} unresolved placeholder(s): {', '.join(unique[:5])}"
+            f"CLAUDE.md has {len(unique)} unresolved placeholder(s): {', '.join(unique[:5])}"
             + ("..." if len(unique) > 5 else ""),
         ))
 
     # Check for unprocessed conditionals
     if "<!-- IF feature." in content:
-        issues.append(("WARN", "AGENTS.md still contains <!-- IF feature. --> conditionals (not rendered?)"))
+        issues.append(("WARN", "CLAUDE.md still contains <!-- IF feature. --> conditionals (not rendered?)"))
     if "<!-- IF im." in content:
-        issues.append(("WARN", "AGENTS.md still contains <!-- IF im. --> conditionals (IM platform not resolved)"))
+        issues.append(("WARN", "CLAUDE.md still contains <!-- IF im. --> conditionals (IM platform not resolved)"))
 
     # Basic size check
     lines = content.count("\n")
     if lines > 500:
-        issues.append(("INFO", f"AGENTS.md is {lines} lines — consider trimming to ≤400 for context sweet spot"))
+        issues.append(("INFO", f"CLAUDE.md is {lines} lines — consider trimming to ≤400 for context sweet spot"))
 
     return issues
 
@@ -188,50 +189,37 @@ def check_env_var() -> list:
     return issues
 
 
-EXPECTED_CRON_NAMES = [
-    "GTD 早间播报",
-    "GTD 晚间回顾",
-    "GTD 周回顾",
-    "GTD Vault 快照",
+EXPECTED_LAUNCHD_LABELS = [
+    "com.llm-gtd.export-dashboard",
+    "com.llm-gtd.git-snapshot",
 ]
 
 
 def check_cron(vault: Path) -> list:
-    """Check that expected cron tasks are registered (platform-agnostic heuristic)."""
+    """Check that launchd plists are loaded for automated tasks."""
     issues = []
 
-    # Try QoderWork cron list (json file if available)
-    cron_state = vault / ".llm-gtd" / "cron_ids.txt"
-    if cron_state.is_file():
-        registered = cron_state.read_text(encoding="utf-8").strip().splitlines()
-        if len(registered) < len(EXPECTED_CRON_NAMES):
-            issues.append((
-                "WARN",
-                f"Expected {len(EXPECTED_CRON_NAMES)} cron tasks, "
-                f"but cron_ids.txt only lists {len(registered)}. "
-                f"Missing tasks may not fire."
-            ))
-        return issues
-
-    # Fallback: check macOS launchd for git snapshot
     import subprocess
     try:
         result = subprocess.run(
             ["launchctl", "list"],
             capture_output=True, text=True, timeout=5
         )
-        if "com.gtd" not in result.stdout:
-            issues.append(("INFO", "No com.gtd.* LaunchAgents found (cron tasks may be agent-managed)"))
+        loaded = result.stdout
+        for label in EXPECTED_LAUNCHD_LABELS:
+            if label not in loaded:
+                issues.append((
+                    "WARN",
+                    f"LaunchAgent '{label}' not loaded. "
+                    f"Run: python3 setup/create_launchd.py --vault \"{vault}\""
+                ))
     except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-
-    # If we can't verify cron state, leave an info
-    if not issues:
         issues.append((
             "INFO",
-            "Cannot verify cron registration automatically. "
-            "Ask your Agent: 'list my scheduled tasks' to confirm 4 GTD tasks are active."
+            "Cannot verify launchd status (non-macOS or timeout). "
+            "Manually verify your scheduler is running export_dashboard + git snapshot."
         ))
+
     return issues
 
 
@@ -268,7 +256,7 @@ def main():
         ("Directories", check_directories),
         ("Core files", check_files),
         ("Scripts", check_scripts),
-        ("AGENTS.md quality", check_agents_md),
+        ("CLAUDE.md quality", check_claude_md),
         ("State directory", check_state_dir),
         ("Version", check_version),
         ("Config YAML", check_config_yaml),

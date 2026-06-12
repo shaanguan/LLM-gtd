@@ -5,8 +5,9 @@ llm-gtd interactive initializer.
 Usage:
     python3 setup/init.py [--vault PATH]
 
-Walks you through 3 questions, renders vault-template/ into your vault,
-and prints cron-registration guidance.
+Walks you through setup questions, renders vault-template/ into your vault,
+generates launchd plists for automated tasks, and prints next-step guidance.
+Targets Claude Desktop (MCP) as the AI agent.
 """
 
 import os
@@ -112,14 +113,14 @@ def render_placeholders(text: str, variables: dict) -> str:
 
 def copy_template(template_dir: Path, dest: Path, skip_agents: bool = True):
     """
-    Recursively copy vault-template/ to dest, skipping AGENTS.md
+    Recursively copy vault-template/ to dest, skipping CLAUDE.md
     (which gets rendered separately) and .gitkeep files.
     """
     for src_path in sorted(template_dir.rglob("*")):
         rel = src_path.relative_to(template_dir)
 
-        # Skip AGENTS.md — we render it with variables
-        if skip_agents and rel.name == "AGENTS.md":
+        # Skip CLAUDE.md — we render it with variables
+        if skip_agents and rel.name == "CLAUDE.md":
             continue
 
         # Skip .gitkeep — they are repo scaffolding only
@@ -190,14 +191,14 @@ def main():
         else:
             im_platform = "none"
         features["side_project"] = ask_yn("     Track a personal side project (separate from work)?", False)
-        features["knowledge_base"] = ask_yn("     Include GTD knowledge base references in AGENTS.md?", True)
+        features["knowledge_base"] = ask_yn("     Include GTD knowledge base references?", True)
         print()
 
-    # ── Question 3: Cron schedule ───────────────────────────────────────
+    # ── Question 3: Routine preferences ─────────────────────────────────
     if not args.non_interactive:
-        morning_time = ask("3/3  Morning brief cron time (HH:MM)", DEFAULT_MORNING)
-        evening_time = ask("     Evening review cron time (HH:MM)", DEFAULT_EVENING)
-        weekly_time = ask("     Weekly review (e.g. 'Sun 21:00')", DEFAULT_WEEKLY)
+        morning_time = ask("3/3  Preferred morning brief time (HH:MM)", DEFAULT_MORNING)
+        evening_time = ask("     Preferred evening review time (HH:MM)", DEFAULT_EVENING)
+        weekly_time = ask("     Preferred weekly review (e.g. 'Sun 21:00')", DEFAULT_WEEKLY)
     else:
         morning_time = DEFAULT_MORNING
         evening_time = DEFAULT_EVENING
@@ -206,7 +207,7 @@ def main():
     print()
 
     # ── Collect variables ───────────────────────────────────────────────
-    user_name = ask("     Your name or handle (for AGENTS.md header)", "User") if not args.non_interactive else "User"
+    user_name = ask("     Your name or handle (for CLAUDE.md header)", "User") if not args.non_interactive else "User"
     user_role = ask("     Your role (e.g. 'Product Designer')", "Knowledge Worker") if not args.non_interactive else "Knowledge Worker"
 
     side_project_name = ""
@@ -229,15 +230,9 @@ def main():
         "repo.path": str(REPO_ROOT),
         "doc.scheduling_id": "<paste-your-doc-id>",
         "doc.daily_id": "<paste-your-doc-id>",
-        "cron.morning_id": "<auto-assigned>",
-        "cron.morning_time": f"daily {morning_time}",
-        "cron.evening_id": "<auto-assigned>",
-        "cron.evening_time": f"daily {evening_time}",
-        "cron.weekly_id": "<auto-assigned>",
-        "cron.weekly_time": weekly_time,
-        "cron.daily_doc_id": "<auto-assigned>",
-        "cron.daily_doc_time": f"daily {evening_time.replace(':30', ':00').replace(':00', ':00')}",
-        "cron.git_snap_id": "<auto-assigned>",
+        "config.morning_time": morning_time,
+        "config.evening_time": evening_time,
+        "config.weekly_time": weekly_time,
     }
 
     # ── Create vault ────────────────────────────────────────────────────
@@ -252,22 +247,22 @@ def main():
     # Write version for upgrade detection (#6)
     (state_dir / "version").write_text(VERSION + "\n", encoding="utf-8")
 
-    # ── Render AGENTS.md ────────────────────────────────────────────────
-    agents_template = (TEMPLATE_DIR / "AGENTS.md").read_text(encoding="utf-8")
+    # ── Render CLAUDE.md ───────────────────────────────────────────────
+    agents_template = (TEMPLATE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
     rendered = render_conditionals(agents_template, features)
     rendered = render_im_conditionals(rendered, im_platform)
     rendered = render_placeholders(rendered, variables)
 
-    agents_dest = vault_path / "AGENTS.md"
+    agents_dest = vault_path / "CLAUDE.md"
     agents_dest.write_text(rendered, encoding="utf-8")
-    print(f"  ✓ AGENTS.md rendered ({len(rendered):,} chars)")
+    print(f"  ✓ CLAUDE.md rendered ({len(rendered):,} chars)")
 
     # ── Symlink or copy knowledge base (if enabled) ─────────────────────
     if features["knowledge_base"] and KNOWLEDGE_DIR.exists():
         kb_dest = vault_path / ".llm-gtd" / "knowledge-link.txt"
         kb_dest.write_text(
             f"# GTD Knowledge Base location\n"
-            f"# The AGENTS.md references pages from here.\n"
+            f"# The CLAUDE.md references pages from here.\n"
             f"path: {KNOWLEDGE_DIR / 'gtd'}\n",
             encoding="utf-8",
         )
@@ -303,28 +298,27 @@ def main():
     print("═" * 50)
     print()
     print(f"  Vault location:  {vault_path}")
-    print(f"  AGENTS.md:       {agents_dest}")
+    print(f"  CLAUDE.md:       {agents_dest}")
     print(f"  Features:        {', '.join(k for k, v in features.items() if v)}")
     print()
     print("  Next steps:")
     print()
-    print(f'  1. Set your environment variable:')
+    print(f'  1. Set your environment variable (add to ~/.zshrc):')
     print(f'     export GTD_VAULT="{vault_path}"')
     print()
     print(f'  2. Open the vault in Obsidian:')
     print(f'     Open Obsidian → "Open folder as vault" → select {vault_path}')
     print()
-    print(f'  3. In your AI agent, select this vault as the working folder')
-    print(f'     (AGENTS.md will be auto-injected into every session)')
+    print(f'  3. Add as Claude Desktop Project:')
+    print(f'     Claude Desktop → Projects → Add folder → select {vault_path}')
+    print(f'     (CLAUDE.md will be read automatically on every conversation)')
     print()
     if features["doc_sync"]:
-        print(f'  4. Edit AGENTS.md §4 to paste your {im_names[im_platform]} document IDs')
+        print(f'  4. Edit CLAUDE.md §4 to paste your {im_names[im_platform]} document IDs')
         print()
-    print(f'  5. Register cron jobs in your agent environment:')
-    print(f'     • Morning brief:  {morning_time} daily')
-    print(f'     • Evening review: {evening_time} daily')
-    print(f'     • Weekly review:  {weekly_time}')
-    print(f'     • Git snapshot:   23:55 daily')
+    print(f'  5. Install launchd plists for automation:')
+    print(f'     python3 {REPO_ROOT}/setup/create_launchd.py --vault "{vault_path}"')
+    print(f'     (creates: export_dashboard every 30min + git snapshot at 23:55)')
     print()
     print(f'  6. Run the self-check:')
     print(f'     python3 {REPO_ROOT}/setup/doctor.py --vault "{vault_path}"')
