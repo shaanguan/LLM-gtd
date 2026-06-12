@@ -105,7 +105,7 @@ In-conversation sync checklist (run before turn end if I touched the vault):
 │   ├── verify_sync.py        # vault frontmatter lint + drift detection
 │   ├── inbox_sla.py          # Inbox older than N hours alert
 │   └── preflight.py          # pre-cron self-check + PTO toggle
-├── Dashboard.html          # local dashboard (auto-reloads on focus after 5min)
+├── Dashboard.html          # local dashboard (auto-reloads on tab refocus)
 ├── export_dashboard.py     # vault → Dashboard one-way export
 ├── .llm-gtd/         # state: heartbeat.json, optional config.yaml
 └── CLAUDE.md               # this file (rendered from llm-gtd template)
@@ -239,7 +239,29 @@ context → time available → energy → priority
 - Weekly summary records what happened, not plans
 - 3 days without a review → proactive alert
 
-### 7.6 Quick-reference
+### 7.6 Someday Maybe usage
+
+**Entry** (when to file in `04 - Someday Maybe/`):
+- Inbox decision tree → Actionable? No → "worth keeping but not now"
+- User intent matches: "记一下"/"以后再说"/"先放着" without committing to action
+- Timing not ripe: idea valid but waiting on a precondition (resource, signal, capacity)
+
+**Storage**: same template as Inbox, frontmatter must include `date:` (entry date — drives retention scan).
+
+**Three exits**:
+1. **Activate** → fill `due` + `okr` + `tags`, move to `02 - Next Actions/`. Trigger: weekly review or any moment user says "we should do X" and X is in Someday.
+2. **Keep** → no change. Item is still relevant, not yet ripe.
+3. **Drop** → move to `~/.Trash/`. Trigger: stale (> 90 days) and user agrees, or no longer relevant.
+
+**Weekly review scan logic** (see §9 step 5):
+- For each Someday item: compute days since `date`.
+- If item references an active Project / NA / colleague → flag the link as a hint ("this connects to X — activate now?").
+- Present three-choice prompt per item: activate / keep / drop. **Never decide for the user.**
+- Items > 90 days with no link to active work → suggest drop with "stale, no recent connection".
+
+**Daily surfaces don't show Someday**: Dashboard, daily brief, scheduling doc all exclude `04 - Someday Maybe/`. Someday only surfaces in the weekly review.
+
+### 7.7 Quick-reference
 
 Wiki pages live at `{{repo.path}}/knowledge/gtd/wiki/`. Key pages: inbox-processing, capture, next-action, context-labels, two-minute-rule, weekly-review, horizons-of-focus, project-definition, someday-maybe, waiting-for, gtd-five-steps. When in doubt, grep the wiki.
 
@@ -251,7 +273,7 @@ Wiki pages live at `{{repo.path}}/knowledge/gtd/wiki/`. Key pages: inbox-process
 |---|---|
 | Just say "done" | No long explanations unless asked |
 | Never repeat a correction | Feedback once → into CLAUDE.md/memory; forgetting = failure |
-| Always confirm date | Weekday/relative date → `date` first |
+| Always confirm date | Weekday/relative date → `date` first. **No weekend work** — `due` must not land on Saturday/Sunday; if computed due falls on a weekend, push to the next Monday. |
 | Ask about new people | New colleague → ask tier+role → store |
 | Batch → finish all, then report | Don't acknowledge one-by-one |
 | Show judgement | Analyze and weight, no mechanical mirroring |
@@ -304,10 +326,12 @@ Claude should run `python3 export_dashboard.py` after any vault write during con
 
 ### Weekly review flow (7 steps, 1 hour ceiling)
 
-1. Inbox empty? → 2. NA still valid? → 3. Projects each have next step? → 4. WF > 7d suggest nudge → 5. Someday activate? → 6. Plan next week from `due` + state
+1. Inbox empty? → 2. NA still valid? → 3. Projects each have next step? → 4. WF > 7d suggest nudge → 5. **Someday scan** (see §7.6): for each item compute days since `date`; flag links to active Projects/NAs/colleagues; present three-choice prompt (activate / keep / drop); items > 90d with no active link → suggest drop. → 6. Plan next week from `due` + state
 <!-- IF feature.okr -->
 7. OKR check-in vs. `{{config.okr_file}}`
 <!-- ENDIF -->
+
+After user replies: activated Someday → fill frontmatter, move to `02 - Next Actions/`. Dropped → `mv ~/.Trash/` (never delete).
 
 ---
 
@@ -383,7 +407,7 @@ Scans `01/02/03/07` → emits `DATA` JSON → injects into `Dashboard.html` (onl
 <!-- IF feature.knowledge_base -->
 ## 15. GTD Knowledge Base
 
-Path: `{{repo.path}}/knowledge/gtd/` — `SCHEMA.md` (conventions) + `wiki/` (distilled pages, see §7.6).
-Usage: morning brief → pull one wiki page for insight; methodology questions → consult §7.6, then grep wiki. Maintained via `llm-wiki` skill; raw sources not committed.
+Path: `{{repo.path}}/knowledge/gtd/` — `SCHEMA.md` (conventions) + `wiki/` (distilled pages, see §7.7).
+Usage: morning brief → pull one wiki page for insight; methodology questions → consult §7.7, then grep wiki. Maintained via `llm-wiki` skill; raw sources not committed.
 
 <!-- ENDIF -->

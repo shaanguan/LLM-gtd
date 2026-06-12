@@ -13,11 +13,26 @@ Usage:
 
 import argparse
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
+
+
+def detect_python3() -> str:
+    """Pick a python3 launchd can exec.
+
+    /usr/bin/python3 on macOS is a stub that may dispatch to Xcode CLT and can be
+    missing PyYAML or even fail to invoke under launchd. Prefer the user's active
+    python3 (Homebrew, asdf, pyenv, etc.). Fall back to /usr/bin/python3.
+    """
+    candidate = shutil.which("python3")
+    if candidate:
+        return candidate
+    return "/usr/bin/python3"
+
 
 PLIST_EXPORT_DASHBOARD = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -29,7 +44,7 @@ PLIST_EXPORT_DASHBOARD = """\
   <string>com.llm-gtd.export-dashboard</string>
   <key>ProgramArguments</key>
   <array>
-    <string>/usr/bin/python3</string>
+    <string>{python3}</string>
     <string>{vault}/export_dashboard.py</string>
   </array>
   <key>WorkingDirectory</key>
@@ -92,8 +107,11 @@ def install(vault_path: str):
     logs_dir = Path(vault) / ".llm-gtd" / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
 
+    python3 = detect_python3()
+    print(f"  Using python3: {python3}")
+
     for label, template in PLISTS:
-        content = template.format(vault=vault)
+        content = template.format(vault=vault, python3=python3)
         plist_path = LAUNCH_AGENTS_DIR / f"{label}.plist"
         plist_path.write_text(content, encoding="utf-8")
         print(f"  ✓ Written: {plist_path}")

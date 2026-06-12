@@ -198,14 +198,14 @@ async function refreshDashboard(){
 }
 render();
 
-// Auto-refresh: reload on focus if tab has been backgrounded > 5 min,
-// so newly-exported SYNC/DATA shows up without a manual refresh.
+// Auto-refresh on tab refocus: when the user comes back to the Dashboard tab
+// after working elsewhere, reload to pick up the latest export. 3s debounce
+// from page load avoids reload loops if the tab opens already-focused.
 (function(){
-  let last = Date.now();
-  const check = () => { if (Date.now() - last > 5*60*1000) location.reload(); };
-  document.addEventListener('visibilitychange', () => { if (!document.hidden) check(); });
-  window.addEventListener('focus', check);
-  setInterval(() => { last = Date.now() - 6*60*1000; check(); }, 5*60*1000);
+  const loadedAt = Date.now();
+  document.addEventListener('visibilitychange', () => {
+    if (!document.hidden && Date.now() - loadedAt > 3000) location.reload();
+  });
 })();
 </script>
 </body>
