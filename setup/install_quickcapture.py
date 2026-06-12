@@ -139,6 +139,33 @@ def patch_inbox_dir_in_swift(repo_path: Path, vault_path: Path):
         main_swift.write_text(content, encoding="utf-8")
 
 
+def check_legacy_automator_services():
+    """Detect legacy Automator .workflow files that may conflict with Cmd+I."""
+    services_dir = Path.home() / "Library" / "Services"
+    if not services_dir.exists():
+        return
+
+    conflicts = []
+    for wf in services_dir.glob("*.workflow"):
+        name_lower = wf.stem.lower()
+        if "gtd" in name_lower and "capture" in name_lower:
+            conflicts.append(wf)
+
+    if not conflicts:
+        return
+
+    print()
+    print("  ⚠️  Legacy Automator service(s) detected that may conflict with ⌘I:")
+    for wf in conflicts:
+        print(f"     • {wf}")
+    print()
+    print("  These use macOS 'display dialog' and will shadow the new QuickCapture panel.")
+    print("  To fix: System Settings → Keyboard → Keyboard Shortcuts → Services")
+    print("          → uncheck or remove the conflicting shortcut.")
+    print(f"  Or delete: mv \"{conflicts[0]}\" ~/.Trash/")
+    print()
+
+
 def main():
     if not is_macos():
         print("QuickCapture is macOS-only. Skipping.")
@@ -154,6 +181,9 @@ def main():
     repo_path = Path(args.repo).expanduser().resolve()
 
     print("\n[QuickCapture Install]")
+
+    # Check for legacy Automator services that conflict with hotkeys
+    check_legacy_automator_services()
 
     if has_swift():
         # Patch inbox dir before building
