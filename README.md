@@ -39,6 +39,20 @@ python3 ~/Projects/LLM-gtd/setup/doctor.py --vault ~/Documents/GTD --check-cron
 
 Then open a conversation in your Claude Desktop project and say **"morning"**.
 
+## How It Maps to GTD
+
+The GTD methodology has five stages. LLM-GTD automates the friction out of each one:
+
+| GTD Stage | Classic Approach | LLM-GTD |
+|-----------|-----------------|---------|
+| **Capture** | Write it down somewhere | ① Hotkey (Cmd+I → Quick Capture) ② Talk to Claude ③ Message the assistant via IM |
+| **Clarify** | Process inbox one-by-one, decide yourself | Claude runs the decision tree: actionable? → 2-min rule / project / NA / WF / trash |
+| **Organize** | Manually file into lists/folders | Claude moves to the right directory, fills metadata, refreshes Dashboard |
+| **Reflect** | Manually review your lists | Morning brief (today's MIT + overdue + waiting) / Evening review (batch confirm) / Weekly review (7-step audit) |
+| **Engage** | Look at lists, pick something | Dashboard shows everything at a glance; shared scheduling doc shows your team what you're delivering |
+
+**The design principle**: at every stage, your action is reduced to *saying something*. The system handles filing, rendering, and reminding.
+
 ## Architecture
 
 ```
