@@ -190,6 +190,14 @@ def write_setup_report(vault_path: Path) -> Path:
         lines.append(f"- **{key}**: {status_label(steps.get(key, 'pending'))}")
     lines.extend([
         "",
+        "## Scheduled Jobs (critical)",
+        "",
+        f"- **scheduler**: {status_label(capabilities.get('scheduler', 'unknown'))}",
+        f"- **git_snapshots**: {status_label(capabilities.get('git_snapshots', 'unknown'))}",
+        "- Labels: `com.llm-gtd.export-dashboard`, `com.llm-gtd.git-snapshot`",
+        "- Verify: `python3 setup/create_launchd.py --vault \"$GTD_VAULT\" --verify`",
+        "- Check: `launchctl list | grep llm-gtd`",
+        "",
         "## How to verify automation",
         "",
         "- macOS launchd labels: `com.llm-gtd.export-dashboard`, `com.llm-gtd.git-snapshot`",
@@ -414,8 +422,11 @@ def main():
         try:
             from create_launchd import install as install_launchd
             install_launchd(str(vault_path))
-            print("  ✓ launchd automation installed")
+            print("  ✓ launchd automation installed and verified")
             update_setup_state(vault_path, capabilities={"scheduler": "ok", "git_snapshots": "ok"})
+        except SystemExit:
+            print("  ⚠ launchd automation failed verification — scheduled jobs are NOT active")
+            update_setup_state(vault_path, capabilities={"scheduler": "error", "git_snapshots": "error"})
         except Exception as e:
             print(f"  ⚠ launchd automation skipped: {e}")
             update_setup_state(vault_path, capabilities={"scheduler": "error", "git_snapshots": "error"}, components={"launchd_error": str(e)})

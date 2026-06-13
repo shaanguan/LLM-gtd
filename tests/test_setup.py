@@ -13,6 +13,7 @@ import doctor
 import init
 import install_quickcapture
 import state
+import uninstall
 
 
 class InitHelpersTest(unittest.TestCase):
@@ -144,6 +145,31 @@ class StateAndDoctorTest(unittest.TestCase):
 
             self.assertEqual(capabilities["vault"], "ok")
             self.assertEqual(capabilities["dashboard"], "ok")
+
+
+class UninstallTest(unittest.TestCase):
+    def test_uninstall_preserves_user_asset_dirs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            for dirname in uninstall.USER_ASSET_DIRS:
+                folder = vault / dirname
+                folder.mkdir(parents=True)
+                (folder / "note.md").write_text("user data", encoding="utf-8")
+
+            rc = uninstall.uninstall(str(vault))
+
+            self.assertEqual(rc, 0)
+            for dirname in uninstall.USER_ASSET_DIRS:
+                self.assertTrue((vault / dirname).is_dir())
+                self.assertEqual((vault / dirname / "note.md").read_text(encoding="utf-8"), "user data")
+
+
+class LaunchdVerifyTest(unittest.TestCase):
+    def test_verify_loaded_returns_mapping(self):
+        ok, loaded = create_launchd.verify_loaded()
+        self.assertIn("com.llm-gtd.export-dashboard", loaded)
+        self.assertIn("com.llm-gtd.git-snapshot", loaded)
+        self.assertIsInstance(ok, bool)
 
 
 if __name__ == "__main__":

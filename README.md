@@ -4,21 +4,75 @@
 >
 > 你只管把脑子里的事说出来，LLM-GTD 把它们变成一个可信、可回顾、可执行的本地任务系统。
 
-LLM-GTD turns an AI agent into a senior GTD secretary. It captures your messy thoughts, clarifies them into projects and next actions, reminds you at the right time, and keeps a local Markdown vault as the source of truth.
+## Install in 30 Seconds
 
-All data stays in your Obsidian vault. Dashboard, QuickCapture, scheduled reviews, Telegram/IM, and shared docs are just surfaces around that vault.
+**1. Install the skill**
 
-## Why This Exists
-
-Most task systems ask you to become the system administrator of your own life: choose lists, fill fields, tag tasks, decide what is a project, and remember to review everything.
-
-LLM-GTD flips that. The user speaks naturally. The Agent knows GTD.
-
-```text
-Messy thought → Inbox → intelligent clarification → trusted vault → Dashboard / brief / shared docs
+```bash
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g
 ```
 
-The point is not another todo app. The point is a trusted external system that is easy enough to keep using.
+Or pick your agent:
+
+```bash
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a hermes-agent   # Hermes
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a openclaw       # OpenClaw
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a cursor         # Cursor
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a claude-code    # Claude
+```
+
+**2. Say one sentence to your Agent**
+
+```text
+设置 GTD
+```
+
+The skill asks a few preferences, then creates everything for you:
+
+- local GTD vault (Obsidian-ready)
+- Agent instructions (`AGENTS.md` / `CLAUDE.md`)
+- Dashboard + `Dashboard.app`
+- QuickCapture hotkey
+- **scheduled jobs** (Dashboard refresh every 30 min + git snapshot at 23:55)
+- QUICKSTART onboarding
+- Feishu / DingTalk / Telegram when credentials are available
+
+**3. Confirm scheduled jobs (macOS)**
+
+After setup, you should see:
+
+```bash
+launchctl list | grep llm-gtd
+```
+
+Expected:
+
+- `com.llm-gtd.export-dashboard`
+- `com.llm-gtd.git-snapshot`
+
+If missing, repair with:
+
+```bash
+python3 setup/create_launchd.py --vault "$HOME/Documents/GTD" --verify
+```
+
+**4. Try your first capture**
+
+```text
+帮我记：明天看一下 LLM-GTD Dashboard
+```
+
+You should see: say something → lands in Inbox → Dashboard updates → review later.
+
+Fallback: download [`llm-gtd.skill`](https://github.com/shaanguan/LLM-gtd/releases/latest) if your agent installs `.skill` bundles directly.
+
+Recommended defaults: `~/Documents/GTD`, Feishu for docs, morning brief 10:30, evening review 22:30.
+
+---
+
+LLM-GTD turns an AI agent into a senior GTD secretary. It captures messy thoughts, clarifies them into projects and next actions, reminds you at the right time, and keeps a local Markdown vault as the source of truth.
+
+All data stays in your Obsidian vault. Dashboard, QuickCapture, scheduled reviews, Telegram/IM, and shared docs are just surfaces around that vault.
 
 ## What You Get
 
@@ -30,90 +84,15 @@ The point is not another todo app. The point is a trusted external system that i
 - **Native surfaces**: macOS QuickCapture, Telegram bot UX, Feishu/DingTalk docs, and local scheduled jobs.
 - **Recoverable setup**: setup-state and doctor capabilities make installation resumable and debuggable.
 
-## The Aha Moment
+## Uninstall Safely
 
-After setup, try this:
-
-```text
-帮我记：明天看一下 LLM-GTD Dashboard
-```
-
-The Agent writes it to Inbox, refreshes Dashboard, and shows you the loop:
-
-```text
-say something → file lands in vault → Dashboard updates → review later
-```
-
-Then paste a messy task dump. The Agent will split it into open loops first, then clarify with you.
-
-## Install
-
-### One-Click Agent Setup
-
-1. Download [`llm-gtd-setup.skill`](https://github.com/shaanguan/LLM-gtd/releases/latest)
-2. Install the `.skill` in OpenClaw, Hermes, Claude Desktop, Cursor, or another compatible agent
-3. Say **`设置 GTD`** or **`/llm-gtd-setup`**
-
-The setup skill asks a few preferences and then does the work:
-
-- creates your local GTD vault
-- renders the Agent instructions
-- creates `Dashboard.app`
-- installs QuickCapture
-- registers scheduled jobs
-- opens QUICKSTART
-- connects Feishu/DingTalk/Telegram when credentials are available
-- writes setup-state so setup can resume if interrupted
-- writes `.llm-gtd/setup-report.md` so you can see whether scheduler, Git snapshots, QuickCapture, and docs are actually configured
-
-Recommended defaults: `~/Documents/GTD`, Feishu for docs, Telegram for personal capture, morning brief at 10:30, evening review at 22:30.
-
-## For Developers
-
-Manual local setup:
+Say `卸载 GTD` to your Agent, or run:
 
 ```bash
-git clone https://github.com/shaanguan/LLM-gtd.git
-cd LLM-gtd
-python3 setup/init.py --vault "$HOME/Documents/GTD"
-python3 setup/doctor.py --vault "$HOME/Documents/GTD" --check-cron --check-quickcapture
+python3 setup/uninstall.py --vault "$HOME/Documents/GTD"
 ```
 
-Build the setup skill bundle:
-
-```bash
-python3 scripts/package_skill.py
-```
-
-This creates `dist/llm-gtd-setup.skill`, the same artifact uploaded to Releases.
-
-Useful automation flags:
-
-```bash
-python3 setup/init.py \
-  --vault "$HOME/Documents/GTD" \
-  --non-interactive \
-  --im-platform telegram \
-  --no-open --no-app --skip-automation --skip-quickcapture
-```
-
-Machine-readable health check:
-
-```bash
-python3 setup/doctor.py --vault "$HOME/Documents/GTD" --check-cron --check-quickcapture --json
-```
-
-## How It Works
-
-LLM-GTD uses three layers:
-
-```text
-Storage:  Obsidian vault as local Markdown source of truth
-Agent:    GTD expert that reads/writes the vault and follows CLAUDE.md
-Render:   Dashboard, QuickCapture, Telegram/IM, shared docs, scheduled briefs
-```
-
-Core rule: the vault wins. Dashboard and docs are generated views. The Agent must read the vault before reporting, prioritizing, archiving, or syncing.
+This removes automation only. **Your user data in `00 - Inbox` through `07 - Achievements` is always preserved.**
 
 ## Daily Routine
 
@@ -125,26 +104,38 @@ Core rule: the vault wins. Dashboard and docs are generated views. The Agent mus
 | Evening | `review` / `回顾` | Batch-confirm completions, archive, refresh Dashboard |
 | Weekly | `weekly` / `周回顾` | Full system audit: Inbox, projects, next actions, waiting, someday |
 
-## Privacy And Safety
+## How It Works
 
-- Your vault is local Markdown.
-- The vault is the source of truth; the Agent must not invent task state.
-- Shared docs only expose externally relevant commitments.
-- Personal notes, Someday items, and side projects do not leak into team surfaces.
-- Files are archived or moved to Trash, not permanently deleted.
-- Git snapshots are local by default; no automatic push.
+```text
+Storage:  Obsidian vault as local Markdown source of truth
+Agent:    GTD expert skill that reads/writes the vault and loads AGENTS.md / CLAUDE.md
+Render:   Dashboard, QuickCapture, Telegram/IM, shared docs, scheduled briefs
+```
+
+Core rule: the vault wins. Dashboard and docs are generated views.
 
 ## Requirements
 
-- OpenClaw, Hermes, Claude Desktop, Cursor, or another agent that reads `CLAUDE.md` / `AGENTS.md`-style instructions
+- OpenClaw, Hermes, Claude Desktop, Cursor, or another agent that can install the `llm-gtd` skill
 - Obsidian for viewing/editing the vault
 - Python 3.9+
 - macOS for Dashboard.app, launchd automation, and QuickCapture
-- Xcode Command Line Tools for QuickCapture: `xcode-select --install`
+
+## For Developers
+
+```bash
+git clone https://github.com/shaanguan/LLM-gtd.git
+cd LLM-gtd
+python3 setup/init.py --vault "$HOME/Documents/GTD"
+python3 setup/create_launchd.py --vault "$HOME/Documents/GTD" --verify
+python3 setup/doctor.py --vault "$HOME/Documents/GTD" --check-cron --check-quickcapture --json
+python3 scripts/package_skill.py
+```
 
 ## Links
 
-- [Download setup skill](https://github.com/shaanguan/LLM-gtd/releases/latest)
+- [Install via skills CLI](#install-in-30-seconds)
+- [Download .skill fallback](https://github.com/shaanguan/LLM-gtd/releases/latest)
 - [Architecture](docs/architecture.md)
 - [FAQ](docs/faq.md)
 

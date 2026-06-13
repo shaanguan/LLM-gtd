@@ -7,8 +7,8 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-DEFAULT_SKILL_DIR = REPO_ROOT / "skills" / "llm-gtd-setup"
-DEFAULT_OUTPUT = REPO_ROOT / "dist" / "llm-gtd-setup.skill"
+DEFAULT_SKILL_DIR = REPO_ROOT / "skills" / "llm-gtd"
+DEFAULT_OUTPUT = REPO_ROOT / "dist" / "llm-gtd.skill"
 
 
 def package_skill(skill_dir: Path = DEFAULT_SKILL_DIR, output: Path = DEFAULT_OUTPUT) -> Path:

@@ -22,6 +22,29 @@ from typing import Optional
 from state import update_setup_state
 
 LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
+EXPECTED_LABELS = [
+    "com.llm-gtd.export-dashboard",
+    "com.llm-gtd.git-snapshot",
+]
+
+
+def labels_loaded() -> dict[str, bool]:
+    try:
+        result = subprocess.run(
+            ["launchctl", "list"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        )
+    except (FileNotFoundError, subprocess.TimeoutExpired):
+        return {label: False for label in EXPECTED_LABELS}
+    output = result.stdout
+    return {label: label in output for label in EXPECTED_LABELS}
+
+
+def verify_loaded() -> tuple[bool, dict[str, bool]]:
+    loaded = labels_loaded()
+    return all(loaded.values()), loaded
 
 
 def detect_python3() -> str:
@@ -132,12 +155,24 @@ def install(vault_path: str):
     print("    • git-snapshot: daily at 23:55")
     print()
     print("  To check status: launchctl list | grep llm-gtd")
-    if not load_failures:
+    ok, loaded = verify_loaded()
+    for label, is_loaded in loaded.items():
+        status = "loaded" if is_loaded else "missing"
+        print(f"    • {label}: {status}")
+
+    if load_failures or not ok:
         update_setup_state(
             vault_path_obj,
-            capabilities={"scheduler": "ok", "git_snapshots": "ok"},
-            components={"launchd": "installed"},
+            capabilities={"scheduler": "error", "git_snapshots": "error"},
+            components={"launchd": "install_failed", "launchd_loaded": loaded},
         )
+        raise SystemExit(1)
+
+    update_setup_state(
+        vault_path_obj,
+        capabilities={"scheduler": "ok", "git_snapshots": "ok"},
+        components={"launchd": "installed", "launchd_loaded": loaded},
+    )
 
 
 def uninstall(vault_path: Optional[str] = None):
@@ -166,6 +201,7 @@ def main():
     parser = argparse.ArgumentParser(description="Install/uninstall LLM-GTD LaunchAgents")
     parser.add_argument("--vault", type=str, required=True, help="Vault path")
     parser.add_argument("--uninstall", action="store_true", help="Remove LaunchAgents")
+    parser.add_argument("--verify", action="store_true", help="Verify LaunchAgents are loaded")
     args = parser.parse_args()
 
     if sys.platform != "darwin":
@@ -180,6 +216,17 @@ def main():
     print()
     if args.uninstall:
         uninstall(args.vault)
+    elif args.verify:
+        ok, loaded = verify_loaded()
+        for label, is_loaded in loaded.items():
+            print(f"  {'✓' if is_loaded else '✗'} {label}")
+        if not ok:
+            print()
+            print("  ERROR: Scheduled jobs are not loaded.")
+            print(f"  Repair with: python3 setup/create_launchd.py --vault \"{args.vault}\"")
+            raise SystemExit(1)
+        print()
+        print("  Scheduled jobs are active.")
     else:
         install(args.vault)
 
