@@ -17,7 +17,7 @@ import shutil
 import argparse
 from pathlib import Path
 from datetime import datetime
-from state import update_setup_state
+from state import load_setup_state, update_setup_state
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -151,6 +151,54 @@ def copy_template(template_dir: Path, dest: Path, skip_agents: bool = True):
             else:
                 # Don't overwrite user files
                 pass
+
+
+def status_label(value: str) -> str:
+    labels = {
+        "ok": "OK",
+        "skipped": "SKIPPED",
+        "pending": "PENDING",
+        "partial": "PARTIAL",
+        "unknown": "UNKNOWN",
+        "error": "ERROR",
+        "missing": "MISSING",
+        "missing_toolchain": "MISSING TOOLCHAIN",
+    }
+    return labels.get(value, str(value).upper())
+
+
+def write_setup_report(vault_path: Path) -> Path:
+    """Write a human-readable setup report for the user and agent."""
+    state = load_setup_state(vault_path)
+    capabilities = state.get("capabilities", {})
+    steps = state.get("steps", {})
+    report = vault_path / ".llm-gtd" / "setup-report.md"
+    lines = [
+        "# LLM-GTD Setup Report",
+        "",
+        f"Updated: {state.get('updated_at', '')}",
+        f"Vault: `{vault_path}`",
+        f"Next step: `{state.get('next_step', 'unknown')}`",
+        "",
+        "## Capabilities",
+        "",
+    ]
+    for key in ["vault", "dashboard", "scheduler", "git_snapshots", "quickcapture", "im_docs", "agent_workspace"]:
+        lines.append(f"- **{key}**: {status_label(capabilities.get(key, 'unknown'))}")
+    lines.extend(["", "## Setup Steps", ""])
+    for key in ["detect_repo", "ask_preferences", "init_vault", "install_local_tools", "connect_im_docs", "verify", "onboard"]:
+        lines.append(f"- **{key}**: {status_label(steps.get(key, 'pending'))}")
+    lines.extend([
+        "",
+        "## How to verify automation",
+        "",
+        "- macOS launchd labels: `com.llm-gtd.export-dashboard`, `com.llm-gtd.git-snapshot`",
+        "- Check from terminal: `launchctl list | grep llm-gtd`",
+        "- Machine-readable check: `python3 setup/doctor.py --vault \"$GTD_VAULT\" --check-cron --check-quickcapture --json`",
+        "",
+    ])
+    report.write_text("\n".join(lines), encoding="utf-8")
+    return report
 
 
 # ---------------------------------------------------------------------------
@@ -409,6 +457,8 @@ def main():
         },
         capabilities={"im_docs": "pending" if features["doc_sync"] else "skipped"},
     )
+    setup_report = write_setup_report(vault_path)
+    update_setup_state(vault_path, components={"setup_report": str(setup_report)})
 
     # ── Auto-open QUICKSTART.html ──────────────────────────────────────
     quickstart = vault_path / "QUICKSTART.html"
@@ -432,6 +482,16 @@ def main():
     print(f"  Vault location:  {vault_path}")
     print(f"  CLAUDE.md:       {agents_dest}")
     print(f"  Features:        {', '.join(k for k, v in features.items() if v)}")
+    print(f"  Setup report:    {setup_report}")
+    print()
+    state = load_setup_state(vault_path)
+    capabilities = state.get("capabilities", {})
+    print("  Installed components:")
+    print(f"    Dashboard:      {status_label(capabilities.get('dashboard', 'unknown'))}")
+    print(f"    Scheduler:      {status_label(capabilities.get('scheduler', 'unknown'))}")
+    print(f"    Git snapshots:  {status_label(capabilities.get('git_snapshots', 'unknown'))}")
+    print(f"    QuickCapture:   {status_label(capabilities.get('quickcapture', 'unknown'))}")
+    print(f"    Online docs:    {status_label(capabilities.get('im_docs', 'unknown'))}")
     print()
     print("  Next steps:")
     print()

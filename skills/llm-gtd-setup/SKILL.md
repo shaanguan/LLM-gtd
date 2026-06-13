@@ -152,6 +152,14 @@ python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-
 ```
 Use `.llm-gtd/setup-state.json` and the JSON capabilities to continue from the first incomplete step.
 
+Always summarize the capability status in plain language. The user should never have to infer whether scheduled jobs were created. Include:
+- Dashboard: ok / missing
+- Scheduler: ok / warning / skipped / error
+- Git snapshots: ok / pending / skipped / error
+- QuickCapture: ok / missing / skipped / error
+- Online docs / Telegram: configured / pending / skipped
+- Setup report path: `$VAULT_PATH/.llm-gtd/setup-report.md`
+
 ### 9. Cold start: import todos or onboard
 
 Ask the user:
@@ -194,7 +202,8 @@ This creates a clickable .app that opens Dashboard.html. Move to ~/Applications 
 > - **Vault**: `$VAULT_PATH` (open in Obsidian)
 > - **Agent workspace**: this conversation reads CLAUDE.md automatically
 > - **Dashboard**: open Dashboard.html or use the .app shortcut
-> - **Automation**: export_dashboard runs every 30min, git snapshot at 23:55
+> - **Automation**: [status from doctor JSON] — export_dashboard every 30min, git snapshot at 23:55
+> - **Setup report**: `$VAULT_PATH/.llm-gtd/setup-report.md`
 >
 > **Daily workflow:**
 > - Say 'morning' → I'll give you today's brief

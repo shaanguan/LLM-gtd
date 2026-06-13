@@ -116,6 +116,22 @@ class StateAndDoctorTest(unittest.TestCase):
             loaded = state.load_setup_state(vault)
             self.assertEqual(loaded["capabilities"]["vault"], "ok")
 
+    def test_setup_report_lists_automation_status(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            vault.mkdir()
+            state.update_setup_state(
+                vault,
+                capabilities={"scheduler": "ok", "git_snapshots": "ok"},
+            )
+
+            report = init.write_setup_report(vault)
+            content = report.read_text(encoding="utf-8")
+
+            self.assertIn("scheduler", content)
+            self.assertIn("com.llm-gtd.export-dashboard", content)
+            self.assertIn("com.llm-gtd.git-snapshot", content)
+
     def test_doctor_capabilities_detect_core_files(self):
         with tempfile.TemporaryDirectory() as tmp:
             vault = Path(tmp) / "GTD"
