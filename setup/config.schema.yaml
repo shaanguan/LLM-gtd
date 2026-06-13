@@ -55,6 +55,17 @@ inbox_sla_hours: 4
 # Bigram jaccard similarity ≥ this flags two Inbox titles as likely duplicates.
 dup_inbox_jaccard_threshold: 0.4
 
+# ─── Capture sources ──────────────────────────────────────────────────
+# All capture channels enter Inbox first. The agent later clarifies and moves
+# items into GTD objects while preserving the original source when known.
+capture_sources:
+  - chat
+  - quickcapture
+  - telegram
+  - im
+  - import
+  - manual
+
 # ─── Side projects ────────────────────────────────────────────────────
 # Project frontmatter values starting with this prefix are dimmed on the
 # Dashboard (rendered in the side-projects section instead of the main grid).

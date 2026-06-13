@@ -2,7 +2,7 @@
 
 > This file is for the AI agent to read when a user asks to set up LLM-GTD.
 > It is NOT a user-facing document — it's operational instructions for the agent.
-> Works with QoderWork, Claude Desktop, or any AGENTS.md-compatible environment.
+> Works with OpenClaw, Hermes, Claude Desktop, Cursor, or any AGENTS.md-compatible environment.
 
 ## When to use this
 
@@ -23,8 +23,9 @@ Ask these questions in ONE batch:
 - Custom path
 
 **Q2: IM 平台**
+- 飞书（Feishu）— 推荐，支持文档同步+群消息推送
 - 钉钉（DingTalk）— 支持文档同步+群消息推送
-- 飞书（Feishu）— 支持文档同步+群消息推送
+- Telegram — 推荐给个人使用，支持原生聊天捕获、按钮确认、语音转写
 - 企业微信（WeCom）— 支持机器人消息推送
 - 微信（WeChat）— 个人用，仅消息推送
 - 无 — 不需要 IM 推送
@@ -45,15 +46,16 @@ Ask these questions in ONE batch:
 ```bash
 python3 <repo-path>/setup/init.py \
   --vault "<user-chosen-path>" \
-  --non-interactive
+  --non-interactive \
+  --im-platform "<feishu|dingtalk|telegram|wecom|wechat|none>" \
+  --morning-time "<HH:MM>" \
+  --evening-time "<HH:MM>"
 ```
 
-Note: Since we already asked the questions via AskUserQuestion, pass `--non-interactive`
-and then manually render AGENTS.md with the user's answers. Alternatively, run init.py
-interactively by piping answers — but `--non-interactive` + post-edit is cleaner.
-
-After running with `--non-interactive`, edit the generated AGENTS.md to fill in the
-user's actual answers (name, role, feature flags, cron times).
+Add feature flags as needed: `--disable-okr`, `--disable-doc-sync`,
+`--enable-side-project`, `--side-project-name`, or `--disable-knowledge-base`.
+When the user has already answered setup questions, prefer these flags over
+post-editing generated files.
 
 Alternatively, just run the full init flow directly in Python:
 1. Copy vault-template/ to the target path
@@ -61,6 +63,8 @@ Alternatively, just run the full init flow directly in Python:
 3. Create .llm-gtd/ state directory
 
 ### Step 3: Set working folder
+
+**OpenClaw / Hermes / Cursor:** move or add the agent workspace/context folder to the vault path so the generated `CLAUDE.md` is loaded.
 
 **QoderWork:** Use the action tool to select the vault as the working folder:
 ```
@@ -71,9 +75,9 @@ mcp__builtin_qoderwork__action: key="workspace.folder", action="update", params=
 
 **Other:** Ensure the agent has read/write access to the vault directory and AGENTS.md is loaded as context.
 
-### Step 4: Register cron jobs
+### Step 4: Register cron jobs and local helpers
 
-Use `qoder_cron` to create scheduled tasks:
+`init.py` installs macOS launchd jobs and QuickCapture by default. If the current agent environment has its own scheduler, also register these conversational routines so the agent can proactively run GTD flows:
 
 ```python
 # Morning brief
@@ -125,21 +129,35 @@ qoder_cron(action="add", job={
 })
 ```
 
-### Step 5: Run doctor
+### Step 5: Create/connect online docs
+
+If the user chose Feishu or DingTalk and the corresponding MCP credentials are available, create:
+- scheduling doc: team-facing delivery table
+- daily brief doc: personal/day-level brief
+
+Then write the generated IDs/URLs back into `CLAUDE.md` §4 and `QUICKSTART.html`.
+If credentials are missing, stop and ask the user to authenticate/configure the connector; do not ask them to manually create docs unless MCP is unavailable.
+
+If the user chose Telegram, configure the bot connector when available. Preserve Telegram-native UX:
+- every message/reply/voice transcript becomes an Inbox item with `source: telegram`
+- inline buttons can confirm triage, snooze, or mark done, but vault writes are still the source of truth
+- keep Telegram replies short; send long status to Dashboard or the agent workspace
+
+### Step 6: Run doctor
 
 ```bash
-python3 <repo-path>/setup/doctor.py --vault "<vault-path>"
+python3 <repo-path>/setup/doctor.py --vault "<vault-path>" --check-cron --check-quickcapture
 ```
 
 Report results to user.
 
-### Step 6: Guide user for Obsidian (the one manual step)
+### Step 7: Guide user for Obsidian (the one manual step)
 
 Tell the user:
 > 最后一步需要你手动操作：打开 Obsidian → 左下角"Open another vault" → "Open folder as vault" → 选择 `<vault-path>`。
 > 这样你就能在 Obsidian 里浏览和手动编辑 vault 了。不过即使不开 Obsidian，GTD 系统也能正常工作 — Agent 直接读写文件。
 
-### Step 7: Confirm success
+### Step 8: Confirm success
 
 Tell the user:
 > 设置完成！从现在开始：

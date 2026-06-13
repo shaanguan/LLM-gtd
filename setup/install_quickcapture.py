@@ -18,8 +18,11 @@ import sys
 import shutil
 import subprocess
 import platform
+import plistlib
 from pathlib import Path
 from typing import Optional
+from xml.sax.saxutils import escape
+from state import update_setup_state
 
 
 def is_macos():
@@ -73,15 +76,26 @@ def install_binary(binary_path: Path, vault_path: Path) -> Path:
     return dest
 
 
-def install_launchagent(bin_path: Path, repo_path: Path) -> bool:
+def render_launchagent_plist(template: str, bin_path: Path, inbox_dir: Path) -> str:
+    """Render the LaunchAgent template and validate it as plist XML."""
+    rendered = template.replace("__QUICKCAPTURE_BIN__", escape(str(bin_path)))
+    rendered = rendered.replace("__INBOX_DIR__", escape(str(inbox_dir)))
+    plistlib.loads(rendered.encode("utf-8"))
+    return rendered
+
+
+def install_launchagent(bin_path: Path, repo_path: Path, inbox_dir: Path) -> bool:
     """Render plist template and load LaunchAgent."""
     template = repo_path / "scripts" / "quickcapture" / "com.gtd.quickcapture.plist.template"
     if not template.exists():
         print("  [!] plist template not found")
         return False
 
-    plist_content = template.read_text(encoding="utf-8")
-    plist_content = plist_content.replace("__QUICKCAPTURE_BIN__", str(bin_path))
+    try:
+        plist_content = render_launchagent_plist(template.read_text(encoding="utf-8"), bin_path, inbox_dir)
+    except Exception as exc:
+        print(f"  [!] plist template is invalid: {exc}")
+        return False
 
     la_dir = Path.home() / "Library" / "LaunchAgents"
     la_dir.mkdir(parents=True, exist_ok=True)
@@ -108,18 +122,6 @@ def install_launchagent(bin_path: Path, repo_path: Path) -> bool:
     else:
         print(f"  [!] launchctl load failed: {result.stderr}")
         return False
-
-
-def patch_inbox_dir_in_swift(repo_path: Path, vault_path: Path):
-    """Replace __INBOX_DIR__ in main.swift before building."""
-    main_swift = repo_path / "scripts" / "quickcapture" / "Sources" / "QuickCapture" / "main.swift"
-    if not main_swift.exists():
-        return
-    inbox_dir = str(vault_path / "00 - Inbox")
-    content = main_swift.read_text(encoding="utf-8")
-    if "__INBOX_DIR__" in content:
-        content = content.replace("__INBOX_DIR__", inbox_dir)
-        main_swift.write_text(content, encoding="utf-8")
 
 
 def check_legacy_automator_services():
@@ -173,17 +175,24 @@ def main():
         print("  QuickCapture requires Xcode Command Line Tools. Install with:")
         print("      xcode-select --install")
         print("  Then re-run setup. Skipping QuickCapture for now.")
+        update_setup_state(vault_path, capabilities={"quickcapture": "missing_toolchain"})
         return 0
 
-    # Patch inbox dir before building
-    patch_inbox_dir_in_swift(repo_path, vault_path)
     binary = build_swift(repo_path)
     if not binary:
         print("  [!] Swift build failed. Skipping QuickCapture install.")
+        update_setup_state(vault_path, capabilities={"quickcapture": "error"}, components={"quickcapture": "build failed"})
         return 1
 
     dest = install_binary(binary, vault_path)
-    install_launchagent(dest, repo_path)
+    inbox_dir = vault_path / "00 - Inbox"
+    inbox_dir.mkdir(parents=True, exist_ok=True)
+    loaded = install_launchagent(dest, repo_path, inbox_dir)
+    update_setup_state(
+        vault_path,
+        capabilities={"quickcapture": "ok" if loaded else "partial"},
+        components={"quickcapture_bin": str(dest), "quickcapture_launchagent": "loaded" if loaded else "load_failed"},
+    )
     print("\n  ** First time you press Cmd+I, macOS will ask for Accessibility permission.")
     print("  ** Go to: System Settings > Privacy & Security > Accessibility")
     print("  ** Check the box next to QuickCapture.bin\n")

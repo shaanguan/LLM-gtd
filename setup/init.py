@@ -6,8 +6,8 @@ Usage:
     python3 setup/init.py [--vault PATH]
 
 Walks you through setup questions, renders vault-template/ into your vault,
-generates launchd plists for automated tasks, and prints next-step guidance.
-Targets Claude Desktop (MCP) as the AI agent.
+installs local automation, opens QUICKSTART, and prints next-step guidance.
+Targets any AGENTS.md/CLAUDE.md-compatible agent, with OpenClaw/Hermes first.
 """
 
 import os
@@ -17,6 +17,7 @@ import shutil
 import argparse
 from pathlib import Path
 from datetime import datetime
+from state import update_setup_state
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -33,7 +34,7 @@ DEFAULT_WEEKLY = "Sun 21:00"
 
 FEATURES_ALL = ["okr", "doc_sync", "side_project", "knowledge_base"]
 
-IM_PLATFORMS = ["dingtalk", "feishu", "wecom", "wechat"]
+IM_PLATFORMS = ["feishu", "dingtalk", "telegram", "wecom", "wechat"]
 
 # Version written to .llm-gtd/version for upgrade detection
 VERSION = "1.1.0"
@@ -59,21 +60,33 @@ def ask_yn(prompt: str, default: bool = True) -> bool:
     return answer in ("y", "yes")
 
 
+def validate_hhmm(value: str, label: str) -> str:
+    """Validate a 24-hour HH:MM time string."""
+    if not re.fullmatch(r"\d{2}:\d{2}", value):
+        raise ValueError(f"{label} must use HH:MM format, got: {value}")
+    hour, minute = (int(part) for part in value.split(":"))
+    if hour > 23 or minute > 59:
+        raise ValueError(f"{label} must be a valid 24-hour time, got: {value}")
+    return value
+
+
 def render_conditionals(text: str, features: dict) -> str:
     """
-    Process <!-- IF feature.X --> ... <!-- ELSE --> ... <!-- ENDIF --> blocks.
+    Process <!-- IF feature.X --> and <!-- IF !feature.X --> blocks.
     """
-    # Pattern: <!-- IF feature.xxx --> ... (<!-- ELSE --> ...)? <!-- ENDIF -->
+    # Pattern: <!-- IF !?feature.xxx --> ... (<!-- ELSE --> ...)? <!-- ENDIF -->
     pattern = re.compile(
-        r'<!-- IF feature\.(\w+) -->\s*\n(.*?)(?:<!-- ELSE -->\s*\n(.*?))?<!-- ENDIF -->\s*\n',
+        r'<!-- IF (!?)feature\.(\w+) -->\s*\n(.*?)(?:<!-- ELSE -->\s*\n(.*?))?<!-- ENDIF -->\s*\n',
         re.DOTALL,
     )
 
     def replacer(m):
-        feat = m.group(1)
-        if_block = m.group(2)
-        else_block = m.group(3) or ""
-        if features.get(feat, False):
+        negated = bool(m.group(1))
+        feat = m.group(2)
+        if_block = m.group(3)
+        else_block = m.group(4) or ""
+        enabled = features.get(feat, False)
+        if enabled != negated:
             return if_block
         else:
             return else_block
@@ -149,6 +162,21 @@ def main():
     parser = argparse.ArgumentParser(description="Initialize a GTD Workbench vault")
     parser.add_argument("--vault", type=str, help="Target vault path (skip interactive question)")
     parser.add_argument("--non-interactive", action="store_true", help="Use all defaults")
+    parser.add_argument("--no-open", action="store_true", help="Do not open QUICKSTART.html after setup")
+    parser.add_argument("--no-app", action="store_true", help="Do not create Dashboard.app on macOS")
+    parser.add_argument("--skip-automation", action="store_true", help="Do not install launchd automation")
+    parser.add_argument("--skip-quickcapture", action="store_true", help="Do not install QuickCapture")
+    parser.add_argument("--user-name", default="User", help="Name or handle for CLAUDE.md")
+    parser.add_argument("--user-role", default="Knowledge Worker", help="Role for CLAUDE.md")
+    parser.add_argument("--im-platform", choices=IM_PLATFORMS + ["none"], help="Document sync IM platform")
+    parser.add_argument("--disable-okr", action="store_true", help="Disable OKR tracking")
+    parser.add_argument("--disable-doc-sync", action="store_true", help="Disable document sync")
+    parser.add_argument("--enable-side-project", action="store_true", help="Enable side-project tracking")
+    parser.add_argument("--side-project-name", default="My Side Project", help="Side-project name")
+    parser.add_argument("--disable-knowledge-base", action="store_true", help="Disable GTD knowledge references")
+    parser.add_argument("--morning-time", default=DEFAULT_MORNING, help="Morning brief time, HH:MM")
+    parser.add_argument("--evening-time", default=DEFAULT_EVENING, help="Evening review time, HH:MM")
+    parser.add_argument("--weekly-time", default=DEFAULT_WEEKLY, help="Weekly review time, e.g. 'Sun 21:00'")
     args = parser.parse_args()
 
     print()
@@ -173,26 +201,31 @@ def main():
 
     # ── Question 2: Features ────────────────────────────────────────────
     features = {
-        "okr": True,
-        "doc_sync": True,
-        "side_project": False,
-        "knowledge_base": True,
+        "okr": not args.disable_okr,
+        "doc_sync": not args.disable_doc_sync,
+        "side_project": args.enable_side_project,
+        "knowledge_base": not args.disable_knowledge_base,
     }
-    im_platform = "dingtalk"  # default
+    im_platform = args.im_platform or "feishu"  # default
 
     if not args.non_interactive:
         features["okr"] = ask_yn("2/3  Enable OKR tracking? (links NAs to objectives)", True)
         features["doc_sync"] = ask_yn("     Enable document sync (shared scheduling/daily doc)?", True)
         if features["doc_sync"]:
             print("     IM platform for document sync:")
-            print("       1) DingTalk  2) Feishu  3) WeCom  4) WeChat")
-            im_choice = ask("     Choose [1-4]", "1")
-            im_platform = {"1": "dingtalk", "2": "feishu", "3": "wecom", "4": "wechat"}.get(im_choice, "dingtalk")
+            print("       1) Feishu  2) DingTalk  3) Telegram  4) WeCom  5) WeChat")
+            im_choice = ask("     Choose [1-5]", "1")
+            im_platform = {"1": "feishu", "2": "dingtalk", "3": "telegram", "4": "wecom", "5": "wechat"}.get(im_choice, "feishu")
         else:
             im_platform = "none"
         features["side_project"] = ask_yn("     Track a personal side project (separate from work)?", False)
         features["knowledge_base"] = ask_yn("     Include GTD knowledge base references?", True)
         print()
+    elif not features["doc_sync"]:
+        im_platform = "none"
+
+    if im_platform == "none":
+        features["doc_sync"] = False
 
     # ── Question 3: Routine preferences ─────────────────────────────────
     if not args.non_interactive:
@@ -200,21 +233,30 @@ def main():
         evening_time = ask("     Preferred evening review time (HH:MM)", DEFAULT_EVENING)
         weekly_time = ask("     Preferred weekly review (e.g. 'Sun 21:00')", DEFAULT_WEEKLY)
     else:
-        morning_time = DEFAULT_MORNING
-        evening_time = DEFAULT_EVENING
-        weekly_time = DEFAULT_WEEKLY
+        morning_time = args.morning_time
+        evening_time = args.evening_time
+        weekly_time = args.weekly_time
+
+    try:
+        morning_time = validate_hhmm(morning_time, "morning time")
+        evening_time = validate_hhmm(evening_time, "evening time")
+    except ValueError as exc:
+        print(f"ERROR: {exc}", file=sys.stderr)
+        sys.exit(2)
 
     print()
 
     # ── Collect variables ───────────────────────────────────────────────
-    user_name = ask("     Your name or handle (for CLAUDE.md header)", "User") if not args.non_interactive else "User"
-    user_role = ask("     Your role (e.g. 'Product Designer')", "Knowledge Worker") if not args.non_interactive else "Knowledge Worker"
+    user_name = ask("     Your name or handle (for CLAUDE.md header)", args.user_name) if not args.non_interactive else args.user_name
+    user_role = ask("     Your role (e.g. 'Product Designer')", args.user_role) if not args.non_interactive else args.user_role
 
     side_project_name = ""
     if features["side_project"] and not args.non_interactive:
-        side_project_name = ask("     Side project name", "My Side Project")
+        side_project_name = ask("     Side project name", args.side_project_name)
+    elif features["side_project"]:
+        side_project_name = args.side_project_name
 
-    im_names = {"dingtalk": "DingTalk", "feishu": "Feishu", "wecom": "WeCom", "wechat": "WeChat", "none": "IM"}
+    im_names = {"dingtalk": "DingTalk", "feishu": "Feishu", "telegram": "Telegram", "wecom": "WeCom", "wechat": "WeChat", "none": "IM"}
     variables = {
         "user.name": user_name,
         "user.role": user_role,
@@ -247,9 +289,27 @@ def main():
     # Create state directory
     state_dir = vault_path / ".llm-gtd"
     state_dir.mkdir(exist_ok=True)
+    (state_dir / "logs").mkdir(exist_ok=True)
 
     # Write version for upgrade detection (#6)
     (state_dir / "version").write_text(VERSION + "\n", encoding="utf-8")
+    update_setup_state(
+        vault_path,
+        steps={
+            "detect_repo": "ok",
+            "ask_preferences": "ok",
+            "init_vault": "in_progress",
+        },
+        capabilities={"vault": "ok"},
+        preferences={
+            "im_platform": im_platform,
+            "features": features,
+            "morning_time": morning_time,
+            "evening_time": evening_time,
+            "weekly_time": weekly_time,
+        },
+        components={"repo_path": str(REPO_ROOT), "version": VERSION},
+    )
 
     # ── Render CLAUDE.md ───────────────────────────────────────────────
     agents_template = (TEMPLATE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
@@ -260,6 +320,7 @@ def main():
     agents_dest = vault_path / "CLAUDE.md"
     agents_dest.write_text(rendered, encoding="utf-8")
     print(f"  ✓ CLAUDE.md rendered ({len(rendered):,} chars)")
+    update_setup_state(vault_path, components={"agent_instructions": str(agents_dest)})
 
     # ── Render QUICKSTART.html ──────────────────────────────────────────
     quickstart_src = vault_path / "QUICKSTART.html"
@@ -269,6 +330,7 @@ def main():
         qs_text = render_placeholders(qs_text, variables)
         quickstart_src.write_text(qs_text, encoding="utf-8")
         print(f"  ✓ QUICKSTART.html rendered")
+        update_setup_state(vault_path, components={"quickstart": str(quickstart_src)})
 
     # ── Symlink or copy knowledge base (if enabled) ─────────────────────
     if features["knowledge_base"] and KNOWLEDGE_DIR.exists():
@@ -280,20 +342,77 @@ def main():
             encoding="utf-8",
         )
         print(f"  ✓ Knowledge base linked at: {KNOWLEDGE_DIR / 'gtd'}")
+    update_setup_state(
+        vault_path,
+        steps={"init_vault": "ok"},
+        capabilities={"dashboard": "ok"},
+        components={"dashboard": str(vault_path / "Dashboard.html")},
+    )
 
     # ── Dashboard.app (macOS only) ───────────────────────────────────────
     import platform
-    if platform.system() == "Darwin":
+    if platform.system() == "Darwin" and not args.no_app:
         try:
             from create_app import create_dashboard_app
             app_path = create_dashboard_app(str(vault_path), str(REPO_ROOT))
             print(f"  ✓ GTD Dashboard.app installed → {app_path}")
+            update_setup_state(vault_path, components={"dashboard_app": app_path})
         except Exception as e:
             print(f"  ⚠ Dashboard.app skipped: {e}")
+            update_setup_state(vault_path, components={"dashboard_app": f"skipped: {e}"})
+
+    # ── One-click local automation (macOS only) ─────────────────────────
+    if platform.system() == "Darwin" and not args.skip_automation:
+        try:
+            from create_launchd import install as install_launchd
+            install_launchd(str(vault_path))
+            print("  ✓ launchd automation installed")
+            update_setup_state(vault_path, capabilities={"scheduler": "ok", "git_snapshots": "ok"})
+        except Exception as e:
+            print(f"  ⚠ launchd automation skipped: {e}")
+            update_setup_state(vault_path, capabilities={"scheduler": "error", "git_snapshots": "error"}, components={"launchd_error": str(e)})
+    elif args.skip_automation:
+        update_setup_state(vault_path, capabilities={"scheduler": "skipped", "git_snapshots": "skipped"})
+
+    if platform.system() == "Darwin" and not args.skip_quickcapture:
+        try:
+            import install_quickcapture
+            old_argv = sys.argv[:]
+            sys.argv = [
+                "install_quickcapture.py",
+                "--vault",
+                str(vault_path),
+                "--repo",
+                str(REPO_ROOT),
+            ]
+            rc = install_quickcapture.main()
+            sys.argv = old_argv
+            if rc == 0:
+                print("  ✓ QuickCapture installed or skipped gracefully")
+                update_setup_state(vault_path, capabilities={"quickcapture": "ok"})
+            else:
+                print(f"  ⚠ QuickCapture installer exited with code {rc}")
+                update_setup_state(vault_path, capabilities={"quickcapture": "error"}, components={"quickcapture_exit_code": rc})
+        except Exception as e:
+            sys.argv = old_argv if "old_argv" in locals() else sys.argv
+            print(f"  ⚠ QuickCapture skipped: {e}")
+            update_setup_state(vault_path, capabilities={"quickcapture": "error"}, components={"quickcapture_error": str(e)})
+    elif args.skip_quickcapture:
+        update_setup_state(vault_path, capabilities={"quickcapture": "skipped"})
+
+    update_setup_state(
+        vault_path,
+        steps={
+            "install_local_tools": "ok" if (platform.system() != "Darwin" or not (args.skip_automation or args.skip_quickcapture)) else "skipped",
+            "connect_im_docs": "pending" if features["doc_sync"] else "skipped",
+            "onboard": "pending",
+        },
+        capabilities={"im_docs": "pending" if features["doc_sync"] else "skipped"},
+    )
 
     # ── Auto-open QUICKSTART.html ──────────────────────────────────────
     quickstart = vault_path / "QUICKSTART.html"
-    if quickstart.exists():
+    if quickstart.exists() and not args.no_open:
         import platform
         import subprocess
         if platform.system() == "Darwin":
@@ -316,24 +435,38 @@ def main():
     print()
     print("  Next steps:")
     print()
-    print(f'  1. Set your environment variable (add to ~/.zshrc):')
+    step = 1
+    print(f'  {step}. Set your environment variable (add to ~/.zshrc):')
     print(f'     export GTD_VAULT="{vault_path}"')
     print()
-    print(f'  2. Open the vault in Obsidian:')
+    step += 1
+    print(f'  {step}. Open the vault in Obsidian:')
     print(f'     Open Obsidian → "Open folder as vault" → select {vault_path}')
     print()
-    print(f'  3. Add as Claude Desktop Project:')
-    print(f'     Claude Desktop → Projects → Add folder → select {vault_path}')
-    print(f'     (CLAUDE.md will be read automatically on every conversation)')
+    step += 1
+    print(f'  {step}. Add the vault to your agent workspace:')
+    print(f'     OpenClaw / Hermes / Claude Desktop / Cursor → add folder → select {vault_path}')
+    print(f'     (CLAUDE.md will be read automatically by compatible agents)')
     print()
     if features["doc_sync"]:
-        print(f'  4. Edit CLAUDE.md §4 to paste your {im_names[im_platform]} document IDs')
+        step += 1
+        print(f'  {step}. Create or connect your {im_names[im_platform]} online docs')
+        print(f'     The setup skill should create docs via MCP when credentials are available;')
+        print(f'     otherwise paste the document IDs into CLAUDE.md §4.')
         print()
-    print(f'  5. Install launchd plists for automation:')
-    print(f'     python3 {REPO_ROOT}/setup/create_launchd.py --vault "{vault_path}"')
-    print(f'     (creates: export_dashboard every 30min + git snapshot at 23:55)')
-    print()
-    print(f'  6. Run the self-check:')
+    if args.skip_automation:
+        step += 1
+        print(f'  {step}. Install launchd plists for automation:')
+        print(f'     python3 {REPO_ROOT}/setup/create_launchd.py --vault "{vault_path}"')
+        print(f'     (creates: export_dashboard every 30min + git snapshot at 23:55)')
+        print()
+    if args.skip_quickcapture:
+        step += 1
+        print(f'  {step}. Install QuickCapture:')
+        print(f'     python3 {REPO_ROOT}/setup/install_quickcapture.py --vault "{vault_path}" --repo "{REPO_ROOT}"')
+        print()
+    step += 1
+    print(f'  {step}. Run the self-check:')
     print(f'     python3 {REPO_ROOT}/setup/doctor.py --vault "{vault_path}"')
     print()
     print("  Happy GTD-ing! 🎯")

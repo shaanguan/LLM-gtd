@@ -1,10 +1,16 @@
 ---
 project: 
+status: active
+lifecycle: active
 priority: 
 requester: 
+owner: 
 due: 
+deadline: 
+source: 
+captured_at: 
 tags:
-  - inbox
+  - next-action
 date: <% tp.date.now("YYYY-MM-DD") %>
 aliases: []
 ---

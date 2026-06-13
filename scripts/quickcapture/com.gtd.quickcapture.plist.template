@@ -8,6 +8,11 @@
 	<array>
 		<string>__QUICKCAPTURE_BIN__</string>
 	</array>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>GTD_INBOX_DIR</key>
+		<string>__INBOX_DIR__</string>
+	</dict>
 	<key>RunAtLoad</key>
 	<true/>
 	<key>KeepAlive</key>

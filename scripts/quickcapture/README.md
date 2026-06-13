@@ -13,13 +13,19 @@ Press **Cmd+I** anywhere on your Mac to summon a floating HUD panel. Type your t
 - **Cmd+I** again — hide (saves draft, restored next time)
 - **Esc** — discard and close
 
-## Installation (automated)
+## Installation (recommended)
 
-If you ran `setup/init.py`, QuickCapture was automatically compiled and installed. The setup script:
+Run the installer from the repository root after your vault has been initialized:
+
+```bash
+python3 setup/install_quickcapture.py --vault "$GTD_VAULT" --repo "$(pwd)"
+```
+
+The installer:
 
 1. Compiles the Swift package (`swift build -c release`)
 2. Copies the binary to `$GTD_VAULT/Scripts/QuickCapture.bin`
-3. Installs a LaunchAgent so it starts automatically at login
+3. Installs a LaunchAgent with `GTD_INBOX_DIR=$GTD_VAULT/00 - Inbox`
 4. Reminds you to grant Accessibility permission
 
 ## Manual installation
@@ -33,8 +39,10 @@ cp .build/release/QuickCapture "$GTD_VAULT/Scripts/QuickCapture.bin"
 Then install the LaunchAgent:
 
 ```bash
-# Replace placeholder with your actual binary path
-sed "s|__QUICKCAPTURE_BIN__|$GTD_VAULT/Scripts/QuickCapture.bin|g" \
+# Replace placeholders with your actual binary and Inbox paths
+sed \
+  -e "s|__QUICKCAPTURE_BIN__|$GTD_VAULT/Scripts/QuickCapture.bin|g" \
+  -e "s|__INBOX_DIR__|$GTD_VAULT/00 - Inbox|g" \
     com.gtd.quickcapture.plist.template > ~/Library/LaunchAgents/com.gtd.quickcapture.plist
 
 launchctl load -w ~/Library/LaunchAgents/com.gtd.quickcapture.plist

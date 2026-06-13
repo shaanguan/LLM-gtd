@@ -2,7 +2,7 @@
 
 ## Overview
 
-GTD Workbench is a three-layer system that turns an Obsidian vault into a fully automated Getting Things Done workflow, driven by an AI agent (QoderWork, Claude Desktop, or any AGENTS.md-compatible environment).
+GTD Workbench is a three-layer system that turns an Obsidian vault into a fully automated Getting Things Done workflow, driven by an AI agent (OpenClaw, Hermes, Claude Desktop, Cursor, or any AGENTS.md-compatible environment).
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -43,7 +43,7 @@ GTD Workbench is a three-layer system that turns an Obsidian vault into a fully 
 
 4. **Review** — Scheduled cron jobs run morning briefs (MIT selection), evening reviews (completion check + inbox sweep), and weekly reviews (full system audit).
 
-5. **Render** — After any vault change, `export_dashboard.py` regenerates Dashboard data. DingTalk documents get block-level updates via MCP.
+5. **Render** — After any vault change, `export_dashboard.py` regenerates Dashboard data. Feishu/DingTalk documents get updates via MCP.
 
 ## Key Design Decisions
 
@@ -51,11 +51,11 @@ GTD Workbench is a three-layer system that turns an Obsidian vault into a fully 
 
 **AGENTS.md as the brain** — The 17-section operational manual is injected into every agent session. It is the canonical source of truth for behavior, overriding memory. Changes to AGENTS.md take effect immediately.
 
-**Conditional features** — OKR tracking, DingTalk integration, side-project isolation, and knowledge-base references are all optional. The `setup/init.py` renders only the sections you enable.
+**Conditional features** — OKR tracking, Feishu/DingTalk integration, side-project isolation, and knowledge-base references are all optional. The `setup/init.py` renders only the sections you enable.
 
 **Vault is the IDE** — The agent has full write delegation over the vault. The user never needs to manually organize files. The vault's internal structure can evolve freely as long as the export script absorbs the change and the render-layer shape stays stable.
 
-**Render-layer audience separation** — Dashboard shows everything (for the user). DingTalk scheduling doc shows only externally-relevant deliverables (for requesters). Daily brief shows only MIT (for colleagues). Different granularity, same source of truth.
+**Render-layer audience separation** — Dashboard shows everything (for the user). Feishu/DingTalk scheduling docs show only externally-relevant deliverables (for requesters). Daily brief shows only MIT (for colleagues). Different granularity, same source of truth.
 
 **Knowledge base is repo-level, not per-vault** — The GTD methodology wiki ships with the repo and is shared. Individual vaults reference it via AGENTS.md §8's decision-anchor table. Users can maintain their own private source and sync via `scripts/sync-knowledge.sh`.
 

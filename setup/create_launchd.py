@@ -12,11 +12,14 @@ Usage:
 """
 
 import argparse
-import os
+import plistlib
+import shlex
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from typing import Optional
+from state import update_setup_state
 
 LAUNCH_AGENTS_DIR = Path.home() / "Library" / "LaunchAgents"
 
@@ -34,75 +37,61 @@ def detect_python3() -> str:
     return "/usr/bin/python3"
 
 
-PLIST_EXPORT_DASHBOARD = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.llm-gtd.export-dashboard</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>{python3}</string>
-    <string>{vault}/export_dashboard.py</string>
-  </array>
-  <key>WorkingDirectory</key>
-  <string>{vault}</string>
-  <key>StartInterval</key>
-  <integer>1800</integer>
-  <key>StandardOutPath</key>
-  <string>{vault}/.llm-gtd/logs/export-dashboard.log</string>
-  <key>StandardErrorPath</key>
-  <string>{vault}/.llm-gtd/logs/export-dashboard.err</string>
-  <key>EnvironmentVariables</key>
-  <dict>
-    <key>GTD_VAULT</key>
-    <string>{vault}</string>
-  </dict>
-</dict>
-</plist>
-"""
+def dumps_plist(data: dict) -> str:
+    """Serialize a plist with proper XML escaping for user paths."""
+    return plistlib.dumps(data, sort_keys=False).decode("utf-8")
 
-PLIST_GIT_SNAPSHOT = """\
-<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN"
-  "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>Label</key>
-  <string>com.llm-gtd.git-snapshot</string>
-  <key>ProgramArguments</key>
-  <array>
-    <string>/bin/bash</string>
-    <string>-c</string>
-    <string>cd "{vault}" &amp;&amp; git add -A &amp;&amp; git diff --cached --quiet || git commit -m "auto: $(date +%Y-%m-%d_%H:%M)"</string>
-  </array>
-  <key>WorkingDirectory</key>
-  <string>{vault}</string>
-  <key>StartCalendarInterval</key>
-  <dict>
-    <key>Hour</key>
-    <integer>23</integer>
-    <key>Minute</key>
-    <integer>55</integer>
-  </dict>
-  <key>StandardOutPath</key>
-  <string>{vault}/.llm-gtd/logs/git-snapshot.log</string>
-  <key>StandardErrorPath</key>
-  <string>{vault}/.llm-gtd/logs/git-snapshot.err</string>
-</dict>
-</plist>
-"""
 
-PLISTS = [
-    ("com.llm-gtd.export-dashboard", PLIST_EXPORT_DASHBOARD),
-    ("com.llm-gtd.git-snapshot", PLIST_GIT_SNAPSHOT),
-]
+def build_git_snapshot_command(vault: str) -> str:
+    """Build a shell command that commits only when staged changes exist."""
+    quoted_vault = shlex.quote(vault)
+    return (
+        f"cd {quoted_vault} || exit 1; "
+        "if ! git rev-parse --is-inside-work-tree >/dev/null 2>&1; then "
+        "git init; "
+        "fi; "
+        "git add -A && "
+        "if ! git diff --cached --quiet; then "
+        "git commit -m \"auto: $(date +%Y-%m-%d_%H:%M)\"; "
+        "else "
+        "echo \"No changes to snapshot\"; "
+        "fi"
+    )
+
+
+def build_export_dashboard_plist(vault: str, python3: str) -> str:
+    return dumps_plist({
+        "Label": "com.llm-gtd.export-dashboard",
+        "ProgramArguments": [python3, f"{vault}/export_dashboard.py"],
+        "WorkingDirectory": vault,
+        "StartInterval": 1800,
+        "StandardOutPath": f"{vault}/.llm-gtd/logs/export-dashboard.log",
+        "StandardErrorPath": f"{vault}/.llm-gtd/logs/export-dashboard.err",
+        "EnvironmentVariables": {"GTD_VAULT": vault},
+    })
+
+
+def build_git_snapshot_plist(vault: str) -> str:
+    return dumps_plist({
+        "Label": "com.llm-gtd.git-snapshot",
+        "ProgramArguments": ["/bin/bash", "-lc", build_git_snapshot_command(vault)],
+        "WorkingDirectory": vault,
+        "StartCalendarInterval": {"Hour": 23, "Minute": 55},
+        "StandardOutPath": f"{vault}/.llm-gtd/logs/git-snapshot.log",
+        "StandardErrorPath": f"{vault}/.llm-gtd/logs/git-snapshot.err",
+        "EnvironmentVariables": {"GTD_VAULT": vault},
+    })
+
+def build_plists(vault: str, python3: str) -> list[tuple[str, str]]:
+    return [
+        ("com.llm-gtd.export-dashboard", build_export_dashboard_plist(vault, python3)),
+        ("com.llm-gtd.git-snapshot", build_git_snapshot_plist(vault)),
+    ]
 
 
 def install(vault_path: str):
-    vault = str(Path(vault_path).resolve())
+    vault_path_obj = Path(vault_path).resolve()
+    vault = str(vault_path_obj)
     LAUNCH_AGENTS_DIR.mkdir(parents=True, exist_ok=True)
     logs_dir = Path(vault) / ".llm-gtd" / "logs"
     logs_dir.mkdir(parents=True, exist_ok=True)
@@ -110,8 +99,8 @@ def install(vault_path: str):
     python3 = detect_python3()
     print(f"  Using python3: {python3}")
 
-    for label, template in PLISTS:
-        content = template.format(vault=vault, python3=python3)
+    load_failures = []
+    for label, content in build_plists(vault, python3):
         plist_path = LAUNCH_AGENTS_DIR / f"{label}.plist"
         plist_path.write_text(content, encoding="utf-8")
         print(f"  ✓ Written: {plist_path}")
@@ -130,6 +119,12 @@ def install(vault_path: str):
             print(f"    Loaded: {label}")
         else:
             print(f"    ⚠ Load failed: {result.stderr.strip()}")
+            load_failures.append(label)
+            update_setup_state(
+                vault_path_obj,
+                capabilities={"scheduler": "error", "git_snapshots": "error"},
+                components={f"{label}_load_error": result.stderr.strip()},
+            )
 
     print()
     print("  Done! Two LaunchAgents are now active:")
@@ -137,10 +132,16 @@ def install(vault_path: str):
     print("    • git-snapshot: daily at 23:55")
     print()
     print("  To check status: launchctl list | grep llm-gtd")
+    if not load_failures:
+        update_setup_state(
+            vault_path_obj,
+            capabilities={"scheduler": "ok", "git_snapshots": "ok"},
+            components={"launchd": "installed"},
+        )
 
 
-def uninstall():
-    for label, _ in PLISTS:
+def uninstall(vault_path: Optional[str] = None):
+    for label in ("com.llm-gtd.export-dashboard", "com.llm-gtd.git-snapshot"):
         plist_path = LAUNCH_AGENTS_DIR / f"{label}.plist"
         if plist_path.exists():
             subprocess.run(
@@ -153,6 +154,12 @@ def uninstall():
             print(f"  - Not found: {label}")
     print()
     print("  LaunchAgents removed.")
+    if vault_path:
+        update_setup_state(
+            Path(vault_path).expanduser().resolve(),
+            capabilities={"scheduler": "removed", "git_snapshots": "removed"},
+            components={"launchd": "removed"},
+        )
 
 
 def main():
@@ -165,12 +172,14 @@ def main():
         print("ERROR: LaunchAgents are macOS-only. On Linux, use crontab.")
         print("  Add to crontab -e:")
         print(f'  */30 * * * * cd "{args.vault}" && python3 export_dashboard.py')
-        print(f'  55 23 * * * cd "{args.vault}" && git add -A && git diff --cached --quiet || git commit -m "auto: $(date +\\%Y-\\%m-\\%d)"')
+        cron_snapshot = build_git_snapshot_command(str(Path(args.vault).expanduser().resolve()))
+        cron_snapshot = cron_snapshot.replace("%", r"\%")
+        print(f"  55 23 * * * {cron_snapshot}")
         sys.exit(1)
 
     print()
     if args.uninstall:
-        uninstall()
+        uninstall(args.vault)
     else:
         install(args.vault)
 

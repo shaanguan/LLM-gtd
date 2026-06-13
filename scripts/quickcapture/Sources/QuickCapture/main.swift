@@ -2,9 +2,12 @@ import Cocoa
 import Carbon
 
 // MARK: - Config
-// __INBOX_DIR__ is replaced by init.py with the user's actual vault inbox path.
-// If running from source without replacement, defaults to ~/Documents/GTD/00 - Inbox
+// The LaunchAgent sets GTD_INBOX_DIR during installation.
+// If running from source without the environment variable, defaults to ~/Documents/GTD/00 - Inbox.
 let inboxDir: URL = {
+    if let envPath = ProcessInfo.processInfo.environment["GTD_INBOX_DIR"], !envPath.isEmpty {
+        return URL(fileURLWithPath: envPath)
+    }
     let placeholder = "__INBOX_DIR__"
     if placeholder.hasPrefix("__") {
         return FileManager.default.homeDirectoryForCurrentUser
@@ -291,6 +294,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let ts = df.string(from: Date())
         df.dateFormat = "yyyy-MM-dd"
         let today = df.string(from: Date())
+        df.dateFormat = "yyyy-MM-dd'T'HH:mm:ssZZZZZ"
+        let capturedAt = df.string(from: Date())
 
         let illegal = CharacterSet(charactersIn: "/:\\*?\"<>|#^[]{}")
         var title = text.components(separatedBy: .newlines).first ?? text
@@ -299,7 +304,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         if title.count > 40 { title = String(title.prefix(40)) }
 
         let filename = title.isEmpty ? "\(ts).md" : "\(ts) \(title).md"
-        let content = "---\ntags:\n  - inbox\ndate: \(today)\n---\n\n\(text)\n"
+        let content = "---\ntags:\n  - inbox\ndate: \(today)\nsource: quickcapture\ncaptured_at: \(capturedAt)\nclarification_needed: true\n---\n\n\(text)\n"
         let filePath = inboxDir.appendingPathComponent(filename)
         try? content.write(to: filePath, atomically: true, encoding: .utf8)
 
