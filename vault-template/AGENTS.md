@@ -1,8 +1,7 @@
-# CLAUDE.md
+# AGENTS.md
 
-> Project instructions for OpenClaw, Hermes, Claude Desktop, Cursor, or any
-> compatible agent. This file is loaded automatically when the vault is added
-> as an agent workspace/project.
+> Canonical GTD instructions for any AGENTS.md-compatible agent.
+> `init.py` also writes `CLAUDE.md` with identical content for Claude workspace auto-loading.
 > Last rendered: {{config.rendered_at}}
 >
 > Maintenance discipline:
@@ -122,7 +121,7 @@ In-conversation sync checklist (run before turn end if I touched the vault):
 │   ├── setup-state.json    # optional setup progress and capability status
 │   ├── logs/               # automation logs
 │   └── config.yaml         # optional overrides
-└── CLAUDE.md               # this file (rendered from llm-gtd template)
+└── AGENTS.md               # this file (rendered from llm-gtd template; CLAUDE.md is an alias)
 ```
 
 ### `05 - Reference/` rules
@@ -255,7 +254,8 @@ Capability matrix (derive from `.llm-gtd/setup-state.json`, doctor output, and f
 |---|---|---|
 | Dashboard | `Dashboard.html` + `export_dashboard.py` | regenerate from vault; keep chat capture working |
 | QuickCapture | `Scripts/QuickCapture.bin` + LaunchAgent | fall back to chat/IM capture |
-| Scheduled jobs | launchd / agent scheduler / cron | tell user routines still work by saying trigger words |
+| Local launchd | `com.llm-gtd.*` LaunchAgents | Dashboard refresh + git snapshot via `create_launchd.py` |
+| Agent cron | platform scheduler (if available) | register via `.llm-gtd/agent-cron-guide.md`; fallback to `早` / `回顾` / `周回顾` |
 | Online docs | rendered doc IDs + MCP connector | use Dashboard as primary surface |
 | Git snapshots | vault git repo + snapshot job | initialize/repair only during setup or doctor |
 
@@ -395,7 +395,7 @@ Wiki pages live at `{{repo.path}}/knowledge/gtd/wiki/`. Key pages: inbox-process
 | Rule | Manifestation |
 |---|---|
 | Just say "done" | No long explanations unless asked |
-| Never repeat a correction | Feedback once → into CLAUDE.md/memory; forgetting = failure |
+| Never repeat a correction | Feedback once → into AGENTS.md/memory; forgetting = failure |
 | Always confirm date | Weekday/relative date → `date` first. **No weekend work** — `due` must not land on Saturday/Sunday; if computed due falls on a weekend, push to the next Monday. |
 | Ask about new people | New colleague → ask tier+role → store |
 | Batch → finish all, then report | Don't acknowledge one-by-one |

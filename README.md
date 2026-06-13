@@ -12,13 +12,10 @@
 npx skills add shaanguan/LLM-gtd --skill llm-gtd -g
 ```
 
-Or pick your agent:
+Or target a specific agent installer (optional):
 
 ```bash
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a hermes-agent   # Hermes
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a openclaw       # OpenClaw
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a cursor         # Cursor
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a claude-code    # Claude
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a <agent>   # e.g. hermes-agent, openclaw, cursor, claude-code
 ```
 
 **2. Say one sentence to your Agent**
@@ -30,31 +27,31 @@ npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a claude-code    # Claude
 The skill asks a few preferences, then creates everything for you:
 
 - local GTD vault (Obsidian-ready)
-- Agent instructions (`AGENTS.md` / `CLAUDE.md`)
+- Agent instructions (`AGENTS.md`, with `CLAUDE.md` as compatibility alias)
 - Dashboard + `Dashboard.app`
 - QuickCapture hotkey
 - **scheduled jobs** (Dashboard refresh every 30 min + git snapshot at 23:55)
 - QUICKSTART onboarding
 - Feishu / DingTalk / Telegram when credentials are available
 
-**3. Confirm scheduled jobs (macOS)**
+**3. Confirm automation (two layers)**
 
-After setup, you should see:
+Local launchd:
 
 ```bash
 launchctl list | grep llm-gtd
 ```
 
-Expected:
+Agent cron (if your platform supports scheduled agent tasks):
 
-- `com.llm-gtd.export-dashboard`
-- `com.llm-gtd.git-snapshot`
-
-If missing, repair with:
+See `.llm-gtd/agent-cron-guide.md` in your vault, or run:
 
 ```bash
-python3 setup/create_launchd.py --vault "$HOME/Documents/GTD" --verify
+python3 setup/agent_cron.py --vault "$GTD_VAULT" --platform generic --json
 ```
+
+You should see morning / evening / weekly GTD jobs when scheduling is supported.
+Otherwise use on-demand triggers: `早`, `回顾`, `周回顾`.
 
 **4. Try your first capture**
 
@@ -108,7 +105,7 @@ This removes automation only. **Your user data in `00 - Inbox` through `07 - Ach
 
 ```text
 Storage:  Obsidian vault as local Markdown source of truth
-Agent:    GTD expert skill that reads/writes the vault and loads AGENTS.md / CLAUDE.md
+Agent:    GTD expert skill that explicitly loads AGENTS.md from the vault
 Render:   Dashboard, QuickCapture, Telegram/IM, shared docs, scheduled briefs
 ```
 
@@ -116,7 +113,7 @@ Core rule: the vault wins. Dashboard and docs are generated views.
 
 ## Requirements
 
-- OpenClaw, Hermes, Claude Desktop, Cursor, or another agent that can install the `llm-gtd` skill
+- Any agent that can install the `llm-gtd` skill and read `AGENTS.md`
 - Obsidian for viewing/editing the vault
 - Python 3.9+
 - macOS for Dashboard.app, launchd automation, and QuickCapture

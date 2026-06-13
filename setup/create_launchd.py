@@ -145,7 +145,7 @@ def install(vault_path: str):
             load_failures.append(label)
             update_setup_state(
                 vault_path_obj,
-                capabilities={"scheduler": "error", "git_snapshots": "error"},
+                capabilities={"scheduler": "error", "git_snapshots": "error", "launchd": "error"},
                 components={f"{label}_load_error": result.stderr.strip()},
             )
 
@@ -163,14 +163,14 @@ def install(vault_path: str):
     if load_failures or not ok:
         update_setup_state(
             vault_path_obj,
-            capabilities={"scheduler": "error", "git_snapshots": "error"},
+            capabilities={"scheduler": "error", "git_snapshots": "error", "launchd": "error"},
             components={"launchd": "install_failed", "launchd_loaded": loaded},
         )
         raise SystemExit(1)
 
     update_setup_state(
         vault_path_obj,
-        capabilities={"scheduler": "ok", "git_snapshots": "ok"},
+        capabilities={"scheduler": "ok", "git_snapshots": "ok", "launchd": "ok"},
         components={"launchd": "installed", "launchd_loaded": loaded},
     )
 
@@ -192,7 +192,7 @@ def uninstall(vault_path: Optional[str] = None):
     if vault_path:
         update_setup_state(
             Path(vault_path).expanduser().resolve(),
-            capabilities={"scheduler": "removed", "git_snapshots": "removed"},
+            capabilities={"scheduler": "removed", "git_snapshots": "removed", "launchd": "removed"},
             components={"launchd": "removed"},
         )
 

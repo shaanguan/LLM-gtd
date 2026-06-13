@@ -112,12 +112,15 @@ def uninstall(
         print(f"    {marker} {dirname}/")
     print()
     print("  Your tasks, projects, archive, and achievements remain in the vault.")
-    print("  To remove the skill itself, uninstall `llm-gtd` from your agent runtime.")
+    print("  Also remove agent cron jobs via your platform scheduler if registered.")
+    print("    See `.llm-gtd/agent-cron-guide.md` for platform-specific remove commands.")
     print()
 
     update_setup_state(
         vault,
         capabilities={
+            "agent_cron": "removed",
+            "launchd": "removed",
             "scheduler": "removed",
             "git_snapshots": "removed",
             "quickcapture": "removed",

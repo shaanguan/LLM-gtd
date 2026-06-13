@@ -2,7 +2,7 @@
 
 ## Overview
 
-GTD Workbench is a three-layer system that turns an Obsidian vault into a fully automated Getting Things Done workflow, driven by an AI agent (OpenClaw, Hermes, Claude Desktop, Cursor, or any AGENTS.md-compatible environment).
+GTD Workbench is a three-layer system that turns an Obsidian vault into a fully automated Getting Things Done workflow, driven by any AGENTS.md-compatible AI agent.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -41,7 +41,7 @@ GTD Workbench is a three-layer system that turns an Obsidian vault into a fully 
 
 3. **Organize** — Each NA gets frontmatter: `project`, `due`, `priority`, `okr`, `owner`, `tags`, `requester`. The agent enforces quality (verb-first, physically actionable, startable now).
 
-4. **Review** — Scheduled cron jobs run morning briefs (MIT selection), evening reviews (completion check + inbox sweep), and weekly reviews (full system audit).
+4. **Review** — Two automation layers: (a) **agent cron** runs morning briefs, evening reviews, and weekly reviews when the platform supports scheduled agent tasks; (b) **local launchd** refreshes Dashboard and runs nightly git snapshots on macOS.
 
 5. **Render** — After any vault change, `export_dashboard.py` regenerates Dashboard data. Feishu/DingTalk documents get updates via MCP.
 

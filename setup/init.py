@@ -7,7 +7,7 @@ Usage:
 
 Walks you through setup questions, renders vault-template/ into your vault,
 installs local automation, opens QUICKSTART, and prints next-step guidance.
-Targets any AGENTS.md/CLAUDE.md-compatible agent, with OpenClaw/Hermes first.
+Targets any AGENTS.md-compatible agent. Platform choice only affects cron guide generation.
 """
 
 import os
@@ -35,6 +35,7 @@ DEFAULT_WEEKLY = "Sun 21:00"
 FEATURES_ALL = ["okr", "doc_sync", "side_project", "knowledge_base"]
 
 IM_PLATFORMS = ["feishu", "dingtalk", "telegram", "wecom", "wechat"]
+AGENT_PLATFORMS = ["generic", "hermes", "openclaw", "claude", "cursor"]
 
 # Version written to .llm-gtd/version for upgrade detection
 VERSION = "1.1.0"
@@ -126,14 +127,14 @@ def render_placeholders(text: str, variables: dict) -> str:
 
 def copy_template(template_dir: Path, dest: Path, skip_agents: bool = True):
     """
-    Recursively copy vault-template/ to dest, skipping CLAUDE.md
+    Recursively copy vault-template/ to dest, skipping AGENTS.md
     (which gets rendered separately) and .gitkeep files.
     """
     for src_path in sorted(template_dir.rglob("*")):
         rel = src_path.relative_to(template_dir)
 
-        # Skip CLAUDE.md — we render it with variables
-        if skip_agents and rel.name == "CLAUDE.md":
+        # Skip AGENTS.md — we render it with variables
+        if skip_agents and rel.name == "AGENTS.md":
             continue
 
         # Skip .gitkeep — they are repo scaffolding only
@@ -183,26 +184,30 @@ def write_setup_report(vault_path: Path) -> Path:
         "## Capabilities",
         "",
     ]
-    for key in ["vault", "dashboard", "scheduler", "git_snapshots", "quickcapture", "im_docs", "agent_workspace"]:
+    for key in ["vault", "dashboard", "launchd", "agent_cron", "git_snapshots", "quickcapture", "im_docs", "agent_workspace"]:
         lines.append(f"- **{key}**: {status_label(capabilities.get(key, 'unknown'))}")
     lines.extend(["", "## Setup Steps", ""])
-    for key in ["detect_repo", "ask_preferences", "init_vault", "install_local_tools", "connect_im_docs", "verify", "onboard"]:
+    for key in ["detect_repo", "ask_preferences", "init_vault", "install_local_tools", "register_agent_cron", "connect_im_docs", "verify", "onboard"]:
         lines.append(f"- **{key}**: {status_label(steps.get(key, 'pending'))}")
     lines.extend([
         "",
-        "## Scheduled Jobs (critical)",
+        "## Local automation (launchd)",
         "",
-        f"- **scheduler**: {status_label(capabilities.get('scheduler', 'unknown'))}",
+        f"- **launchd**: {status_label(capabilities.get('launchd', capabilities.get('scheduler', 'unknown')))}",
         f"- **git_snapshots**: {status_label(capabilities.get('git_snapshots', 'unknown'))}",
         "- Labels: `com.llm-gtd.export-dashboard`, `com.llm-gtd.git-snapshot`",
         "- Verify: `python3 setup/create_launchd.py --vault \"$GTD_VAULT\" --verify`",
-        "- Check: `launchctl list | grep llm-gtd`",
         "",
-        "## How to verify automation",
+        "## Agent cron jobs",
         "",
-        "- macOS launchd labels: `com.llm-gtd.export-dashboard`, `com.llm-gtd.git-snapshot`",
-        "- Check from terminal: `launchctl list | grep llm-gtd`",
-        "- Machine-readable check: `python3 setup/doctor.py --vault \"$GTD_VAULT\" --check-cron --check-quickcapture --json`",
+        f"- **agent_cron**: {status_label(capabilities.get('agent_cron', 'unknown'))}",
+        "- Jobs: Morning Brief, Evening Review, Weekly Review",
+        "- Guide: `.llm-gtd/agent-cron-guide.md`",
+        "- Verify: use your platform scheduler CLI or the guide examples",
+        "",
+        "## Doctor",
+        "",
+        "- `python3 setup/doctor.py --vault \"$GTD_VAULT\" --check-cron --check-quickcapture --json`",
         "",
     ])
     report.write_text("\n".join(lines), encoding="utf-8")
@@ -222,8 +227,9 @@ def main():
     parser.add_argument("--no-app", action="store_true", help="Do not create Dashboard.app on macOS")
     parser.add_argument("--skip-automation", action="store_true", help="Do not install launchd automation")
     parser.add_argument("--skip-quickcapture", action="store_true", help="Do not install QuickCapture")
-    parser.add_argument("--user-name", default="User", help="Name or handle for CLAUDE.md")
-    parser.add_argument("--user-role", default="Knowledge Worker", help="Role for CLAUDE.md")
+    parser.add_argument("--agent-platform", choices=AGENT_PLATFORMS, default="generic", help="Optional scheduler hint for agent-cron guide (generic = platform-neutral)")
+    parser.add_argument("--user-name", default="User", help="Name or handle for AGENTS.md header")
+    parser.add_argument("--user-role", default="Knowledge Worker", help="Role for AGENTS.md header")
     parser.add_argument("--im-platform", choices=IM_PLATFORMS + ["none"], help="Document sync IM platform")
     parser.add_argument("--disable-okr", action="store_true", help="Disable OKR tracking")
     parser.add_argument("--disable-doc-sync", action="store_true", help="Disable document sync")
@@ -263,6 +269,7 @@ def main():
         "knowledge_base": not args.disable_knowledge_base,
     }
     im_platform = args.im_platform or "feishu"  # default
+    agent_platform = args.agent_platform
 
     if not args.non_interactive:
         features["okr"] = ask_yn("2/3  Enable OKR tracking? (links NAs to objectives)", True)
@@ -276,6 +283,16 @@ def main():
             im_platform = "none"
         features["side_project"] = ask_yn("     Track a personal side project (separate from work)?", False)
         features["knowledge_base"] = ask_yn("     Include GTD knowledge base references?", True)
+        print("     Scheduler hint (optional — only affects cron guide examples):")
+        print("       1) Generic  2) Hermes  3) OpenClaw  4) Claude  5) Cursor")
+        platform_choice = ask("     Choose [1-5]", "1")
+        agent_platform = {
+            "1": "generic",
+            "2": "hermes",
+            "3": "openclaw",
+            "4": "claude",
+            "5": "cursor",
+        }.get(platform_choice, "generic")
         print()
     elif not features["doc_sync"]:
         im_platform = "none"
@@ -303,7 +320,7 @@ def main():
     print()
 
     # ── Collect variables ───────────────────────────────────────────────
-    user_name = ask("     Your name or handle (for CLAUDE.md header)", args.user_name) if not args.non_interactive else args.user_name
+    user_name = ask("     Your name or handle (for AGENTS.md header)", args.user_name) if not args.non_interactive else args.user_name
     user_role = ask("     Your role (e.g. 'Product Designer')", args.user_role) if not args.non_interactive else args.user_role
 
     side_project_name = ""
@@ -363,20 +380,25 @@ def main():
             "morning_time": morning_time,
             "evening_time": evening_time,
             "weekly_time": weekly_time,
+            "agent_platform": agent_platform,
         },
         components={"repo_path": str(REPO_ROOT), "version": VERSION},
     )
 
-    # ── Render CLAUDE.md ───────────────────────────────────────────────
-    agents_template = (TEMPLATE_DIR / "CLAUDE.md").read_text(encoding="utf-8")
+    # ── Render agent instructions ────────────────────────────────────────
+    agents_template = (TEMPLATE_DIR / "AGENTS.md").read_text(encoding="utf-8")
     rendered = render_conditionals(agents_template, features)
     rendered = render_im_conditionals(rendered, im_platform)
     rendered = render_placeholders(rendered, variables)
 
-    agents_dest = vault_path / "CLAUDE.md"
+    agents_dest = vault_path / "AGENTS.md"
     agents_dest.write_text(rendered, encoding="utf-8")
-    print(f"  ✓ CLAUDE.md rendered ({len(rendered):,} chars)")
-    update_setup_state(vault_path, components={"agent_instructions": str(agents_dest)})
+    print(f"  ✓ AGENTS.md rendered ({len(rendered):,} chars)")
+
+    claude_dest = vault_path / "CLAUDE.md"
+    claude_dest.write_text(rendered, encoding="utf-8")
+    print(f"  ✓ CLAUDE.md rendered (compatibility alias)")
+    update_setup_state(vault_path, components={"agent_instructions": str(agents_dest), "claude_md": str(claude_dest)})
 
     # ── Render QUICKSTART.html ──────────────────────────────────────────
     quickstart_src = vault_path / "QUICKSTART.html"
@@ -393,7 +415,7 @@ def main():
         kb_dest = vault_path / ".llm-gtd" / "knowledge-link.txt"
         kb_dest.write_text(
             f"# GTD Knowledge Base location\n"
-            f"# The CLAUDE.md references pages from here.\n"
+            f"# AGENTS.md references pages from here.\n"
             f"path: {KNOWLEDGE_DIR / 'gtd'}\n",
             encoding="utf-8",
         )
@@ -423,15 +445,15 @@ def main():
             from create_launchd import install as install_launchd
             install_launchd(str(vault_path))
             print("  ✓ launchd automation installed and verified")
-            update_setup_state(vault_path, capabilities={"scheduler": "ok", "git_snapshots": "ok"})
+            update_setup_state(vault_path, capabilities={"launchd": "ok", "scheduler": "ok", "git_snapshots": "ok"})
         except SystemExit:
-            print("  ⚠ launchd automation failed verification — scheduled jobs are NOT active")
-            update_setup_state(vault_path, capabilities={"scheduler": "error", "git_snapshots": "error"})
+            print("  ⚠ launchd automation failed verification — local scheduled jobs are NOT active")
+            update_setup_state(vault_path, capabilities={"launchd": "error", "scheduler": "error", "git_snapshots": "error"})
         except Exception as e:
             print(f"  ⚠ launchd automation skipped: {e}")
-            update_setup_state(vault_path, capabilities={"scheduler": "error", "git_snapshots": "error"}, components={"launchd_error": str(e)})
+            update_setup_state(vault_path, capabilities={"launchd": "error", "scheduler": "error", "git_snapshots": "error"}, components={"launchd_error": str(e)})
     elif args.skip_automation:
-        update_setup_state(vault_path, capabilities={"scheduler": "skipped", "git_snapshots": "skipped"})
+        update_setup_state(vault_path, capabilities={"launchd": "skipped", "scheduler": "skipped", "git_snapshots": "skipped"})
 
     if platform.system() == "Darwin" and not args.skip_quickcapture:
         try:
@@ -463,11 +485,19 @@ def main():
         vault_path,
         steps={
             "install_local_tools": "ok" if (platform.system() != "Darwin" or not (args.skip_automation or args.skip_quickcapture)) else "skipped",
+            "register_agent_cron": "pending",
             "connect_im_docs": "pending" if features["doc_sync"] else "skipped",
             "onboard": "pending",
         },
-        capabilities={"im_docs": "pending" if features["doc_sync"] else "skipped"},
+        capabilities={"im_docs": "pending" if features["doc_sync"] else "skipped", "agent_cron": "pending"},
     )
+    try:
+        from agent_cron import write_agent_cron_guide
+        cron_guide = write_agent_cron_guide(vault_path, agent_platform)
+        update_setup_state(vault_path, components={"agent_cron_guide": str(cron_guide)})
+        print(f"  ✓ Agent cron guide written → {cron_guide}")
+    except Exception as e:
+        print(f"  ⚠ Agent cron guide skipped: {e}")
     setup_report = write_setup_report(vault_path)
     update_setup_state(vault_path, components={"setup_report": str(setup_report)})
 
@@ -491,7 +521,8 @@ def main():
     print("═" * 50)
     print()
     print(f"  Vault location:  {vault_path}")
-    print(f"  CLAUDE.md:       {agents_dest}")
+    print(f"  AGENTS.md:       {agents_dest}")
+    print(f"  CLAUDE.md:       {claude_dest}")
     print(f"  Features:        {', '.join(k for k, v in features.items() if v)}")
     print(f"  Setup report:    {setup_report}")
     print()
@@ -499,7 +530,8 @@ def main():
     capabilities = state.get("capabilities", {})
     print("  Installed components:")
     print(f"    Dashboard:      {status_label(capabilities.get('dashboard', 'unknown'))}")
-    print(f"    Scheduler:      {status_label(capabilities.get('scheduler', 'unknown'))}")
+    print(f"    Launchd:        {status_label(capabilities.get('launchd', capabilities.get('scheduler', 'unknown')))}")
+    print(f"    Agent cron:     {status_label(capabilities.get('agent_cron', 'unknown'))}")
     print(f"    Git snapshots:  {status_label(capabilities.get('git_snapshots', 'unknown'))}")
     print(f"    QuickCapture:   {status_label(capabilities.get('quickcapture', 'unknown'))}")
     print(f"    Online docs:    {status_label(capabilities.get('im_docs', 'unknown'))}")
@@ -515,15 +547,15 @@ def main():
     print(f'     Open Obsidian → "Open folder as vault" → select {vault_path}')
     print()
     step += 1
-    print(f'  {step}. Add the vault to your agent workspace:')
-    print(f'     OpenClaw / Hermes / Claude Desktop / Cursor → add folder → select {vault_path}')
-    print(f'     (CLAUDE.md will be read automatically by compatible agents)')
+    print(f'  {step}. Connect your agent to the vault:')
+    print(f'     Skill mode: install `llm-gtd` skill — it reads AGENTS.md from any session')
+    print(f'     Workspace mode: add {vault_path} as project root (auto-loads AGENTS.md / CLAUDE.md)')
     print()
     if features["doc_sync"]:
         step += 1
         print(f'  {step}. Create or connect your {im_names[im_platform]} online docs')
         print(f'     The setup skill should create docs via MCP when credentials are available;')
-        print(f'     otherwise paste the document IDs into CLAUDE.md §4.')
+        print(f'     otherwise paste the document IDs into AGENTS.md §4.')
         print()
     if args.skip_automation:
         step += 1

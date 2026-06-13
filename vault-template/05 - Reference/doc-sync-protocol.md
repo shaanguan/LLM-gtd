@@ -2,7 +2,7 @@
 
 > Detailed operational protocol for DingTalk document sync.
 > This is a reference file — consult during document sync operations.
-> For the summary, see CLAUDE.md §4.
+> For the summary, see AGENTS.md §4.
 
 ## Scheduling Document Block Layout (6 blocks, index 0–5)
 

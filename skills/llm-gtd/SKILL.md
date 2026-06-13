@@ -1,27 +1,41 @@
 ---
 name: llm-gtd
-description: "LLM-GTD setup and daily GTD secretary. Initializes vault, Dashboard, QuickCapture, and mandatory macOS scheduled jobs, then loads AGENTS.md/CLAUDE.md for capture, morning brief, review, weekly review, doctor, or safe uninstall. Triggers: /llm-gtd, /llm-gtd-setup, 设置 GTD, 早, 回顾, 卸载 GTD."
-version: 2.2.0
+description: "LLM-GTD setup and daily GTD secretary. Platform-neutral: initializes vault, local launchd jobs, optional agent cron when the platform supports scheduling, and explicitly loads AGENTS.md for capture and routines. Triggers: /llm-gtd, 设置 GTD, 早, 回顾, 卸载 GTD."
+version: 2.3.1
 ---
 
 # LLM-GTD
 
-This skill has two modes:
+Platform-neutral GTD secretary skill. Works with any agent that can run shell commands, install skills, and read `AGENTS.md`.
 
-1. **Setup mode** — create and verify the user's GTD system.
-2. **Daily runtime mode** — locate the vault, explicitly load its instruction file, then operate as the GTD secretary.
+## Context Loading (two modes)
 
-The vault instruction file (`AGENTS.md` / `CLAUDE.md`) is the GTD brain. This skill is the loader and router.
+| Mode | When | How instructions load |
+|---|---|---|
+| **Skill mode** | Agent supports skills (recommended) | This skill explicitly reads `$VAULT_PATH/AGENTS.md` each session |
+| **Workspace mode** | Vault opened as project root | `AGENTS.md` / `CLAUDE.md` auto-injected by the host |
+
+`AGENTS.md` is canonical. `CLAUDE.md` is a compatibility alias with identical content.
+
+## Two Automation Layers (do not confuse them)
+
+| Layer | What | How to verify |
+|---|---|---|
+| **Local launchd** | Dashboard refresh every 30m, git snapshot 23:55 | `launchctl list \| grep llm-gtd` |
+| **Agent cron** | Morning brief, evening review, weekly review | Your platform scheduler CLI, or `.llm-gtd/agent-cron-guide.md` |
+
+Setup addresses both layers when the OS/platform supports them.
 
 ## Hard Rules
 
-- **Scheduled jobs are mandatory on macOS.** Setup is not complete until launchd jobs are installed and verified.
-- **You must execute shell commands.** Do not claim automation is installed without running the commands and reading the output.
-- **Uninstall must preserve user assets.** Never delete `00 - Inbox` through `07 - Achievements` or any markdown notes inside them.
+- Execute shell commands and read output. Do not claim jobs exist without verification.
+- **Always read `$VAULT_PATH/AGENTS.md`** before GTD work — do not rely on chat memory alone.
+- Register agent cron jobs **if the user's platform supports scheduled agent tasks**. Otherwise document on-demand triggers.
+- Uninstall must preserve `00 - Inbox` through `07 - Achievements` and all markdown notes inside them.
 
 ## Trigger
 
-- Setup: `/llm-gtd`, `/llm-gtd-setup`, `设置 GTD`, `init GTD`
+- Setup: `/llm-gtd`, `/llm-gtd-setup`, `设置 GTD`
 - Daily: `早`, `morning`, `回顾`, `review`, `周回顾`, `weekly`, `帮我记`, `inbox`
 - Doctor: `GTD doctor`, `检查 GTD`
 - Uninstall: `卸载 GTD`, `uninstall GTD`
@@ -29,80 +43,82 @@ The vault instruction file (`AGENTS.md` / `CLAUDE.md`) is the GTD brain. This sk
 ## Daily Runtime Mode
 
 1. Resolve `$VAULT_PATH` from `$GTD_VAULT`, `~/Documents/GTD`, or user input.
-2. Read `.llm-gtd/setup-state.json` and locate `components.agent_instructions`.
-3. Explicitly read `$VAULT_PATH/AGENTS.md` or `$VAULT_PATH/CLAUDE.md` before acting.
+2. Read `.llm-gtd/setup-state.json`.
+3. **Explicitly read `$VAULT_PATH/AGENTS.md`** (fallback: `CLAUDE.md`).
 4. Route capture / morning / review / weekly / doctor from vault data only.
 
 ## Setup Mode
 
-### 0. Detect existing installation
+### 1. Locate repo and ask preferences
 
-```bash
-ls ~/Documents/GTD/AGENTS.md 2>/dev/null || ls ~/Documents/GTD/CLAUDE.md 2>/dev/null || \
-ls "$GTD_VAULT/AGENTS.md" 2>/dev/null || ls "$GTD_VAULT/CLAUDE.md" 2>/dev/null
-```
+Clone `https://github.com/shaanguan/LLM-gtd.git` if needed. Ask:
 
-### 1. Locate or clone the repo
+1. Vault path — default `~/Documents/GTD`
+2. Scheduler hint (optional) — `generic` / `hermes` / `openclaw` / `claude` / `cursor` — only affects cron guide examples
+3. IM platform — Feishu, DingTalk, Telegram, WeCom, WeChat, or none
+4. Morning / evening / weekly times
 
-```bash
-ls ~/Projects/LLM-gtd 2>/dev/null || ls ~/Developer/LLM-gtd 2>/dev/null || ls ~/LLM-gtd 2>/dev/null
-```
-
-If not found:
-
-```bash
-mkdir -p ~/Projects
-git clone https://github.com/shaanguan/LLM-gtd.git ~/Projects/LLM-gtd
-```
-
-Store as `$REPO_PATH`.
-
-### 2. Ask user preferences
-
-Ask in one turn:
-
-1. Vault location — default `~/Documents/GTD`
-2. Agent platform — Hermes / OpenClaw / Claude / Cursor / Other
-3. IM platform — Feishu recommended / DingTalk / Telegram / WeCom / WeChat / None
-4. OKR, routine times
-
-### 3. Run init.py
+### 2. Run init.py
 
 ```bash
 cd "$REPO_PATH"
-python3 setup/init.py --vault "$VAULT_PATH" --agent-platform hermes
+python3 setup/init.py --vault "$VAULT_PATH" --agent-platform generic --non-interactive
 ```
 
-For Hermes use `--agent-platform hermes`. For Claude use `claude`. For OpenClaw use `openclaw`.
+Use a specific `--agent-platform` only when the user names their scheduler and wants tailored cron examples.
 
-When the user already answered preferences, pass `--non-interactive` plus IM/time flags.
+Never pass `--skip-automation` or `--skip-quickcapture` in real user setup.
 
-**Never pass** `--skip-automation`, `--skip-quickcapture`, `--no-app`, or `--no-open` in a real user setup.
+`init.py` writes `.llm-gtd/agent-cron-guide.md`. Read it before registering cron jobs.
 
-Immediately read the rendered instruction file in this conversation.
-
-### 4. Mandatory automation gate (macOS)
-
-This step is required. Do not skip it because `init.py` already ran.
+### 3. Local launchd gate (macOS)
 
 ```bash
 python3 "$REPO_PATH/setup/create_launchd.py" --vault "$VAULT_PATH"
 python3 "$REPO_PATH/setup/create_launchd.py" --vault "$VAULT_PATH" --verify
-launchctl list | grep llm-gtd
 ```
 
-Expected labels:
+### 4. Register agent cron jobs (when platform supports scheduling)
 
-- `com.llm-gtd.export-dashboard` — Dashboard refresh every 30 minutes
-- `com.llm-gtd.git-snapshot` — vault git snapshot daily at 23:55
+Generate platform-specific commands:
 
-If `--verify` fails or `launchctl list` does not show both labels:
+```bash
+python3 "$REPO_PATH/setup/agent_cron.py" --vault "$VAULT_PATH" --platform generic --write-guide
+python3 "$REPO_PATH/setup/agent_cron.py" --vault "$VAULT_PATH" --platform <scheduler-hint> --json
+```
 
-1. Tell the user scheduled jobs are **not** active yet.
-2. Retry the install command once.
-3. If still failing, give the user the exact repair commands and do **not** claim setup is complete.
+Create **three jobs** with self-contained prompts from the guide:
 
-On Linux, print the crontab equivalent instead and mark scheduler as `manual_required`.
+- `GTD Morning Brief` — default `30 10 * * *`
+- `GTD Evening Review` — default `30 22 * * *`
+- `GTD Weekly Review` — default `0 21 * * 0`
+
+Each job must load vault instructions (`llm-gtd` skill or explicit AGENTS.md read in prompt).
+
+**Examples** (use only what matches the user's platform):
+
+```bash
+# Hermes
+hermes cron create "30 10 * * *" "<prompt>" --skill llm-gtd --name "GTD Morning Brief" --deliver origin
+
+# OpenClaw
+openclaw cron add --name "GTD Morning Brief" --cron "30 10 * * *" --tz "Asia/Shanghai" \
+  --session isolated --message "<prompt>" --announce
+```
+
+**No platform scheduler?** Tell the user routines work on demand via `早` / `回顾` / `周回顾`. Mark `agent_cron: manual`.
+
+After registering jobs:
+
+```bash
+python3 - <<'PY'
+from pathlib import Path
+import sys
+sys.path.insert(0, "$REPO_PATH/setup")
+from state import update_setup_state
+update_setup_state(Path("$VAULT_PATH"), steps={"register_agent_cron": "ok"}, capabilities={"agent_cron": "ok"})
+PY
+```
 
 ### 5. Doctor verification
 
@@ -110,73 +126,36 @@ On Linux, print the crontab equivalent instead and mark scheduler as `manual_req
 python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-quickcapture --json
 ```
 
-Setup cannot finish unless doctor reports:
+Report separately: `launchd`, `agent_cron`, `git_snapshots`, `quickcapture`.
 
-- `scheduler: ok`
-- `git_snapshots: ok` (or at least export-dashboard loaded)
+### 6. Final summary
 
-Summarize plainly:
-
-- Dashboard
-- Scheduler
-- Git snapshots
-- QuickCapture
-- Online docs
-- Setup report: `$VAULT_PATH/.llm-gtd/setup-report.md`
-
-### 6. IM / docs / cold start
-
-Continue with doc sync, Telegram, onboarding import, and final summary as before.
-
-### 7. Final summary must mention automation
-
-Tell the user explicitly:
-
-> 定时任务已安装：
-> - Dashboard 每 30 分钟自动刷新
-> - 每晚 23:55 自动 git 快照
-> 你也可以运行 `launchctl list | grep llm-gtd` 自行确认。
+> **本地自动化（launchd，macOS）**
+> - Dashboard 每 30 分钟刷新
+> - 每晚 23:55 git 快照
+> - 验证：`launchctl list | grep llm-gtd`
+>
+> **Agent 定时任务（若平台支持）**
+> - 早间播报 / 晚间回顾 / 周回顾
+> - 验证：见 `.llm-gtd/agent-cron-guide.md`
+> - 无定时器时，随时说 `早` / `回顾` / `周回顾` 即可
 
 ## Safe Uninstall
-
-When the user asks to uninstall, run:
 
 ```bash
 python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH"
 ```
 
-Optional:
+Also remove agent cron jobs per `.llm-gtd/agent-cron-guide.md`.
 
-```bash
-python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH" --purge-state
-python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH" --remove-dashboard-app
-```
+### Never delete
 
-### Never delete during uninstall
-
-- `00 - Inbox/`
-- `01 - Projects/`
-- `02 - Next Actions/`
-- `03 - Waiting For/`
-- `04 - Someday Maybe/`
-- `05 - Reference/`
-- `06 - Archive/`
-- `07 - Achievements/`
-- Any `.md` notes inside those folders
-
-Tell the user:
-
-> 已移除自动化（定时任务 / QuickCapture LaunchAgent）。你的任务数据仍完整保留在 vault 的 00~07 文件夹里，这是你的资产，不会被删除。
-> 如需彻底不用，只需卸载 agent 里的 `llm-gtd` skill；vault 文件夹可以继续保留。
-
-**Forbidden during uninstall:**
-
-- `rm -rf "$VAULT_PATH"`
-- deleting any folder from `00 - Inbox` through `07 - Achievements`
-- deleting user markdown notes
+- `00 - Inbox/` through `07 - Achievements/`
+- any `.md` notes inside those folders
 
 ## Pitfalls
 
-- Hermes may skip shell unless you explicitly run commands — always run the automation gate.
-- `init.py` installing launchd is not enough; you must verify with `--verify`.
-- Uninstall removes automation only, never user GTD content.
+- Do not use legacy QoderWork APIs (`qoder_cron`, `小Q`, `mcp__builtin_qoderwork__action`).
+- `init.py` alone does not register agent cron jobs — the skill must do it when supported.
+- Do not assume a specific agent brand — always load `AGENTS.md` explicitly in skill mode.
+- `doctor --check-cron` checks launchd (macOS) and agent cron (best-effort per platform hint).

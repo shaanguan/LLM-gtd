@@ -35,7 +35,7 @@ class InitHelpersTest(unittest.TestCase):
             (template / "00 - Inbox").mkdir(parents=True)
             (template / "00 - Inbox" / "README.md").write_text("template", encoding="utf-8")
             (template / "00 - Inbox" / ".gitkeep").write_text("", encoding="utf-8")
-            (template / "CLAUDE.md").write_text("template agent", encoding="utf-8")
+            (template / "AGENTS.md").write_text("template agent", encoding="utf-8")
             (dest / "00 - Inbox").mkdir(parents=True)
             (dest / "00 - Inbox" / "README.md").write_text("user", encoding="utf-8")
 
@@ -43,7 +43,7 @@ class InitHelpersTest(unittest.TestCase):
 
             self.assertEqual((dest / "00 - Inbox" / "README.md").read_text(encoding="utf-8"), "user")
             self.assertFalse((dest / "00 - Inbox" / ".gitkeep").exists())
-            self.assertFalse((dest / "CLAUDE.md").exists())
+            self.assertFalse((dest / "AGENTS.md").exists())
 
     def test_render_conditionals_supports_negated_features(self):
         text = """<!-- IF !feature.okr -->
@@ -123,15 +123,17 @@ class StateAndDoctorTest(unittest.TestCase):
             vault.mkdir()
             state.update_setup_state(
                 vault,
-                capabilities={"scheduler": "ok", "git_snapshots": "ok"},
+                capabilities={"launchd": "ok", "agent_cron": "ok", "git_snapshots": "ok"},
             )
 
             report = init.write_setup_report(vault)
             content = report.read_text(encoding="utf-8")
 
-            self.assertIn("scheduler", content)
+            self.assertIn("launchd", content)
+            self.assertIn("agent_cron", content)
             self.assertIn("com.llm-gtd.export-dashboard", content)
             self.assertIn("com.llm-gtd.git-snapshot", content)
+            self.assertIn("agent-cron-guide", content)
 
     def test_doctor_capabilities_detect_core_files(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -162,6 +164,20 @@ class UninstallTest(unittest.TestCase):
             for dirname in uninstall.USER_ASSET_DIRS:
                 self.assertTrue((vault / dirname).is_dir())
                 self.assertEqual((vault / dirname / "note.md").read_text(encoding="utf-8"), "user data")
+
+
+class AgentCronTest(unittest.TestCase):
+    def test_runtime_prompt_contains_vault_path(self):
+        import agent_cron
+        prompt = agent_cron.build_runtime_prompt("/tmp/GTD", "morning / 早", "morning brief")
+        self.assertIn("/tmp/GTD", prompt)
+        self.assertIn("morning brief", prompt)
+
+    def test_default_jobs_count(self):
+        import agent_cron
+        jobs = agent_cron.default_jobs("/tmp/GTD")
+        self.assertEqual(len(jobs), 3)
+        self.assertEqual(jobs[0].key, "morning")
 
 
 class LaunchdVerifyTest(unittest.TestCase):

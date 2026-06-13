@@ -8,7 +8,7 @@ Usage:
 Checks:
   1. $GTD_VAULT is set and directory exists
   2. Required directories present (00-Inbox through 07-Achievements)
-  3. CLAUDE.md exists and has no unresolved {{placeholders}}
+  3. AGENTS.md exists and has no unresolved {{placeholders}}
   4. Scripts/ present and importable
   5. Dashboard.html exists
   6. export_dashboard.py exists
@@ -23,6 +23,11 @@ import sys
 import json
 from pathlib import Path
 from state import update_setup_state
+
+try:
+    from agent_cron import summarize_agent_cron
+except ImportError:
+    summarize_agent_cron = None
 
 # ---------------------------------------------------------------------------
 # Config
@@ -42,7 +47,7 @@ REQUIRED_DIRS = [
 ]
 
 REQUIRED_FILES = [
-    "CLAUDE.md",
+    "AGENTS.md",
     "Dashboard.html",
     "export_dashboard.py",
 ]
@@ -86,7 +91,10 @@ def check_files(vault: Path) -> list:
     for f in REQUIRED_FILES:
         p = vault / f
         if not p.is_file():
-            issues.append(("FAIL", f"Missing file: {f}"))
+            if f == "AGENTS.md" and (vault / "CLAUDE.md").is_file():
+                issues.append(("WARN", "Missing AGENTS.md (CLAUDE.md exists — re-run init.py to add alias)"))
+            else:
+                issues.append(("FAIL", f"Missing file: {f}"))
     return issues
 
 
@@ -100,35 +108,36 @@ def check_scripts(vault: Path) -> list:
 
 
 def check_claude_md(vault: Path) -> list:
+    """Check AGENTS.md (or CLAUDE.md fallback) for unresolved template artifacts."""
     issues = []
-    claude_md = vault / "CLAUDE.md"
-    if not claude_md.is_file():
-        return issues  # already caught by check_files
+    instruction_file = vault / "AGENTS.md"
+    if not instruction_file.is_file():
+        instruction_file = vault / "CLAUDE.md"
+    if not instruction_file.is_file():
+        return issues
 
-    content = claude_md.read_text(encoding="utf-8")
+    label = instruction_file.name
+    content = instruction_file.read_text(encoding="utf-8")
 
-    # Check for unresolved placeholders
     unresolved = re.findall(r'\{\{([a-z_][a-z0-9_.]*)\}\}', content)
     if unresolved:
         unique = sorted(set(unresolved))
         issues.append((
             "WARN",
-            f"CLAUDE.md has {len(unique)} unresolved placeholder(s): {', '.join(unique[:5])}"
+            f"{label} has {len(unique)} unresolved placeholder(s): {', '.join(unique[:5])}"
             + ("..." if len(unique) > 5 else ""),
         ))
 
-    # Check for unprocessed conditionals
     if "<!-- IF feature." in content:
-        issues.append(("WARN", "CLAUDE.md still contains <!-- IF feature. --> conditionals (not rendered?)"))
+        issues.append(("WARN", f"{label} still contains <!-- IF feature. --> conditionals (not rendered?)"))
     if "<!-- IF !feature." in content:
-        issues.append(("WARN", "CLAUDE.md still contains <!-- IF !feature. --> conditionals (not rendered?)"))
+        issues.append(("WARN", f"{label} still contains <!-- IF !feature. --> conditionals (not rendered?)"))
     if "<!-- IF im." in content:
-        issues.append(("WARN", "CLAUDE.md still contains <!-- IF im. --> conditionals (IM platform not resolved)"))
+        issues.append(("WARN", f"{label} still contains <!-- IF im. --> conditionals (IM platform not resolved)"))
 
-    # Basic size check
     lines = content.count("\n")
     if lines > 500:
-        issues.append(("INFO", f"CLAUDE.md is {lines} lines — consider trimming to ≤400 for context sweet spot"))
+        issues.append(("INFO", f"{label} is {lines} lines — consider trimming to ≤400 for context sweet spot"))
 
     return issues
 
@@ -231,16 +240,31 @@ def launchd_labels_loaded() -> dict[str, bool]:
     return {label: label in loaded for label in EXPECTED_LAUNCHD_LABELS}
 
 
+def load_agent_platform(vault: Path) -> str:
+    state_file = vault / ".llm-gtd" / "setup-state.json"
+    if not state_file.is_file():
+        return "generic"
+    try:
+        data = json.loads(state_file.read_text(encoding="utf-8"))
+    except Exception:
+        return "generic"
+    return data.get("preferences", {}).get("agent_platform", "generic")
+
+
 def build_capabilities(vault: Path, include_cron: bool = False, include_quickcapture: bool = False) -> dict:
     dashboard_ok = (vault / "Dashboard.html").is_file() and (vault / "export_dashboard.py").is_file()
     vault_ok = vault.is_dir() and all((vault / d).is_dir() for d in REQUIRED_DIRS)
     state_dir_ok = (vault / ".llm-gtd").is_dir()
     git_ok = (vault / ".git").is_dir()
+    instructions = (vault / "AGENTS.md").is_file() or (vault / "CLAUDE.md").is_file()
 
     capabilities = {
         "vault": "ok" if vault_ok else "error",
+        "agent_instructions": "ok" if instructions else "missing",
         "dashboard": "ok" if dashboard_ok else "error",
         "quickcapture": "unknown",
+        "launchd": "unknown",
+        "agent_cron": "unknown",
         "scheduler": "unknown",
         "im_docs": "unknown",
         "git_snapshots": "ok" if git_ok else "pending",
@@ -250,17 +274,23 @@ def build_capabilities(vault: Path, include_cron: bool = False, include_quickcap
 
     if include_cron:
         labels = launchd_labels_loaded()
-        scheduler_ok = all(labels.values())
-        capabilities["scheduler"] = "ok" if scheduler_ok else "warning"
+        launchd_ok = all(labels.values())
+        capabilities["launchd"] = "ok" if launchd_ok else "warning"
+        capabilities["scheduler"] = capabilities["launchd"]
         capabilities["git_snapshots"] = "ok" if labels.get("com.llm-gtd.git-snapshot") else capabilities["git_snapshots"]
+        if summarize_agent_cron:
+            platform = load_agent_platform(vault)
+            capabilities["agent_cron"] = summarize_agent_cron(platform)
 
     if include_quickcapture:
         quickcapture_bin = vault / "Scripts" / "QuickCapture.bin"
         capabilities["quickcapture"] = "ok" if quickcapture_bin.is_file() else "missing"
 
     claude_md = vault / "CLAUDE.md"
-    if claude_md.is_file():
-        content = claude_md.read_text(encoding="utf-8")
+    agents_md = vault / "AGENTS.md"
+    instruction_file = agents_md if agents_md.is_file() else claude_md
+    if instruction_file.is_file():
+        content = instruction_file.read_text(encoding="utf-8")
         if "<paste-your-doc-id>" in content:
             capabilities["im_docs"] = "pending"
         elif "Document sync is disabled." in content:
@@ -271,8 +301,8 @@ def build_capabilities(vault: Path, include_cron: bool = False, include_quickcap
     return capabilities
 
 
-def check_cron(vault: Path) -> list:
-    """Check that launchd plists are loaded for automated tasks."""
+def check_launchd(vault: Path) -> list:
+    """Check that launchd plists are loaded for local automation."""
     issues = []
 
     loaded = launchd_labels_loaded()
@@ -280,7 +310,7 @@ def check_cron(vault: Path) -> list:
         issues.append((
             "INFO",
             "Cannot verify launchd status (non-macOS or timeout). "
-            "Manually verify your scheduler is running export_dashboard + git snapshot."
+            "Manually verify export_dashboard + git snapshot jobs."
         ))
         return issues
 
@@ -295,6 +325,41 @@ def check_cron(vault: Path) -> list:
     return issues
 
 
+def check_agent_cron(vault: Path) -> list:
+    """Check whether platform agent cron jobs appear registered."""
+    issues = []
+    if summarize_agent_cron is None:
+        return issues
+
+    platform = load_agent_platform(vault)
+    status = summarize_agent_cron(platform)
+    if status == "ok":
+        issues.append(("INFO", f"Agent cron jobs detected for platform '{platform}'"))
+        return issues
+    if status == "partial":
+        issues.append(("WARN", f"Agent cron jobs only partially detected for platform '{platform}'"))
+        return issues
+    if status == "missing":
+        issues.append((
+            "WARN",
+            f"Agent cron jobs missing for platform '{platform}'. "
+            f"Run setup agent-cron registration from skills/llm-gtd/SKILL.md "
+            f"or inspect {vault}/.llm-gtd/agent-cron-guide.md"
+        ))
+        return issues
+    if status == "manual_verify":
+        issues.append((
+            "INFO",
+            f"Could not auto-detect agent cron for platform '{platform}'. "
+            f"Verify manually per {vault}/.llm-gtd/agent-cron-guide.md."
+        ))
+    return issues
+
+
+def check_cron(vault: Path) -> list:
+    return check_launchd(vault) + check_agent_cron(vault)
+
+
 # ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
@@ -304,7 +369,7 @@ def main():
     import argparse
     parser = argparse.ArgumentParser(description="GTD Workbench Doctor — vault health check")
     parser.add_argument("--vault", type=str, help="Vault path (defaults to $GTD_VAULT)")
-    parser.add_argument("--check-cron", action="store_true", help="Also verify cron task registration")
+    parser.add_argument("--check-cron", action="store_true", help="Also verify launchd and agent cron registration")
     parser.add_argument("--check-quickcapture", action="store_true", help="Also verify QuickCapture installation")
     parser.add_argument("--json", action="store_true", help="Print machine-readable doctor results")
     parser.add_argument("--fix", action="store_true", help="Auto-fix simple issues (missing dirs, state dir)")
@@ -331,14 +396,15 @@ def main():
         ("Directories", check_directories),
         ("Core files", check_files),
         ("Scripts", check_scripts),
-        ("CLAUDE.md quality", check_claude_md),
+        ("AGENTS.md quality", check_claude_md),
         ("State directory", check_state_dir),
         ("Version", check_version),
         ("Config YAML", check_config_yaml),
     ]
 
     if args.check_cron:
-        checks.append(("Cron tasks", check_cron))
+        checks.append(("Launchd automation", check_launchd))
+        checks.append(("Agent cron jobs", check_agent_cron))
     if args.check_quickcapture:
         checks.append(("QuickCapture", check_quickcapture))
 
