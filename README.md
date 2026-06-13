@@ -27,6 +27,14 @@ The setup skill handles everything through conversation: create your vault, rend
 When it finishes, say **"morning"** — that's your first daily brief.
 For cold start, paste a messy list or brain dump. The Agent will split it into Inbox items first, then clarify them with you using GTD.
 
+To build the skill bundle from source:
+
+```bash
+python3 scripts/package_skill.py
+```
+
+This creates `dist/llm-gtd-setup.skill`, the same artifact uploaded to Releases.
+
 ### Manual local setup（开发/调试）
 
 ```bash

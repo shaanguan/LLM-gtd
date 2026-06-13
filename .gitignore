@@ -1,5 +1,6 @@
 # Build artifacts / OS clutter
 .DS_Store
+dist/
 *.pyc
 __pycache__/
 *.swp
