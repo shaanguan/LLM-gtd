@@ -50,6 +50,15 @@ Yes. Add `.md` files to `knowledge/gtd/wiki/` following the schema in `knowledge
 
 ## Troubleshooting
 
+**Q: `npx skills add` hangs or times out during install.**
+The skills CLI shows an interactive multi-select ("Which agents do you want to install to?") that needs arrow keys, space, and enter. Agent shell tools often cannot drive that UI. Use non-interactive flags:
+
+```bash
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
+```
+
+Or pin one agent to skip the picker: add `-a hermes-agent` (or `openclaw`, `cursor`, `claude-code`, etc.).
+
 **Q: The agent seems to have "forgotten" a rule I set.**
 Rules belong in AGENTS.md, not just in conversation memory. If you established something important, verify it's written into the appropriate section. AGENTS.md is re-injected every session — memory can fade, this file can't.
 

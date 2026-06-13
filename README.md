@@ -9,13 +9,15 @@
 **1. Install the skill**
 
 ```bash
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
 ```
 
-Or target a specific agent installer (optional):
+Add `-y` to skip the interactive agent picker — required when your terminal cannot send arrow keys / space / enter (e.g. Agent shell tools).
+
+Or target one agent explicitly (also skips the picker):
 
 ```bash
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -a <agent>   # e.g. hermes-agent, openclaw, cursor, claude-code
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y -a <agent>   # e.g. hermes-agent, openclaw, cursor, claude-code
 ```
 
 **2. Say one sentence to your Agent**

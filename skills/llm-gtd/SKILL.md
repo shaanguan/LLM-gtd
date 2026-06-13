@@ -155,6 +155,7 @@ Also remove agent cron jobs per `.llm-gtd/agent-cron-guide.md`.
 
 ## Pitfalls
 
+- When installing this skill via `npx skills add`, always pass **`-y`** (and optionally **`-a <agent>`**). Without it, the CLI blocks on an interactive agent picker that Agent terminals cannot operate.
 - Do not use legacy QoderWork APIs (`qoder_cron`, `小Q`, `mcp__builtin_qoderwork__action`).
 - `init.py` alone does not register agent cron jobs — the skill must do it when supported.
 - Do not assume a specific agent brand — always load `AGENTS.md` explicitly in skill mode.
