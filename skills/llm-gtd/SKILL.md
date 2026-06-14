@@ -1,129 +1,67 @@
 ---
 name: llm-gtd
-description: "Personal GTD secretary + setup + upgrade + uninstall. Capture tasks, clarify Inbox, morning brief, evening review, weekly review, MIT, next actions, waiting-for, projects, Obsidian vault, Dashboard. Triggers include: 设置GTD, 初始化, 安装GTD, 升级, 更新, 卸载, 早, 早报, 今日安排, 回顾, 复盘, 周回顾, 帮我记, 记一下, 待办, inbox, GTD, todo, capture, morning, review, weekly, upgrade, doctor, uninstall, /llm-gtd. Platform-neutral: loads AGENTS.md explicitly."
-version: 2.4.0
+description: "Personal GTD secretary loader. Tasks, todo, inbox, capture, 帮我记, 记一下, 待办, 早, 早报, 回顾, 复盘, 周回顾, MIT, projects, 设置GTD, 初始化, 安装, 升级, 更新, 卸载, setup, upgrade, review, morning, weekly, GTD, Obsidian, Dashboard. Platform-neutral: read vault AGENTS.md for all GTD behavior."
+version: 2.4.1
+stable_contract: 1
 ---
 
-# LLM-GTD
+# LLM-GTD (stable loader)
 
-One skill for the full personal GTD lifecycle: **setup, daily runtime, upgrade, doctor, uninstall**.
+**This file is intentionally thin.** It routes intent, resolves paths, reads `AGENTS.md`, and calls repo scripts. GTD rules, routines, and judgment live in the **vault**, not here.
 
-Platform-neutral. Works with any agent that can run shell commands and read files.
+Do not duplicate setup/upgrade/cron detail in this skill — read `$VAULT_PATH/AGENTS.md` and repo docs after loading the vault.
 
-## Intent Router (match broadly)
+## Stable contract (v1 — change rarely)
 
-Use this skill when the user message **looks like GTD work**, even if they do not say exact keywords.
+1. **Match** any GTD-shaped message: tasks, capture, inbox, review, priorities, vault, setup, upgrade, uninstall.
+2. **Resolve** `$VAULT_PATH` and `$REPO_PATH` (see below).
+3. **Read** `$VAULT_PATH/AGENTS.md` before any GTD action (fallback: `CLAUDE.md`).
+4. **Dispatch** to the repo script for setup / upgrade / doctor / uninstall; otherwise obey `AGENTS.md`.
+5. **Preserve** user notes in `00 - Inbox` … `07 - Achievements` on uninstall.
 
-| Intent | Example phrases (zh / en) |
-|---|---|
-| **Setup** | 设置 GTD, 初始化 GTD, 安装 GTD, 配置 GTD, 帮我建 vault, setup gtd, install gtd, configure gtd, `/llm-gtd` |
-| **Upgrade** | 升级 GTD, 更新 GTD, 检查更新, upgrade gtd, update gtd, new version, 版本更新 |
-| **Capture** | 帮我记, 记一下, 别忘了, 待办, 任务, 提醒我这个, capture, remember, todo, add task, inbox |
-| **Morning** | 早, 早报, 今日安排, 今天做什么, morning, daily brief, MIT, 最重要的事 |
-| **Evening review** | 回顾, 复盘, 收尾, 今天完成了吗, review, evening, wrap up |
-| **Weekly review** | 周回顾, 每周回顾, 清零 inbox, weekly, weekly review |
-| **Inbox processing** | 过 inbox, 清 inbox, 处理收集箱, process inbox, clarify inbox |
-| **Status / dashboard** | 看看 gtd, 打开 dashboard, 项目进展, status, what's on my plate |
-| **Doctor** | 检查 GTD, GTD 健康检查, doctor, diagnose, 安装成功了吗 |
-| **Uninstall** | 卸载 GTD, 删除自动化, uninstall gtd, remove gtd |
+## Intent → mode
 
-If unsure but the user is talking about **tasks, priorities, deadlines, projects, or their GTD vault**, prefer this skill.
+| If user wants… | Mode | Action |
+|---|---|---|
+| 设置 / 安装 / 初始化 / setup | setup | `init.py` → `doctor.py` — details in `docs/setup-guide-for-agent.md` |
+| 升级 / 更新 / upgrade | upgrade | `upgrade.py --check` then `--apply --pull-repo` — **vault-first, no skill reinstall** |
+| 卸载 / uninstall | uninstall | `uninstall.py` |
+| 检查 / doctor / 健康检查 | doctor | `doctor.py --check-updates --check-cron --json` |
+| anything else GTD-related | daily | read `AGENTS.md`, act on vault evidence only |
 
-## Context Loading
+When unsure, prefer this skill if the user is talking about work, tasks, deadlines, or their GTD system.
 
-| Mode | How |
-|---|---|
-| **Skill mode** | Explicitly read `$VAULT_PATH/AGENTS.md` (fallback `CLAUDE.md`) before any GTD action |
-| **Workspace mode** | Vault as project root may auto-load instructions; still read `AGENTS.md` if unsure |
+## Resolve paths
 
-## Hard Rules
+**Vault (`$VAULT_PATH`):** `$GTD_VAULT` → `~/Documents/GTD` → `.llm-gtd/setup-state.json` → ask once.
 
-- Execute shell commands and read output.
-- **Always read `AGENTS.md`** before GTD work — never rely on chat memory alone.
-- Uninstall/automation removal must preserve `00 - Inbox` through `07 - Achievements`.
-- When installing/upgrading the skill: `npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y`
+**Repo (`$REPO_PATH`):** read `.llm-gtd/setup-state.json` → `components.repo_path`; else `~/Projects/llm-gtd` or `~/llm-gtd`; if missing, `git clone https://github.com/shaanguan/LLM-gtd.git` to `~/Projects/llm-gtd`.
 
-## Daily Runtime Mode
-
-1. Resolve vault: `$GTD_VAULT`, `~/Documents/GTD`, or ask once.
-2. Read `.llm-gtd/setup-state.json` if present.
-3. **Read `$VAULT_PATH/AGENTS.md`.**
-4. Act only from vault evidence.
-
-## Setup Mode
-
-Triggers: setup / 设置 / 初始化 / 安装 GTD
+## Mode commands
 
 ```bash
-cd "$REPO_PATH"
-python3 setup/init.py --vault "$VAULT_PATH" --agent-platform generic --non-interactive
-```
+# setup
+python3 "$REPO_PATH/setup/init.py" --vault "$VAULT_PATH" --non-interactive --agent-platform generic --no-open
 
-Then macOS launchd, agent cron (if supported), and doctor. See existing setup sections in repo `docs/setup-guide-for-agent.md`.
-
-Non-interactive setup skips QuickCapture build by default; pass `--install-quickcapture` only when requested.
-
-## Upgrade Mode
-
-Triggers: upgrade / 升级 / 更新 / 检查更新 / update gtd
-
-### 1. Check for updates
-
-```bash
+# upgrade (default for “升级 GTD”)
 python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --check --json
-```
-
-Or with remote GitHub release lookup (default):
-
-```bash
-python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-updates --json
-```
-
-### 2. Upgrade skill
-
-```bash
-npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
-```
-
-### 3. Pull repo (if git checkout)
-
-```bash
-cd "$REPO_PATH" && git pull --ff-only
-```
-
-### 4. Apply vault runtime upgrade
-
-Updates `AGENTS.md`, Dashboard template, guides, and `.llm-gtd/version`. **Does not overwrite user notes in 00~07.**
-
-```bash
 python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --apply --pull-repo
-```
 
-### 5. Verify
+# doctor
+python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-updates --check-cron --json
 
-```bash
-python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-updates --json
-```
-
-Tell the user if a custom-edited `AGENTS.md` may have been refreshed — they should use git on the vault if they maintain local rule overrides.
-
-## Safe Uninstall
-
-```bash
+# uninstall
 python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH"
 ```
 
-Remove agent cron jobs per `.llm-gtd/agent-cron-guide.md`. Never delete user markdown in 00~07.
+After setup or upgrade, read `$VAULT_PATH/AGENTS.md` and `$VAULT_PATH/.llm-gtd/agent-cron-guide.md` for automation steps not covered above.
 
-## Automation Layers
+## Hard rules
 
-| Layer | Verify |
-|---|---|
-| launchd | `launchctl list \| grep llm-gtd` |
-| agent cron | `.llm-gtd/agent-cron-guide.md` or platform scheduler CLI |
-
-## Pitfalls
-
-- `npx skills add` needs **`-y`** or it hangs on interactive agent picker.
+- Run shell commands; verify output.
+- **`npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y`** only when installing the skill the first time — not for routine vault upgrades.
 - No legacy QoderWork APIs (`qoder_cron`, `小Q`).
-- `init.py` / `upgrade.py` do not register agent cron by themselves — do that when the platform supports scheduling.
+
+## Maintainer note
+
+Product changes go to `vault-template/AGENTS.md`, `setup/*`, and `VERSION`. Change this skill only when routing or path resolution must change. See `docs/stable-skill.md`.

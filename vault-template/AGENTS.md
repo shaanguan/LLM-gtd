@@ -250,6 +250,20 @@ If the user says setup is incomplete or asks to continue setup, inspect `.llm-gt
 Setup recovery order:
 `detect_repo → ask_preferences → init_vault → install_local_tools → connect_im_docs → verify → onboard`
 
+### Vault maintenance (upgrade without reinstalling skill)
+
+When the user says **升级 GTD**, **更新 GTD**, or **upgrade gtd**, refresh runtime files from the repo — do not ask them to reinstall the skill unless the loader itself is broken.
+
+Repo path: `{{repo.path}}` (or read from `.llm-gtd/setup-state.json` → `components.repo_path`).
+
+```bash
+python3 {{repo.path}}/setup/upgrade.py --vault "$GTD_VAULT" --check --json
+python3 {{repo.path}}/setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
+python3 {{repo.path}}/setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
+```
+
+This updates `AGENTS.md`, guides, and Dashboard shell. It does **not** overwrite markdown inside `00~07`. Warn the user if they maintain custom rules directly in `AGENTS.md`.
+
 Capability matrix (derive from `.llm-gtd/setup-state.json`, doctor output, and files on disk):
 
 | Capability | Source of truth | If missing |

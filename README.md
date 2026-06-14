@@ -152,6 +152,7 @@ python3 scripts/package_skill.py
 - [Architecture](docs/architecture.md)
 - [Project tracks](docs/project-tracks.md)
 - [Personal edition design](docs/personal-edition-design.md)
+- [Stable skill contract](docs/stable-skill.md)
 - [Upgrading](docs/upgrading.md)
 - [FAQ](docs/faq.md)
 

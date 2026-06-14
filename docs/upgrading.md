@@ -2,7 +2,35 @@
 
 Personal LLM-GTD upgrades happen in **three layers**. User notes in `00 - Inbox` through `07 - Achievements` are always preserved.
 
-## 1. Upgrade the skill
+## Design: vault-first, skill-stable
+
+**Default path for users:** say `升级 GTD` / `upgrade gtd` to the Agent. The skill (once installed) should run `setup/upgrade.py` and refresh vault runtime files — no skill reinstall required for most releases.
+
+| Put changes in… | When | User action |
+|---|---|---|
+| **Vault** (`AGENTS.md`, templates, scripts, guides) | GTD rules, routines, UI, setup scripts | Natural language: `升级 GTD` |
+| **Skill** (`skills/llm-gtd/SKILL.md`) | Loader/router only: triggers, upgrade command wiring | Reinstall skill — **rare** |
+
+Maintainership goal: **most releases only bump `VERSION` + vault template**; skill updates only when trigger routing or install plumbing changes. See [Stable skill contract](stable-skill.md).
+
+## Natural-language upgrade (recommended)
+
+User says:
+
+```text
+升级 GTD
+```
+
+Agent should:
+
+1. `python3 setup/upgrade.py --vault "$GTD_VAULT" --check --json`
+2. If update available: `--apply --pull-repo` (or `git pull` + `--apply`)
+3. `python3 setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json`
+4. Report what changed; remind that user notes in `00~07` were preserved
+
+Skill reinstall is needed only when the installed skill is very old and missing Upgrade Mode entirely.
+
+## 1. Upgrade the skill (occasional)
 
 ```bash
 npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y

@@ -68,6 +68,13 @@ Markdown-first matters because:
 
 Generated views are allowed. Hidden authoritative state is not.
 
+## Skill vs Vault (upgrade strategy)
+
+- **`AGENTS.md` (vault)** — GTD brain: rules, authority, routines, methodology. Most product updates land here.
+- **`llm-gtd` skill** — thin loader: resolve vault path, read `AGENTS.md`, run setup/upgrade/doctor shell commands, broad intent routing.
+
+Users should upgrade behavior by saying `升级 GTD` and refreshing the vault via `setup/upgrade.py`. The skill itself should change rarely so users are not forced to reinstall on every release.
+
 ## Personal Versus Team
 
 The personal edition (this open-source repo) optimizes one person's execution system.
