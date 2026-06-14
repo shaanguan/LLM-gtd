@@ -51,21 +51,39 @@ DEFAULTS: Dict[str, Any] = {
 }
 
 
+def _looks_like_vault(path: Path) -> bool:
+    return (
+        (path / "AGENTS.md").exists()
+        or (path / "Dashboard.html").exists()
+        or (path / ".llm-gtd").exists()
+    )
+
+
 def get_vault() -> Path:
-    """Resolve vault root from $GTD_VAULT. Exit with clear error if missing."""
+    """Resolve vault root from env, script location, cwd, or default path."""
     raw = os.environ.get("GTD_VAULT")
-    if not raw:
+    candidates = []
+    if raw:
+        candidates.append(Path(os.path.expanduser(raw)).resolve())
+    candidates.extend([
+        Path(__file__).resolve().parents[1],
+        Path.cwd().resolve(),
+        (Path.home() / "Documents" / "GTD").resolve(),
+    ])
+
+    for p in candidates:
+        if p.exists() and _looks_like_vault(p):
+            return p
+
+    if raw:
+        sys.stderr.write(f"ERROR: $GTD_VAULT does not point to a GTD vault: {candidates[0]}\n")
+    else:
         sys.stderr.write(
-            "ERROR: $GTD_VAULT is not set.\n"
-            "  Point it to your Obsidian vault, e.g.:\n"
-            '    export GTD_VAULT="$HOME/Documents/my-gtd-vault"\n'
+            "ERROR: Could not find a GTD vault.\n"
+            "  Run from the vault root, or set:\n"
+            '    export GTD_VAULT="$HOME/Documents/GTD"\n'
         )
         sys.exit(2)
-    p = Path(os.path.expanduser(raw)).resolve()
-    if not p.exists():
-        sys.stderr.write(f"ERROR: $GTD_VAULT does not exist: {p}\n")
-        sys.exit(2)
-    return p
 
 
 def state_dir() -> Path:

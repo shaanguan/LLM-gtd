@@ -31,7 +31,7 @@ The skill asks a few preferences, then creates everything for you:
 - local GTD vault (Obsidian-ready)
 - Agent instructions (`AGENTS.md`, with `CLAUDE.md` as compatibility alias)
 - Dashboard + `Dashboard.app`
-- QuickCapture hotkey
+- QuickCapture hotkey (interactive setup installs it; non-interactive setup prints the follow-up command)
 - **scheduled jobs** (Dashboard refresh every 30 min + git snapshot at 23:55)
 - QUICKSTART onboarding
 - Feishu / DingTalk / Telegram when credentials are available
@@ -67,11 +67,15 @@ Fallback: download [`llm-gtd.skill`](https://github.com/shaanguan/LLM-gtd/releas
 
 Recommended defaults: `~/Documents/GTD`, Feishu for docs, morning brief 10:30, evening review 22:30.
 
+Non-interactive setup skips the QuickCapture Swift build by default so agent installs do not hang. Pass `--install-quickcapture` or run the printed installer command later if you want the native hotkey.
+
 ---
 
 LLM-GTD turns an AI agent into a senior GTD secretary. It captures messy thoughts, clarifies them into projects and next actions, reminds you at the right time, and keeps a local Markdown vault as the source of truth.
 
 All data stays in your Obsidian vault. Dashboard, QuickCapture, scheduled reviews, Telegram/IM, and shared docs are just surfaces around that vault.
+
+The Agent is expected to act like a high-agency secretary, not a passive form-filler: it reads the vault, interprets intent, recommends sequencing, surfaces blockers, and handles routine GTD operations while escalating irreversible or externally binding decisions.
 
 ## What You Get
 
@@ -136,6 +140,8 @@ python3 scripts/package_skill.py
 - [Install via skills CLI](#install-in-30-seconds)
 - [Download .skill fallback](https://github.com/shaanguan/LLM-gtd/releases/latest)
 - [Architecture](docs/architecture.md)
+- [Project tracks](docs/project-tracks.md)
+- [Personal edition design](docs/personal-edition-design.md)
 - [FAQ](docs/faq.md)
 
 ## License

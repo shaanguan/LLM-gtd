@@ -227,6 +227,7 @@ def main():
     parser.add_argument("--no-app", action="store_true", help="Do not create Dashboard.app on macOS")
     parser.add_argument("--skip-automation", action="store_true", help="Do not install launchd automation")
     parser.add_argument("--skip-quickcapture", action="store_true", help="Do not install QuickCapture")
+    parser.add_argument("--install-quickcapture", action="store_true", help="Opt into building QuickCapture during --non-interactive setup")
     parser.add_argument("--agent-platform", choices=AGENT_PLATFORMS, default="generic", help="Optional scheduler hint for agent-cron guide (generic = platform-neutral)")
     parser.add_argument("--user-name", default="User", help="Name or handle for AGENTS.md header")
     parser.add_argument("--user-role", default="Knowledge Worker", help="Role for AGENTS.md header")
@@ -455,7 +456,11 @@ def main():
     elif args.skip_automation:
         update_setup_state(vault_path, capabilities={"launchd": "skipped", "scheduler": "skipped", "git_snapshots": "skipped"})
 
-    if platform.system() == "Darwin" and not args.skip_quickcapture:
+    quickcapture_skipped = args.skip_quickcapture or (args.non_interactive and not args.install_quickcapture)
+    if args.non_interactive and quickcapture_skipped and not args.skip_quickcapture:
+        print("  ℹ QuickCapture skipped in --non-interactive mode; run the installer later or pass --install-quickcapture.")
+
+    if platform.system() == "Darwin" and not quickcapture_skipped:
         try:
             import install_quickcapture
             old_argv = sys.argv[:]
@@ -478,13 +483,13 @@ def main():
             sys.argv = old_argv if "old_argv" in locals() else sys.argv
             print(f"  ⚠ QuickCapture skipped: {e}")
             update_setup_state(vault_path, capabilities={"quickcapture": "error"}, components={"quickcapture_error": str(e)})
-    elif args.skip_quickcapture:
+    elif quickcapture_skipped:
         update_setup_state(vault_path, capabilities={"quickcapture": "skipped"})
 
     update_setup_state(
         vault_path,
         steps={
-            "install_local_tools": "ok" if (platform.system() != "Darwin" or not (args.skip_automation or args.skip_quickcapture)) else "skipped",
+            "install_local_tools": "ok" if (platform.system() != "Darwin" or not (args.skip_automation or quickcapture_skipped)) else "skipped",
             "register_agent_cron": "pending",
             "connect_im_docs": "pending" if features["doc_sync"] else "skipped",
             "onboard": "pending",
@@ -563,10 +568,12 @@ def main():
         print(f'     python3 {REPO_ROOT}/setup/create_launchd.py --vault "{vault_path}"')
         print(f'     (creates: export_dashboard every 30min + git snapshot at 23:55)')
         print()
-    if args.skip_quickcapture:
+    if quickcapture_skipped:
         step += 1
         print(f'  {step}. Install QuickCapture:')
         print(f'     python3 {REPO_ROOT}/setup/install_quickcapture.py --vault "{vault_path}" --repo "{REPO_ROOT}"')
+        if args.non_interactive and not args.skip_quickcapture:
+            print(f'     Tip: pass --install-quickcapture during setup if you want the Swift build inline.')
         print()
     step += 1
     print(f'  {step}. Run the self-check:')

@@ -80,6 +80,19 @@ def hermes_cli_commands(vault_path: str, timezone: str = "Asia/Shanghai") -> lis
     return commands
 
 
+def hermes_cronjob_tool_specs(vault_path: str) -> list[dict[str, str]]:
+    specs = []
+    for job in default_jobs(vault_path):
+        specs.append({
+            "name": job.name,
+            "schedule": job.schedule,
+            "skill": "llm-gtd",
+            "deliver": "origin",
+            "prompt": build_runtime_prompt(vault_path, job.trigger, job.flow),
+        })
+    return specs
+
+
 def openclaw_cli_commands(vault_path: str, timezone: str = "Asia/Shanghai") -> list[str]:
     commands = []
     for job in default_jobs(vault_path):
@@ -120,14 +133,23 @@ def write_agent_cron_guide(vault_path: Path, platform: str = "generic") -> Path:
         ])
 
     if platform == "hermes":
-        lines.extend(["## Hermes CLI", ""])
+        lines.extend([
+            "## Hermes",
+            "",
+            "Prefer the Hermes `cronjob` tool in chat. Create one job per entry below using the given schedule, prompt, skill, and delivery target.",
+            "",
+            "```json",
+            json.dumps(hermes_cronjob_tool_specs(vault), indent=2, ensure_ascii=False),
+            "```",
+            "",
+            "If your Hermes installation also exposes a CLI, these commands are equivalent examples:",
+            "",
+        ])
         lines.extend(f"- `{cmd}`" for cmd in hermes_cli_commands(vault))
         lines.extend([
             "",
             "Verify: `hermes cron list`",
             "Hermes gateway must be running for jobs to fire: `hermes gateway`",
-            "",
-            "During setup, prefer the `cronjob` tool in chat with the same schedule/prompt/skill.",
         ])
     elif platform == "openclaw":
         lines.extend(["## OpenClaw CLI", ""])
@@ -147,6 +169,9 @@ def write_agent_cron_guide(vault_path: Path, platform: str = "generic") -> Path:
             "Known platform examples (use what applies to you):",
             "",
             "### Hermes",
+            "",
+            "Prefer the Hermes `cronjob` tool with the job data from `agent_cron.py --json`.",
+            "Use the CLI examples only when your Hermes install exposes `hermes cron`.",
             "",
         ])
         lines.extend(f"- `{cmd}`" for cmd in hermes_cli_commands(vault))
@@ -236,6 +261,7 @@ def jobs_json(vault_path: str, platform: str) -> str:
             for job in default_jobs(vault_path)
         ],
         "hermes_cli": hermes_cli_commands(vault_path),
+        "hermes_cronjob_tool": hermes_cronjob_tool_specs(vault_path),
         "openclaw_cli": openclaw_cli_commands(vault_path),
     }
     return json.dumps(payload, indent=2, sort_keys=True)

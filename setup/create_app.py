@@ -5,6 +5,8 @@ import os
 import shutil
 import stat
 import sys
+from pathlib import Path
+import argparse
 
 PLIST_TEMPLATE = """\
 <?xml version="1.0" encoding="UTF-8"?>
@@ -39,16 +41,19 @@ open -a "Google Chrome" "file://{dashboard_path}"
 """
 
 
-def create_dashboard_app(vault_path: str, repo_path: str, install_dir: str = None):
+def create_dashboard_app(vault_path: str, repo_path: str = None, install_dir: str = None):
     """Create GTD Dashboard.app pointing to vault's Dashboard.html.
 
     Args:
         vault_path: Absolute path to the user's vault.
         repo_path: Absolute path to the llm-gtd repo (for icon resources).
+            Defaults to the parent directory of this script.
         install_dir: Where to place the .app. Defaults to ~/Applications.
     """
     if install_dir is None:
         install_dir = os.path.expanduser("~/Applications")
+    if repo_path is None:
+        repo_path = str(Path(__file__).resolve().parent.parent)
 
     dashboard_html = os.path.join(vault_path, "Dashboard.html")
     app_dir = os.path.join(install_dir, "GTD Dashboard.app")
@@ -90,11 +95,11 @@ def create_dashboard_app(vault_path: str, repo_path: str, install_dir: str = Non
 
 
 if __name__ == "__main__":
-    if len(sys.argv) < 3:
-        print("Usage: create_app.py <vault_path> <repo_path> [install_dir]")
-        sys.exit(1)
-    vault = sys.argv[1]
-    repo = sys.argv[2]
-    dest = sys.argv[3] if len(sys.argv) > 3 else None
-    result = create_dashboard_app(vault, repo, dest)
+    parser = argparse.ArgumentParser(description="Create GTD Dashboard.app")
+    parser.add_argument("vault_path", help="Path to the GTD vault")
+    parser.add_argument("repo_path", nargs="?", help="Path to the LLM-GTD repo")
+    parser.add_argument("install_dir", nargs="?", help="Directory where the .app should be installed")
+    args = parser.parse_args()
+
+    result = create_dashboard_app(args.vault_path, args.repo_path, args.install_dir)
     print(f"Created: {result}")

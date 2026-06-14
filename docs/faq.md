@@ -37,7 +37,7 @@ It scans `02 - Next Actions/` for items with `due` today or tomorrow (the T-1 ru
 GTD principle: only the user can declare something done. "Reviewed" or "submitted" doesn't mean finished — maybe there's follow-up. The agent will never auto-archive.
 
 **Q: The Dashboard isn't updating.**
-Run `cd $GTD_VAULT && python3 export_dashboard.py`. If it still looks stale, hard-refresh the browser (Cmd+Shift+R). The dashboard auto-refreshes on window focus after 5 minutes of inactivity.
+Run `cd "$GTD_VAULT" && python3 export_dashboard.py`, or run `python3 export_dashboard.py` from the vault root. If it still looks stale, hard-refresh the browser (Cmd+Shift+R). The dashboard auto-refreshes on window focus after 5 minutes of inactivity.
 
 ## Knowledge Base
 

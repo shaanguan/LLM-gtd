@@ -67,7 +67,7 @@ python3 setup/init.py --vault "$VAULT_PATH" --agent-platform generic --non-inter
 
 Use a specific `--agent-platform` only when the user names their scheduler and wants tailored cron examples.
 
-Never pass `--skip-automation` or `--skip-quickcapture` in real user setup.
+In `--non-interactive` mode, `init.py` skips the QuickCapture Swift build by default to avoid long-running agent setup. Pass `--install-quickcapture` only when the user explicitly wants the build inline.
 
 `init.py` writes `.llm-gtd/agent-cron-guide.md`. Read it before registering cron jobs.
 
@@ -98,12 +98,15 @@ Each job must load vault instructions (`llm-gtd` skill or explicit AGENTS.md rea
 **Examples** (use only what matches the user's platform):
 
 ```bash
-# Hermes
-hermes cron create "30 10 * * *" "<prompt>" --skill llm-gtd --name "GTD Morning Brief" --deliver origin
-
 # OpenClaw
 openclaw cron add --name "GTD Morning Brief" --cron "30 10 * * *" --tz "Asia/Shanghai" \
   --session isolated --message "<prompt>" --announce
+```
+
+For Hermes, prefer the platform `cronjob` tool in chat using the job data from:
+
+```bash
+python3 "$REPO_PATH/setup/agent_cron.py" --vault "$VAULT_PATH" --platform hermes --json
 ```
 
 **No platform scheduler?** Tell the user routines work on demand via `早` / `回顾` / `周回顾`. Mark `agent_cron: manual`.

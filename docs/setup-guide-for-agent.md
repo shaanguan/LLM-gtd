@@ -47,6 +47,8 @@ python3 <repo-path>/setup/init.py \
 
 `init.py` creates the vault, installs local helpers, renders `AGENTS.md` + `CLAUDE.md`, and writes `.llm-gtd/agent-cron-guide.md`.
 
+In `--non-interactive` mode, QuickCapture is skipped by default to avoid a long Swift build in agent terminals. Pass `--install-quickcapture` only when the user wants the native hotkey built during setup.
+
 ### Step 3: Load instructions
 
 **Skill mode (default):** use `llm-gtd` from any session. **Explicitly read** `<vault-path>/AGENTS.md` before GTD work.
@@ -70,7 +72,7 @@ Read `.llm-gtd/agent-cron-guide.md`. Create three jobs with self-contained promp
 
 **Known examples** (use only what applies):
 
-- Hermes: `cronjob` tool or `hermes cron create ... --skill llm-gtd`
+- Hermes: prefer the `cronjob` tool with the JSON from `setup/agent_cron.py --platform hermes --json`
 - OpenClaw: `openclaw cron add ... --announce`
 
 **No scheduler?** On-demand triggers (`早`, `回顾`, `周回顾`) are the fallback. Mark `agent_cron: manual`.

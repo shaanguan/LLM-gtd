@@ -47,13 +47,15 @@ GTD Workbench is a three-layer system that turns an Obsidian vault into a fully 
 
 ## Key Design Decisions
 
-**Single environment variable (`$GTD_VAULT`)** — All scripts locate the vault via this one variable. No config file is strictly required; the system works with sensible defaults out of the box.
+**Simple vault resolution** — `$GTD_VAULT` is the explicit path when set. Vault-local scripts also resolve the vault from their own location, the current directory, or `~/Documents/GTD`, so common commands still work after setup.
 
 **AGENTS.md as the brain** — The 17-section operational manual is injected into every agent session. It is the canonical source of truth for behavior, overriding memory. Changes to AGENTS.md take effect immediately.
 
 **Conditional features** — OKR tracking, Feishu/DingTalk integration, side-project isolation, and knowledge-base references are all optional. The `setup/init.py` renders only the sections you enable.
 
-**Vault is the IDE** — The agent has full write delegation over the vault. The user never needs to manually organize files. The vault's internal structure can evolve freely as long as the export script absorbs the change and the render-layer shape stays stable.
+**Vault is the IDE** — The agent has high-agency write delegation over the vault. The user never needs to manually organize files. The vault's internal structure can evolve freely as long as the export script absorbs the change and the render-layer shape stays stable.
+
+**Senior secretary authority** — The agent is expected to exercise judgment: clarify vague captures, detect blockers, recommend priorities, sequence work, nudge waiting-for items, and make routine operational GTD decisions from vault evidence. Irreversible, high-risk, political, or externally binding commitments still escalate.
 
 **Render-layer audience separation** — Dashboard shows everything (for the user). Feishu/DingTalk scheduling docs show only externally-relevant deliverables (for requesters). Daily brief shows only MIT (for colleagues). Different granularity, same source of truth.
 
@@ -82,6 +84,6 @@ The agent operates under a trust model where the vault owner grants full file-sy
 - No permanent file deletion (only trash or archive)
 - No Dashboard structure changes (only data injection)
 - No archiving without user confirmation
-- No business-decision substitution
+- No silent high-risk commitment or disclosure without authority
 
 DingTalk operations are further constrained: only specific document blocks can be written, image-bearing blocks are untouchable, and every write is preceded by a nodeId + title verification.
