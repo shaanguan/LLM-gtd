@@ -1,7 +1,7 @@
 ---
 name: llm-gtd
 description: "LLM-GTD setup and daily GTD secretary. Platform-neutral: initializes vault, local launchd jobs, optional agent cron when the platform supports scheduling, and explicitly loads AGENTS.md for capture and routines. Triggers: /llm-gtd, 设置 GTD, 早, 回顾, 卸载 GTD."
-version: 2.3.2
+version: 2.3.3
 ---
 
 # LLM-GTD
