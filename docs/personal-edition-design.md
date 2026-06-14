@@ -70,26 +70,19 @@ Generated views are allowed. Hidden authoritative state is not.
 
 ## Personal Versus Team
 
-The personal edition optimizes one person's execution system.
+The personal edition (this open-source repo) optimizes one person's execution system.
 
-The team edition coordinates between people through shared commitments and secretary-to-secretary communication.
+Team coordination between multiple private secretaries is a **separate commercial product**, not part of this repository. It is not open source.
 
-Personal edition owns:
-- private Inbox
-- private Next Actions
-- MITs
-- personal review
-- Someday Maybe
-- private notes and drafts
+Boundary at a high level:
 
-Team edition owns:
-- shared commitments
-- requester-facing disclosure
-- secretary-to-secretary messages
-- audit events
-- external evidence from Jira, Linear, GitHub, docs, and IM
+| Personal LLM-GTD (open source) | Team coordination (commercial, separate) |
+|---|---|
+| private Inbox, Next Actions, MITs | shared commitments and disclosure |
+| personal review, Someday, drafts | secretary-to-secretary coordination |
+| local vault as source of truth | audit narrative and external evidence views |
 
-The bridge between them is selective publish / subscribe, not a shared personal vault.
+The bridge is **selective publish / subscribe**, not a shared personal vault. Implementation details of the commercial product are not documented here.
 
 ## Near-term Personal Optimization Track
 

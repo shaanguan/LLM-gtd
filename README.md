@@ -147,3 +147,7 @@ python3 scripts/package_skill.py
 ## License
 
 MIT
+
+## Commercial Note
+
+Team coordination between multiple private secretaries is planned as a **separate closed-source commercial product**. It is not included in this repository. See [Project tracks](docs/project-tracks.md) for the high-level boundary only.
