@@ -1,7 +1,7 @@
 ---
 name: llm-gtd
 description: "Personal GTD secretary runtime loader. GTD, tasks, todo, inbox, capture, 待办, 项目, 下一步行动, 等待, 早, 早报, 回顾, 复盘, 周回顾, MIT, Obsidian, Dashboard, 设置GTD, 升级GTD, 卸载GTD. Agent-facing protocol: resolve vault, read AGENTS.md, run repo scripts, and finish runtime cleanup that scripts cannot perform. For ambiguous '记一下' requests, ask whether this is GTD Inbox vs memory/knowledge before filing."
-version: 2.5.2
+version: 2.5.7
 stable_contract: 1
 ---
 
@@ -61,17 +61,130 @@ When unsure, prefer this skill if the user is talking about work, tasks, deadlin
 
 ### setup
 
-1. Ask for preferences scripts cannot infer: vault path, scheduler/platform hint, IM/phone channel, feature toggles, routine times, user name/role if needed.
-2. Run:
+**Trigger:** user says `设置 GTD` / `setup GTD` with no extra context → start **Step 0** immediately.
+
+Setup is **Agent-only**: ask in chat, pass flags to `init.py`. There is no terminal questionnaire.
+
+**Step 0 — Detect existing installation**
 
 ```bash
-python3 "$REPO_PATH/setup/init.py" --vault "$VAULT_PATH" --non-interactive --agent-platform generic --no-open
+ls ~/Documents/GTD/AGENTS.md ~/Documents/GTD/CLAUDE.md 2>/dev/null
+ls "$GTD_VAULT/AGENTS.md" "$GTD_VAULT/CLAUDE.md" 2>/dev/null
 ```
 
-3. Read `$VAULT_PATH/.llm-gtd/setup-report.md` and `$VAULT_PATH/.llm-gtd/agent-cron-guide.md`.
-4. If scheduler tools are available, register morning/evening/weekly Agent cron jobs from the guide. If not, report `agent_cron` as pending/manual.
-5. If IM MCP/Gateway tools are available and doc sync is enabled, create/connect docs and update the relevant runtime config. If not, report `im_docs` as pending/manual.
-6. Run doctor and report layer-specific status.
+If found → ask: "已有 LLM-GTD（路径 …）。要 **重跑 setup**（保留 00~07 数据）还是 **健康检查**？" Health check → `doctor.py --json`. Re-run → continue.
+
+Clone repo if missing (store as `$REPO_PATH`):
+
+```bash
+git clone https://github.com/shaanguan/LLM-gtd.git ~/Projects/llm-gtd
+```
+
+**Step 1 — Preferences (keep it short)**
+
+**Round 1 — ask in one message (required before `init.py`):**
+
+1. **Vault 路径？** 默认 `~/Documents/GTD`
+2. **IM / 在线文档？** 推荐飞书，可不接 — Feishu / DingTalk / Telegram / WeCom / WeChat / **暂不接入**
+3. **「全部默认」可以吗？** — 若用户同意，跳过 Round 2
+
+**Round 2 — only if user did NOT say `全部默认` / `use defaults`:**
+
+- 改早报/晚报/周回顾时间？（默认 10:30 / 22:30 / Sun 21:00）
+- 要 OKR 吗？（默认开）
+- 要单独跟踪 side project 吗？（默认否；若是要问项目名）
+- AGENTS.md 里显示的名字/角色？（默认 User / Knowledge Worker）
+- 现在装 QuickCapture 快捷键吗？（Swift 构建 ~1 分钟；默认 **尝试安装**）
+
+**Never ask — infer automatically:**
+
+- `--agent-platform` → detect host (hermes / openclaw / cursor / claude / generic)
+- knowledge base → on (default)
+- doc sync → off when IM = 暂不接入 / none
+
+**Step 2 — One-click `init.py`**
+
+Real user setup must **not** pass `--no-open`, `--no-app`, `--skip-automation`, or `--skip-quickcapture`.
+
+```bash
+python3 "$REPO_PATH/setup/init.py" \
+  --vault "$VAULT_PATH" \
+  --agent-platform "<detected>" \
+  --im-platform "<feishu|dingtalk|telegram|wecom|wechat|none>" \
+  --morning-time "<HH:MM>" \
+  --evening-time "<HH:MM>" \
+  --weekly-time "<e.g. Sun 21:00>" \
+  --user-name "<name>" \
+  --user-role "<role>" \
+  --install-quickcapture
+```
+
+Add when needed: `--disable-okr`, `--disable-doc-sync`, `--enable-side-project`, `--side-project-name "<name>"`.
+
+Omit `--install-quickcapture` only if the user explicitly declined QuickCapture in Step 1.
+
+**Step 3 — Verify local automation + QUICKSTART**
+
+1. Confirm `QUICKSTART.html` opened (`init.py` runs `open` on macOS). If headless, tell user to open `$VAULT_PATH/QUICKSTART.html`.
+2. **Mandatory launchd gate (macOS):**
+
+```bash
+python3 "$REPO_PATH/setup/create_launchd.py" --vault "$VAULT_PATH" --verify
+launchctl list | grep llm-gtd
+```
+
+Expect `com.llm-gtd.export-dashboard` and `com.llm-gtd.git-snapshot`. If verify fails, retry install once; do **not** claim setup complete until fixed or user accepts manual repair.
+
+3. Tell the user (brief):
+   - **Obsidian:** Open folder as vault → `$VAULT_PATH`; optional Templater plugin
+   - **Agent workspace:** add `$VAULT_PATH` in Hermes / Cursor / OpenClaw so `AGENTS.md` loads
+
+**Step 4 — Agent Runtime**
+
+1. Read `$VAULT_PATH/.llm-gtd/setup-report.md` and `$VAULT_PATH/.llm-gtd/agent-cron-guide.md`.
+2. Register morning/evening/weekly Agent cron if scheduler tools exist; else report `agent_cron: pending`.
+3. If IM ≠ none and MCP/Gateway tools exist: create/connect scheduling + daily docs, backfill doc IDs in `AGENTS.md` §4 and `QUICKSTART.html` links; else report `im_docs: pending`.
+4. Run doctor:
+
+```bash
+python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-quickcapture --json
+```
+
+**Step 5 — Onboard (required)**
+
+> 系统准备好了。第一批待办怎么进？
+> **A.** 七天 GTD 冷启动（推荐） **B.** 直接告诉我 **C.** 链接或文件 **D.** 粘贴清单
+
+| Choice | Action |
+|---|---|
+| **A** | `python3 "$REPO_PATH/setup/import_onboarding.py" --vault "$VAULT_PATH" --repo "$REPO_PATH"` |
+| **B/C/D** | One Inbox file per open loop; `status/lifecycle: captured`, `source`, `captured_at`, `clarification_needed: true`; summarize; ask before organizing |
+
+Ask: "还要从别的来源再导入吗？" Then `export_dashboard.py` if vault changed.
+
+**Step 6 — Final summary + acceptance**
+
+Tell the user:
+
+> - **Vault:** `$VAULT_PATH`（Obsidian + Agent workspace）
+> - **QUICKSTART** 应已弹出；也可开 Dashboard / GTD Dashboard.app
+> - **自动化:** Dashboard 每 30 分钟刷新；23:55 git 快照；Agent cron 若已注册
+>
+> **日常口令:** `早` / `回顾` / `周回顾` / `加到 GTD：…`
+>
+> **现在试一句:** `加到 GTD：明天看一下 Dashboard` — 或说 `早` 看第一份 brief。
+
+Setup is not done until the user completes one successful capture or Day 1 onboarding.
+
+Mark `onboard` complete in `.llm-gtd/setup-state.json` when finished.
+
+**Setup pitfalls**
+
+- Do not run `init.py` before preferences or without vault path.
+- Do not pass test-only skip flags for real users.
+- `init.py` installing launchd is not enough — run `--verify`.
+- IM doc sync needs MCP + doc IDs; missing credentials → pending, not failure.
+- Never delete `00~07` during setup.
 
 ### upgrade
 

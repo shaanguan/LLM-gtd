@@ -343,7 +343,6 @@ def build_init_command(vault: Path, repo_root: Path) -> list[str]:
         str(repo_root / "setup" / "init.py"),
         "--vault",
         str(vault),
-        "--non-interactive",
         "--agent-platform",
         prefs.get("agent_platform", "generic"),
         "--no-open",
@@ -355,6 +354,12 @@ def build_init_command(vault: Path, repo_root: Path) -> list[str]:
         cmd.extend(["--morning-time", prefs["morning_time"]])
     if prefs.get("evening_time"):
         cmd.extend(["--evening-time", prefs["evening_time"]])
+    if prefs.get("weekly_time"):
+        cmd.extend(["--weekly-time", prefs["weekly_time"]])
+    if prefs.get("user_name"):
+        cmd.extend(["--user-name", prefs["user_name"]])
+    if prefs.get("user_role"):
+        cmd.extend(["--user-role", prefs["user_role"]])
     if features.get("okr") is False:
         cmd.append("--disable-okr")
     if features.get("doc_sync") is False:

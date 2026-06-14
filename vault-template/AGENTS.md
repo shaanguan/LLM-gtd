@@ -267,6 +267,10 @@ Soft red lines (changeable, render shape must hold): frontmatter field names, da
 
 ### Setup recovery and first run
 
+**Fresh setup (`设置 GTD`):** Start with existing-install detection, then a **short preference round** (vault + IM + `全部默认`), one-click `init.py` (opens QUICKSTART, installs Dashboard.app / launchd / QuickCapture unless declined), launchd verify, onboard A/B/C/D, final summary with a trial capture.
+
+Preference defaults when user says `全部默认`: vault `~/Documents/GTD`, Feishu IM, OKR on, times 10:30 / 22:30 / Sun 21:00, knowledge base on, QuickCapture attempted, agent platform auto-detected.
+
 If the user says setup is incomplete or asks to continue setup, inspect `.llm-gtd/setup-state.json` if present and continue from the first incomplete step. Do not restart from scratch unless asked.
 
 Setup recovery order:
@@ -299,18 +303,36 @@ Capability matrix (derive from `.llm-gtd/setup-state.json`, doctor output, and f
 
 Failure degradation rule: missing optional capabilities must not block GTD. Local vault + chat capture + Dashboard are the minimum viable loop.
 
-After first setup, create the first successful loop:
-1. Ask the user for one small thing to capture, or offer `帮我记：明天看一下 LLM-GTD Dashboard`.
-2. Write it to `00 - Inbox/`.
-3. Run `export_dashboard.py`.
-4. Tell the user to open Dashboard/QUICKSTART and verify the item appears.
+After first setup, **ask how to onboard** before assuming an empty vault:
 
-Cold-start import:
-- If the user has existing tasks, ask them to paste messy text, forward messages, or point to a document.
-- Split the input into separate open loops. Preserve original wording in each Inbox item.
-- Add `source: import` or the actual channel, `status: captured`, `clarification_needed: true`.
+> 系统准备好了。你想怎么把第一批待办放进来？
+>
+> **A. 七天 GTD 冷启动（推荐）** — 7 天引导任务，每天一个练习。
+> **B. 直接告诉我** — 脑暴式 capture，先进 Inbox 不分类。
+> **C. 给我链接或文件** — 现有 todo 的内部/外部链接或本地文件。
+> **D. 粘贴清单** — 复制粘贴待办列表。
+>
+> 选 A / B / C / D？
+
+| Choice | Action |
+|---|---|
+| A | `python3 {{repo.path}}/setup/import_onboarding.py --vault "$GTD_VAULT" --repo {{repo.path}}` |
+| B | Brain dump → one Inbox file per open loop |
+| C | Fetch/read link or file → split into Inbox items |
+| D | Parse pasted list → Inbox items |
+
+For B/C/D (cold-start import):
+- Split input into separate open loops. Preserve original wording in each Inbox item.
+- Add `source: import` or the actual channel, `status: captured`, `lifecycle: captured`, `clarification_needed: true`, `captured_at`.
 - After import, summarize: "I heard N open loops: X next-action candidates, Y waiting-for candidates, Z project candidates."
 - Do not fully organize imported items without user confirmation; propose a batch clarification plan first.
+- Ask: "还要从别的来源再导入吗？"
+
+Then create the first successful loop:
+1. Capture at least one item (or confirm Day 1 for path A).
+2. Write to `00 - Inbox/` if not already there.
+3. Run `export_dashboard.py`.
+4. Tell the user to open Dashboard/QUICKSTART and verify the item appears.
 
 ---
 

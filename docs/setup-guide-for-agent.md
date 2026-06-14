@@ -38,53 +38,55 @@ Render surfaces must always be regenerated from a full vault scan, not from the 
 
 ## Setup Mode
 
-### Step 1: Ask preferences
+User says `设置 GTD` → start at **Step 0** immediately.
 
-Ask only for values scripts cannot safely infer:
+### Step 0: Detect existing installation
 
-- Vault path, default `~/Documents/GTD`
-- Scheduler/platform hint: `generic`, `hermes`, `openclaw`, `claude`, `cursor`
-- IM / phone channel: Feishu, DingTalk, Telegram, WeCom, WeChat, or none
-- Feature toggles: OKR, doc sync, side project, knowledge base
-- Routine times: morning, evening, weekly
-- User name/role if needed for rendered instructions
+Check for `AGENTS.md` / `CLAUDE.md` in `~/Documents/GTD` or `$GTD_VAULT`. If present: offer re-run setup (preserve 00~07) or `doctor --json`. Clone repo to `~/Projects/llm-gtd` if missing.
 
-### Step 2: Run setup
+### Step 1: Preferences (short)
+
+**Round 1 (one message, required):**
+
+1. Vault path (default `~/Documents/GTD`)
+2. IM / online docs — Feishu recommended, or none
+3. OK to use **全部默认**?
+
+**Round 2 (only if not 全部默认):** custom times, OKR off, side project, name/role, QuickCapture opt-out.
+
+**Auto-infer:** agent platform from host; knowledge base on; doc sync off when IM is none.
+
+### Step 2: One-click init
+
+Do **not** pass `--no-open`, `--no-app`, `--skip-automation`, or `--skip-quickcapture` for real users.
 
 ```bash
 python3 <repo-path>/setup/init.py \
   --vault "<vault-path>" \
-  --non-interactive \
-  --agent-platform generic \
+  --agent-platform "<detected>" \
   --im-platform "<feishu|dingtalk|telegram|wecom|wechat|none>" \
-  --morning-time "<HH:MM>" \
-  --evening-time "<HH:MM>" \
-  --no-open
+  --install-quickcapture
 ```
 
-`init.py` creates the vault scaffold, renders `AGENTS.md` / `CLAUDE.md`, installs scriptable Computer Tools, writes `.llm-gtd/agent-cron-guide.md`, and initializes `.llm-gtd/component-state.json`.
+Add time/name flags only when user customized. Omit `--install-quickcapture` only if user declined QuickCapture.
 
-### Step 3: Finish Agent Runtime
+### Step 3: Verify automation + QUICKSTART
 
-Read:
+- Confirm QUICKSTART opened; else tell user to open it.
+- macOS: `create_launchd.py --verify` + `launchctl list | grep llm-gtd`
+- Brief Obsidian + Agent workspace instructions
 
-- `.llm-gtd/setup-report.md`
-- `.llm-gtd/agent-cron-guide.md`
-- `.llm-gtd/setup-state.json`
+### Step 4: Agent Runtime
 
-If scheduler tools are available, register the three Agent cron jobs. If not, report `agent_cron` as pending/manual.
+Read setup-report and agent-cron-guide. Register Agent cron if tools exist. Connect IM docs if IM ≠ none and MCP available. Run doctor `--json`.
 
-If IM MCP/Gateway tools are available and doc sync is enabled, create or connect the online docs/message integration. If not, report `im_docs` as pending/manual.
+### Step 5: Onboard A/B/C/D
 
-### Step 4: Verify
+Seven-day cold start / brain dump / link / paste — see skill Step 5.
 
-```bash
-python3 <repo-path>/setup/doctor.py --vault "<vault-path>" --check-cron --check-quickcapture --json
-```
+### Step 6: Final summary
 
-Report findings by layer: Vault State, Computer Tools, Agent Runtime.
-
-Report render/IM findings separately: Dashboard, Daily IM brief, Scheduling doc, IM message runtime.
+Vault + QUICKSTART + automation summary. Ask user to try `加到 GTD：…` or `早`. Mark `onboard` complete.
 
 ## Upgrade Mode
 

@@ -109,9 +109,9 @@ If `.llm-gtd/version` is older than repo `VERSION`, run `setup/upgrade.py --chec
 
 When the `agent_instructions` component changes, `upgrade.py` re-renders `AGENTS.md` / `CLAUDE.md` from the latest template and writes backups to `.llm-gtd/backups/`. Keep personal rules in dedicated reference files when possible.
 
-## QuickCapture after non-interactive setup
+## QuickCapture after setup
 
-If QuickCapture was skipped during agent setup:
+If QuickCapture was skipped during setup (default):
 
 ```bash
 python3 setup/install_quickcapture.py --vault "$GTD_VAULT" --repo /path/to/LLM-gtd

@@ -26,12 +26,12 @@ npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y -a <agent>   # e.g. herme
 设置 GTD
 ```
 
-The skill asks a few preferences, then creates everything for you:
+The skill asks **three quick preferences** (or `全部默认`), then creates everything for you:
 
 - local GTD vault (Obsidian-ready)
 - Agent instructions (`AGENTS.md`, with `CLAUDE.md` as compatibility alias)
 - Dashboard + `Dashboard.app`
-- QuickCapture hotkey (interactive setup installs it; non-interactive setup prints the follow-up command)
+- QuickCapture hotkey (installed by default during setup; Swift build may take ~1 min)
 - **scheduled jobs** (Dashboard refresh every 30 min + git snapshot at 23:55)
 - QUICKSTART onboarding
 - Feishu / DingTalk / Telegram when credentials are available
@@ -67,9 +67,9 @@ On agents that rely only on semantic skill injection, generic phrases like `记�
 
 Fallback: download [`llm-gtd.skill`](https://github.com/shaanguan/LLM-gtd/releases/latest) if your agent installs `.skill` bundles directly.
 
-Recommended defaults: `~/Documents/GTD`, Feishu for docs, morning brief 10:30, evening review 22:30.
+Recommended defaults: `~/Documents/GTD`, Feishu for docs, morning brief 10:30, evening review 22:30. Say `全部默认` to accept all defaults in one sentence.
 
-Non-interactive setup skips the QuickCapture Swift build by default so agent installs do not hang. Pass `--install-quickcapture` or run the printed installer command later if you want the native hotkey.
+Setup auto-opens `QUICKSTART.html` in your browser when complete.
 
 ---
 

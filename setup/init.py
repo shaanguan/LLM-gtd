@@ -1,13 +1,12 @@
 #!/usr/bin/env python3
 """
-llm-gtd interactive initializer.
+LLM-GTD vault initializer (Agent-driven).
 
 Usage:
-    python3 setup/init.py [--vault PATH]
+    python3 setup/init.py --vault PATH [preference flags...]
 
-Walks you through setup questions, renders vault-template/ into your vault,
-installs local automation, opens QUICKSTART, and prints next-step guidance.
-Targets any AGENTS.md-compatible agent. Platform choice only affects cron guide generation.
+Called by the Agent after collecting setup preferences in chat.
+There is no interactive terminal questionnaire — say `设置 GTD` to your Agent instead.
 """
 
 import os
@@ -42,22 +41,6 @@ AGENT_PLATFORMS = ["generic", "hermes", "openclaw", "claude", "cursor"]
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-
-def ask(prompt: str, default: str = "") -> str:
-    """Prompt user for input with optional default."""
-    suffix = f" [{default}]" if default else ""
-    answer = input(f"{prompt}{suffix}: ").strip()
-    return answer if answer else default
-
-
-def ask_yn(prompt: str, default: bool = True) -> bool:
-    """Yes/no question."""
-    hint = "Y/n" if default else "y/N"
-    answer = input(f"{prompt} [{hint}]: ").strip().lower()
-    if not answer:
-        return default
-    return answer in ("y", "yes")
 
 
 def validate_hhmm(value: str, label: str) -> str:
@@ -138,6 +121,10 @@ def copy_template(template_dir: Path, dest: Path, skip_agents: bool = True):
 
         # Skip .gitkeep — they are repo scaffolding only
         if rel.name == ".gitkeep":
+            continue
+
+        # Onboarding Day 1-7 are imported only when the user chooses 7-day cold start
+        if rel.parent.name == "00 - Inbox" and rel.name.startswith("Day "):
             continue
 
         dest_path = dest / rel
@@ -223,18 +210,24 @@ def write_setup_report(vault_path: Path) -> Path:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Initialize a GTD Workbench vault")
-    parser.add_argument("--vault", type=str, help="Target vault path (skip interactive question)")
-    parser.add_argument("--non-interactive", action="store_true", help="Use all defaults")
+    parser = argparse.ArgumentParser(
+        description="Initialize a GTD vault (Agent-driven; pass preferences as flags)",
+        epilog="End users: say `设置 GTD` to your Agent — do not run this without flags.",
+    )
+    parser.add_argument("--vault", type=str, required=True, help="Target vault path (required)")
     parser.add_argument("--no-open", action="store_true", help="Do not open QUICKSTART.html after setup")
     parser.add_argument("--no-app", action="store_true", help="Do not create Dashboard.app on macOS")
     parser.add_argument("--skip-automation", action="store_true", help="Do not install launchd automation")
     parser.add_argument("--skip-quickcapture", action="store_true", help="Do not install QuickCapture")
-    parser.add_argument("--install-quickcapture", action="store_true", help="Opt into building QuickCapture during --non-interactive setup")
-    parser.add_argument("--agent-platform", choices=AGENT_PLATFORMS, default="generic", help="Optional scheduler hint for agent-cron guide (generic = platform-neutral)")
+    parser.add_argument(
+        "--install-quickcapture",
+        action="store_true",
+        help="Build and install QuickCapture during setup (Swift build; may take a minute)",
+    )
+    parser.add_argument("--agent-platform", choices=AGENT_PLATFORMS, default="generic", help="Scheduler hint for agent-cron guide")
     parser.add_argument("--user-name", default="User", help="Name or handle for AGENTS.md header")
     parser.add_argument("--user-role", default="Knowledge Worker", help="Role for AGENTS.md header")
-    parser.add_argument("--im-platform", choices=IM_PLATFORMS + ["none"], help="Document sync IM platform")
+    parser.add_argument("--im-platform", choices=IM_PLATFORMS + ["none"], default="feishu", help="Document sync IM platform")
     parser.add_argument("--disable-okr", action="store_true", help="Disable OKR tracking")
     parser.add_argument("--disable-doc-sync", action="store_true", help="Disable document sync")
     parser.add_argument("--enable-side-project", action="store_true", help="Enable side-project tracking")
@@ -247,72 +240,32 @@ def main():
 
     print()
     print("╔══════════════════════════════════════════════╗")
-    print("║   GTD Workbench — Interactive Setup          ║")
-    print("║   Your AI GTD secretary                      ║")
+    print("║   GTD Workbench — Setup                      ║")
+    print("║   Agent-driven install                       ║")
     print("╚══════════════════════════════════════════════╝")
     print()
 
-    # ── Question 1: Vault path ──────────────────────────────────────────
-    if args.vault:
-        vault_path = Path(args.vault).expanduser().resolve()
-    elif args.non_interactive:
-        vault_path = Path.home() / "Documents" / "GTD"
-    else:
-        default_vault = os.environ.get("GTD_VAULT", str(Path.home() / "Documents" / "GTD"))
-        raw = ask("1/3  Where should we create your vault?", default_vault)
-        vault_path = Path(raw).expanduser().resolve()
-
+    vault_path = Path(args.vault).expanduser().resolve()
     print(f"     → Vault: {vault_path}")
     print()
 
-    # ── Question 2: Features ────────────────────────────────────────────
     features = {
         "okr": not args.disable_okr,
         "doc_sync": not args.disable_doc_sync,
         "side_project": args.enable_side_project,
         "knowledge_base": not args.disable_knowledge_base,
     }
-    im_platform = args.im_platform or "feishu"  # default
+    im_platform = args.im_platform
     agent_platform = args.agent_platform
 
-    if not args.non_interactive:
-        features["okr"] = ask_yn("2/3  Enable OKR tracking? (links NAs to objectives)", True)
-        features["doc_sync"] = ask_yn("     Enable document sync (shared scheduling/daily doc)?", True)
-        if features["doc_sync"]:
-            print("     IM platform for document sync:")
-            print("       1) Feishu  2) DingTalk  3) Telegram  4) WeCom  5) WeChat")
-            im_choice = ask("     Choose [1-5]", "1")
-            im_platform = {"1": "feishu", "2": "dingtalk", "3": "telegram", "4": "wecom", "5": "wechat"}.get(im_choice, "feishu")
-        else:
-            im_platform = "none"
-        features["side_project"] = ask_yn("     Track a personal side project (separate from work)?", False)
-        features["knowledge_base"] = ask_yn("     Include GTD knowledge base references?", True)
-        print("     Scheduler hint (optional — only affects cron guide examples):")
-        print("       1) Generic  2) Hermes  3) OpenClaw  4) Claude  5) Cursor")
-        platform_choice = ask("     Choose [1-5]", "1")
-        agent_platform = {
-            "1": "generic",
-            "2": "hermes",
-            "3": "openclaw",
-            "4": "claude",
-            "5": "cursor",
-        }.get(platform_choice, "generic")
-        print()
-    elif not features["doc_sync"]:
+    if not features["doc_sync"]:
         im_platform = "none"
-
-    if im_platform == "none":
+    elif im_platform == "none":
         features["doc_sync"] = False
 
-    # ── Question 3: Routine preferences ─────────────────────────────────
-    if not args.non_interactive:
-        morning_time = ask("3/3  Preferred morning brief time (HH:MM)", DEFAULT_MORNING)
-        evening_time = ask("     Preferred evening review time (HH:MM)", DEFAULT_EVENING)
-        weekly_time = ask("     Preferred weekly review (e.g. 'Sun 21:00')", DEFAULT_WEEKLY)
-    else:
-        morning_time = args.morning_time
-        evening_time = args.evening_time
-        weekly_time = args.weekly_time
+    morning_time = args.morning_time
+    evening_time = args.evening_time
+    weekly_time = args.weekly_time
 
     try:
         morning_time = validate_hhmm(morning_time, "morning time")
@@ -323,15 +276,9 @@ def main():
 
     print()
 
-    # ── Collect variables ───────────────────────────────────────────────
-    user_name = ask("     Your name or handle (for AGENTS.md header)", args.user_name) if not args.non_interactive else args.user_name
-    user_role = ask("     Your role (e.g. 'Product Designer')", args.user_role) if not args.non_interactive else args.user_role
-
-    side_project_name = ""
-    if features["side_project"] and not args.non_interactive:
-        side_project_name = ask("     Side project name", args.side_project_name)
-    elif features["side_project"]:
-        side_project_name = args.side_project_name
+    user_name = args.user_name
+    user_role = args.user_role
+    side_project_name = args.side_project_name if features["side_project"] else ""
 
     im_names = {"dingtalk": "DingTalk", "feishu": "Feishu", "telegram": "Telegram", "wecom": "WeCom", "wechat": "WeChat", "none": "IM"}
     variables = {
@@ -468,9 +415,9 @@ def main():
     elif args.skip_automation:
         update_setup_state(vault_path, capabilities={"launchd": "skipped", "scheduler": "skipped", "git_snapshots": "skipped"})
 
-    quickcapture_skipped = args.skip_quickcapture or (args.non_interactive and not args.install_quickcapture)
-    if args.non_interactive and quickcapture_skipped and not args.skip_quickcapture:
-        print("  ℹ QuickCapture skipped in --non-interactive mode; run the installer later or pass --install-quickcapture.")
+    quickcapture_skipped = args.skip_quickcapture or not args.install_quickcapture
+    if quickcapture_skipped and not args.skip_quickcapture:
+        print("  ℹ QuickCapture skipped by default; pass --install-quickcapture or run install_quickcapture.py later.")
 
     if platform.system() == "Darwin" and not quickcapture_skipped:
         try:
@@ -594,8 +541,7 @@ def main():
         step += 1
         print(f'  {step}. Install QuickCapture:')
         print(f'     python3 {REPO_ROOT}/setup/install_quickcapture.py --vault "{vault_path}" --repo "{REPO_ROOT}"')
-        if args.non_interactive and not args.skip_quickcapture:
-            print(f'     Tip: pass --install-quickcapture during setup if you want the Swift build inline.')
+        print(f'     Tip: pass --install-quickcapture during setup if you want the Swift build inline.')
         print()
     step += 1
     print(f'  {step}. Run the self-check:')

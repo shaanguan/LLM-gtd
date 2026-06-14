@@ -21,6 +21,16 @@ import uninstall
 
 
 class InitHelpersTest(unittest.TestCase):
+    def test_init_requires_vault_flag(self):
+        result = subprocess.run(
+            [sys.executable, str(REPO_ROOT / "setup" / "init.py"), "--help"],
+            capture_output=True,
+            text=True,
+        )
+        self.assertEqual(result.returncode, 0)
+        self.assertIn("--vault", result.stdout)
+        self.assertNotIn("--non-interactive", result.stdout)
+
     def test_validate_hhmm_accepts_24_hour_time(self):
         self.assertEqual(init.validate_hhmm("09:30", "morning time"), "09:30")
         self.assertEqual(init.validate_hhmm("23:59", "evening time"), "23:59")
@@ -32,6 +42,19 @@ class InitHelpersTest(unittest.TestCase):
             init.validate_hhmm("24:00", "morning time")
 
     def test_copy_template_preserves_existing_user_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            template = Path(tmp) / "template"
+            dest = Path(tmp) / "dest"
+            (template / "00 - Inbox").mkdir(parents=True)
+            (template / "00 - Inbox" / "Day 1 - Brain Dump.md").write_text("onboarding", encoding="utf-8")
+            (template / "00 - Inbox" / "real-capture.md").write_text("keep", encoding="utf-8")
+            (template / "keep.md").write_text("template", encoding="utf-8")
+            init.copy_template(template, dest)
+            self.assertFalse((dest / "00 - Inbox" / "Day 1 - Brain Dump.md").exists())
+            self.assertTrue((dest / "00 - Inbox" / "real-capture.md").exists())
+            self.assertTrue((dest / "keep.md").exists())
+
+    def test_copy_template_preserves_existing_user_files_no_overwrite(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             template = root / "template"
@@ -271,6 +294,35 @@ class SkillContractTest(unittest.TestCase):
         self.assertIn("External Surfaces", text)
         self.assertIn("Scheduling doc / online docs", text)
         self.assertIn("runtime_cleanup_pending", text)
+
+    def test_skill_setup_requires_preference_questionnaire(self):
+        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("全部默认", text)
+        self.assertIn("Round 1", text)
+        self.assertIn("--install-quickcapture", text)
+        self.assertNotIn("| 14 | Install QuickCapture", text)
+
+    def test_skill_setup_includes_full_playbook(self):
+        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("Step 0", text)
+        self.assertIn("create_launchd.py", text)
+        self.assertIn("--verify", text)
+        self.assertIn("Obsidian", text)
+        self.assertIn("Final summary", text)
+        self.assertIn("Setup pitfalls", text)
+        self.assertIn("skip-automation", text)
+
+    def test_skill_documents_onboard_cold_start_menu(self):
+        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("七天 GTD 冷启动", text)
+        self.assertIn("直接告诉我", text)
+        self.assertIn("链接或文件", text)
+        self.assertIn("粘贴清单", text)
+        self.assertIn("import_onboarding.py", text)
+        self.assertIn("--no-open", text)
 
     def test_maintenance_map_routes_host_and_render_views(self):
         text = (REPO_ROOT / "docs" / "maintenance-map.md").read_text(encoding="utf-8")
