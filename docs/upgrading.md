@@ -1,15 +1,18 @@
 # Upgrading LLM-GTD
 
-Personal LLM-GTD upgrades happen in **three layers**. User notes in `00 - Inbox` through `07 - Achievements` are always preserved.
+Personal LLM-GTD upgrades are component-level. User notes in `00 - Inbox` through `07 - Achievements` are always preserved.
 
 ## Design: vault-first, skill-stable
 
-**Default path for users:** say `升级 GTD` / `upgrade gtd` to the Agent. The skill (once installed) should run `setup/upgrade.py` and refresh vault runtime files — no skill reinstall required for most releases.
+**Default path for users:** say `升级 GTD` / `upgrade gtd` to the Agent. The skill runs `setup/upgrade.py`, which compares `setup/components.json` against `.llm-gtd/component-state.json` and applies only changed components.
 
 | Put changes in… | When | User action |
 |---|---|---|
-| **Vault** (`AGENTS.md`, templates, scripts, guides) | GTD rules, routines, UI, setup scripts | Natural language: `升级 GTD` |
-| **Skill** (`skills/llm-gtd/SKILL.md`) | Loader/router only: triggers, upgrade command wiring | Reinstall skill — **rare** |
+| **Agent Runtime** (`AGENTS.md`, cron guide) | GTD rules, routines, runtime prompts | Natural language: `升级 GTD` |
+| **Computer Tools** (Dashboard.app, launchd, QuickCapture) | Local UI and automation | Component upgrade or targeted repair |
+| **Vault managed files** (templates, scripts, Dashboard shell) | Runtime support files around user data | Component upgrade |
+| **Repo knowledge** (`knowledge/gtd`) | GTD methodology calibration and durable synthesis | Component hash + vault link refresh; no user-data copy |
+| **Skill** (`skills/llm-gtd/SKILL.md`) | Agent-facing loader protocol | Reinstall skill — rare |
 
 Maintainership goal: **most releases only bump `VERSION` + vault template**; skill updates only when trigger routing or install plumbing changes. See [Stable skill contract](stable-skill.md).
 
@@ -24,9 +27,10 @@ User says:
 Agent should:
 
 1. `python3 setup/upgrade.py --vault "$GTD_VAULT" --check --json`
-2. If update available: `--apply --pull-repo` (or `git pull` + `--apply`)
-3. `python3 setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json`
-4. Report what changed; remind that user notes in `00~07` were preserved
+2. If components changed: `--apply --pull-repo` (or `git pull` + `--apply`)
+3. Handle `runtime_actions_required` such as cron review or skill reinstall recommendation
+4. `python3 setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json`
+5. Report changed components; remind that user notes in `00~07` were preserved
 
 Skill reinstall is needed only when the installed skill is very old and missing Upgrade Mode entirely.
 
@@ -58,13 +62,21 @@ Doctor can also remind you:
 python3 setup/doctor.py --vault "$GTD_VAULT" --check-updates
 ```
 
-## 3. Apply vault runtime upgrade
+## 3. Apply component upgrade
 
-Updates template/runtime files (`AGENTS.md`, `CLAUDE.md`, guides, Dashboard shell, `.llm-gtd/version`). Does **not** overwrite existing markdown inside `00~07` folders.
+Applies only changed managed components. Does **not** overwrite existing markdown inside `00~07` folders.
 
 ```bash
 git -C /path/to/LLM-gtd pull --ff-only   # if you use a git checkout
 python3 setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
+```
+
+Targeted repair examples:
+
+```bash
+python3 setup/upgrade.py --vault "$GTD_VAULT" --apply --components dashboard_app --force
+python3 setup/upgrade.py --vault "$GTD_VAULT" --apply --components agent_instructions
+python3 setup/upgrade.py --vault "$GTD_VAULT" --apply --components gtd_knowledge_base
 ```
 
 Or let the upgrade script pull for you:
@@ -87,13 +99,15 @@ Re-register agent cron jobs if needed using `.llm-gtd/agent-cron-guide.md`.
 | Location | Meaning |
 |---|---|
 | `VERSION` (repo root) | Current LLM-GTD release version |
-| `.llm-gtd/version` (vault) | Last applied vault runtime version |
+| `.llm-gtd/version` (vault) | Last applied repo version |
+| `.llm-gtd/component-state.json` (vault) | Last applied source hash for each managed component |
+| `.llm-gtd/knowledge-link.txt` (vault) | Pointer to the repo `knowledge/gtd` asset; the knowledge base is not copied into `00~07` user data |
 
-If `.llm-gtd/version` is older than repo `VERSION`, run `setup/upgrade.py --apply`.
+If `.llm-gtd/version` is older than repo `VERSION`, run `setup/upgrade.py --check --json` and apply changed components.
 
 ## Custom AGENTS.md edits
 
-`upgrade.py` re-renders `AGENTS.md` from the latest template. If you added personal rules directly to `AGENTS.md`, back up first or keep those rules in git inside your vault.
+When the `agent_instructions` component changes, `upgrade.py` re-renders `AGENTS.md` / `CLAUDE.md` from the latest template and writes backups to `.llm-gtd/backups/`. Keep personal rules in dedicated reference files when possible.
 
 ## QuickCapture after non-interactive setup
 

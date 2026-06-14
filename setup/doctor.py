@@ -57,8 +57,16 @@ REQUIRED_SCRIPTS = [
     "Scripts/cron_heartbeat.py",
     "Scripts/verify_sync.py",
     "Scripts/inbox_sla.py",
+    "Scripts/query_audit.py",
     "Scripts/preflight.py",
     "Scripts/dashboard_refresh_server.py",
+]
+
+KNOWLEDGE_CONTRACT_MARKERS = [
+    "Knowledge & Evidence Contract",
+    "Methodology is model-assisted",
+    "Classify the query before answering",
+    "Answer compounding",
 ]
 
 
@@ -138,6 +146,53 @@ def check_claude_md(vault: Path) -> list:
     lines = content.count("\n")
     if lines > 500:
         issues.append(("INFO", f"{label} is {lines} lines — consider trimming to ≤400 for context sweet spot"))
+
+    return issues
+
+
+def instruction_file(vault: Path) -> Path | None:
+    agents = vault / "AGENTS.md"
+    if agents.is_file():
+        return agents
+    claude = vault / "CLAUDE.md"
+    if claude.is_file():
+        return claude
+    return None
+
+
+def read_knowledge_link(vault: Path) -> Path | None:
+    link = vault / ".llm-gtd" / "knowledge-link.txt"
+    if not link.is_file():
+        return None
+    for line in link.read_text(encoding="utf-8").splitlines():
+        if line.startswith("path:"):
+            raw = line.split(":", 1)[1].strip()
+            if raw:
+                return Path(raw).expanduser()
+    return None
+
+
+def check_knowledge_contract(vault: Path) -> list:
+    issues = []
+    path = instruction_file(vault)
+    if path is None:
+        return issues
+
+    content = path.read_text(encoding="utf-8")
+    missing = [marker for marker in KNOWLEDGE_CONTRACT_MARKERS if marker not in content]
+    if missing:
+        issues.append((
+            "WARN",
+            f"{path.name} missing knowledge/evidence contract marker(s): {', '.join(missing[:3])}"
+            + ("..." if len(missing) > 3 else ""),
+        ))
+
+    if "knowledge/gtd" in content or "Knowledge & Evidence Contract" in content:
+        linked = read_knowledge_link(vault)
+        if linked is None:
+            issues.append(("WARN", "Missing .llm-gtd/knowledge-link.txt for repo GTD knowledge base"))
+        elif not linked.is_dir():
+            issues.append(("WARN", f"GTD knowledge link does not point to a directory: {linked}"))
 
     return issues
 
@@ -281,10 +336,12 @@ def build_capabilities(vault: Path, include_cron: bool = False, include_quickcap
     state_dir_ok = (vault / ".llm-gtd").is_dir()
     git_ok = (vault / ".git").is_dir()
     instructions = (vault / "AGENTS.md").is_file() or (vault / "CLAUDE.md").is_file()
+    knowledge_link = read_knowledge_link(vault)
 
     capabilities = {
         "vault": "ok" if vault_ok else "error",
         "agent_instructions": "ok" if instructions else "missing",
+        "gtd_knowledge_base": "ok" if knowledge_link and knowledge_link.is_dir() else ("missing" if knowledge_link is None else "error"),
         "dashboard": "ok" if dashboard_ok else "error",
         "quickcapture": "unknown",
         "launchd": "unknown",
@@ -422,6 +479,7 @@ def main():
         ("Core files", check_files),
         ("Scripts", check_scripts),
         ("AGENTS.md quality", check_claude_md),
+        ("Knowledge contract", check_knowledge_contract),
         ("State directory", check_state_dir),
         ("Version", check_version),
         ("Config YAML", check_config_yaml),

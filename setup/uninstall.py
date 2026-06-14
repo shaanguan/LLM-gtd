@@ -74,7 +74,7 @@ def uninstall(
     print(f"  User notes preserved in 00~07: {count_user_notes(vault)} markdown file(s)")
     print()
 
-    print("  Removing automation only:")
+    print("  Removing scriptable computer tools only:")
     removed = 0
     for label in SYSTEM_LAUNCH_AGENT_LABELS:
         if remove_launch_agent(label):
@@ -112,20 +112,27 @@ def uninstall(
         print(f"    {marker} {dirname}/")
     print()
     print("  Your tasks, projects, archive, and achievements remain in the vault.")
-    print("  Also remove agent cron jobs via your platform scheduler if registered.")
-    print("    See `.llm-gtd/agent-cron-guide.md` for platform-specific remove commands.")
+    print("  This script cannot remove platform agent cron jobs, IM gateways,")
+    print("  online document credentials, or the installed skill package.")
+    print("  Runtime cleanup is still required if those were configured.")
+    print("    See `.llm-gtd/agent-cron-guide.md` and setup-state.json.")
     print()
 
     update_setup_state(
         vault,
         capabilities={
-            "agent_cron": "removed",
+            "agent_cron": "runtime_cleanup_pending",
+            "im_docs": "runtime_cleanup_pending",
+            "skill_loader": "manual_removal_required",
             "launchd": "removed",
             "scheduler": "removed",
             "git_snapshots": "removed",
             "quickcapture": "removed",
         },
-        components={"uninstall": "automation_removed"},
+        components={
+            "uninstall": "computer_tools_removed",
+            "runtime_cleanup": "pending",
+        },
     )
     return 0
 

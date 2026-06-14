@@ -58,10 +58,12 @@ Otherwise use on-demand triggers: `早`, `回顾`, `周回顾`.
 **4. Try your first capture**
 
 ```text
-帮我记：明天看一下 LLM-GTD Dashboard
+加到 GTD：明天看一下 LLM-GTD Dashboard
 ```
 
 You should see: say something → lands in Inbox → Dashboard updates → review later.
+
+On agents that rely only on semantic skill injection, generic phrases like `记一下` may be ambiguous. The skill should ask whether the note belongs in GTD Inbox or in memory/knowledge before filing.
 
 Fallback: download [`llm-gtd.skill`](https://github.com/shaanguan/LLM-gtd/releases/latest) if your agent installs `.skill` bundles directly.
 
@@ -119,10 +121,11 @@ See [Upgrading](docs/upgrading.md) for the full flow.
 
 ## How It Works
 
+LLM-GTD has two views:
+
 ```text
-Storage:  Obsidian vault as local Markdown source of truth
-Agent:    GTD expert skill that explicitly loads AGENTS.md from the vault
-Render:   Dashboard, QuickCapture, Telegram/IM, shared docs, scheduled briefs
+Operational view: Agent Runtime / Computer Tools / Vault State / Factory
+Experience view:  input channels -> Inbox pipeline -> Dashboard / IM docs / briefs
 ```
 
 Core rule: the vault wins. Dashboard and docs are generated views.
@@ -150,6 +153,7 @@ python3 scripts/package_skill.py
 - [Install via skills CLI](#install-in-30-seconds)
 - [Download .skill fallback](https://github.com/shaanguan/LLM-gtd/releases/latest)
 - [Architecture](docs/architecture.md)
+- [Maintenance map](docs/maintenance-map.md)
 - [Project tracks](docs/project-tracks.md)
 - [Personal edition design](docs/personal-edition-design.md)
 - [Stable skill contract](docs/stable-skill.md)

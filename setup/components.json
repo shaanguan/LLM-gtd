@@ -1,0 +1,98 @@
+[
+  {
+    "id": "agent_instructions",
+    "layer": "agent_runtime",
+    "source_paths": ["vault-template/AGENTS.md"],
+    "target": "rendered_vault_files",
+    "apply_mode": "render_with_preferences",
+    "action": "render_agent_instructions"
+  },
+  {
+    "id": "agent_cron_guide",
+    "layer": "agent_runtime",
+    "source_paths": ["setup/agent_cron.py"],
+    "target": ".llm-gtd/agent-cron-guide.md",
+    "apply_mode": "generate_runtime_guide",
+    "action": "rewrite_agent_cron_guide"
+  },
+  {
+    "id": "dashboard",
+    "layer": "computer_tools",
+    "source_paths": ["vault-template/Dashboard.html", "vault-template/export_dashboard.py"],
+    "target": "Dashboard.html and export_dashboard.py",
+    "apply_mode": "copy_managed_files",
+    "action": "update_dashboard_runtime"
+  },
+  {
+    "id": "vault_scripts",
+    "layer": "computer_tools",
+    "source_paths": ["vault-template/Scripts/*"],
+    "target": "Scripts/",
+    "apply_mode": "copy_managed_files",
+    "action": "update_vault_scripts"
+  },
+  {
+    "id": "vault_templates",
+    "layer": "vault_state",
+    "source_paths": ["vault-template/Templates/*"],
+    "target": "Templates/",
+    "apply_mode": "copy_managed_files",
+    "action": "update_vault_templates"
+  },
+  {
+    "id": "quickstart",
+    "layer": "vault_state",
+    "source_paths": ["vault-template/QUICKSTART.html"],
+    "target": "QUICKSTART.html",
+    "apply_mode": "render_with_preferences",
+    "action": "render_quickstart"
+  },
+  {
+    "id": "doc_sync_protocol",
+    "layer": "external_surfaces",
+    "source_paths": ["vault-template/05 - Reference/doc-sync-protocol.md"],
+    "target": "05 - Reference/doc-sync-protocol.md",
+    "apply_mode": "copy_managed_file",
+    "action": "update_doc_sync_protocol"
+  },
+  {
+    "id": "dashboard_app",
+    "layer": "computer_tools",
+    "source_paths": ["setup/create_app.py", "resources/AppIcon.*"],
+    "target": "~/Applications/GTD Dashboard.app",
+    "apply_mode": "reinstall_local_tool",
+    "action": "reinstall_dashboard_app"
+  },
+  {
+    "id": "launchd",
+    "layer": "computer_tools",
+    "source_paths": ["setup/create_launchd.py"],
+    "target": "~/Library/LaunchAgents/com.llm-gtd.*.plist",
+    "apply_mode": "reinstall_local_tool",
+    "action": "reinstall_launchd"
+  },
+  {
+    "id": "quickcapture",
+    "layer": "computer_tools",
+    "source_paths": ["setup/install_quickcapture.py", "scripts/quickcapture/*"],
+    "target": "QuickCapture binary and LaunchAgent",
+    "apply_mode": "reinstall_local_tool",
+    "action": "reinstall_quickcapture"
+  },
+  {
+    "id": "gtd_knowledge_base",
+    "layer": "factory_distribution",
+    "source_paths": ["knowledge/gtd/**"],
+    "target": ".llm-gtd/knowledge-link.txt",
+    "apply_mode": "link_repo_asset",
+    "action": "refresh_gtd_knowledge_link"
+  },
+  {
+    "id": "skill_loader",
+    "layer": "factory_distribution",
+    "source_paths": ["skills/llm-gtd/SKILL.md"],
+    "target": "installed llm-gtd skill package",
+    "apply_mode": "manual_agent_runtime",
+    "action": "recommend_skill_reinstall"
+  }
+]

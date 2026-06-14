@@ -17,6 +17,7 @@ import shutil
 import argparse
 from pathlib import Path
 from datetime import datetime
+import components as component_helpers
 from state import load_setup_state, update_setup_state
 from version import read_repo_version
 
@@ -162,6 +163,10 @@ def status_label(value: str) -> str:
         "error": "ERROR",
         "missing": "MISSING",
         "missing_toolchain": "MISSING TOOLCHAIN",
+        "runtime_review_required": "RUNTIME REVIEW REQUIRED",
+        "runtime_cleanup_pending": "RUNTIME CLEANUP PENDING",
+        "manual_removal_required": "MANUAL REMOVAL REQUIRED",
+        "manual_verify": "MANUAL VERIFY",
     }
     return labels.get(value, str(value).upper())
 
@@ -380,6 +385,9 @@ def main():
             "evening_time": evening_time,
             "weekly_time": weekly_time,
             "agent_platform": agent_platform,
+            "user_name": user_name,
+            "user_role": user_role,
+            "side_project_name": side_project_name or args.side_project_name,
         },
         components={"repo_path": str(REPO_ROOT), "version": read_repo_version()},
     )
@@ -409,16 +417,22 @@ def main():
         print(f"  ✓ QUICKSTART.html rendered")
         update_setup_state(vault_path, components={"quickstart": str(quickstart_src)})
 
-    # ── Symlink or copy knowledge base (if enabled) ─────────────────────
+    # ── Link repo knowledge base (if enabled) ───────────────────────────
     if features["knowledge_base"] and KNOWLEDGE_DIR.exists():
         kb_dest = vault_path / ".llm-gtd" / "knowledge-link.txt"
         kb_dest.write_text(
             f"# GTD Knowledge Base location\n"
             f"# AGENTS.md references pages from here.\n"
+            f"# This is a repo asset, not copied user vault data.\n"
             f"path: {KNOWLEDGE_DIR / 'gtd'}\n",
             encoding="utf-8",
         )
         print(f"  ✓ Knowledge base linked at: {KNOWLEDGE_DIR / 'gtd'}")
+        update_setup_state(
+            vault_path,
+            capabilities={"gtd_knowledge_base": "ok"},
+            components={"gtd_knowledge_base": str(KNOWLEDGE_DIR / "gtd"), "knowledge_link": str(kb_dest)},
+        )
     update_setup_state(
         vault_path,
         steps={"init_vault": "ok"},
@@ -503,6 +517,16 @@ def main():
         print(f"  ⚠ Agent cron guide skipped: {e}")
     setup_report = write_setup_report(vault_path)
     update_setup_state(vault_path, components={"setup_report": str(setup_report)})
+    for component in component_helpers.load_manifest(REPO_ROOT):
+        source_hash = component_helpers.component_hash(component, REPO_ROOT)
+        component_helpers.mark_component_applied(
+            vault_path,
+            component,
+            source_hash,
+            status="ok",
+            details={"setup_baseline": True},
+        )
+    print("  ✓ Component state initialized")
 
     # ── Auto-open QUICKSTART.html ──────────────────────────────────────
     quickstart = vault_path / "QUICKSTART.html"

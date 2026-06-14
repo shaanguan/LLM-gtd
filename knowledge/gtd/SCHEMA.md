@@ -1,6 +1,8 @@
 # LLM Wiki — Schema
 
-This wiki covers GTD (Getting Things Done) methodology and personal productivity concepts based on David Allen's published work. It serves as a quick-reference knowledge base for the AI agent when making GTD-related decisions.
+This wiki covers GTD (Getting Things Done) methodology and personal productivity concepts based on David Allen's published work. It serves as a calibration and compounding layer for the AI agent when making GTD-related decisions.
+
+The wiki is not the agent's ability ceiling. The agent may use general GTD, secretary, planning, and reasoning ability beyond these pages. Local wiki pages matter because they preserve the system's terminology, cross-links, prior synthesis, and explicit overrides.
 
 ## Directory Structure
 
@@ -58,10 +60,10 @@ Practice tags: `time-management`, `productivity`, `goal-setting`, `project-plann
 
 When the user asks a GTD-related question:
 
-1. Read `wiki/index.md` to find relevant pages.
-2. Read relevant wiki pages.
-3. Synthesize an answer with wiki-link citations.
-4. If the answer is substantial, offer to file it as a new wiki page.
+1. If the question is about the user's actual tasks, projects, due dates, owners, priorities, or completion state, answer from the user's vault evidence, not this wiki.
+2. If the question is about GTD methodology, use model judgment and consult `wiki/index.md` when local terminology, prior synthesis, or a cited local page would improve the answer.
+3. If a local wiki page conflicts with generic model knowledge, treat the local page as the LLM-GTD convention and explain the distinction when useful.
+4. If the answer is substantial and durable, offer to file it as a project note, `05 - Reference/` note, or wiki update. Do not write it automatically.
 
 ### Lint
 
@@ -78,4 +80,4 @@ Periodically check for:
 2. **Link liberally.** Cross-references are the wiki's most valuable feature.
 3. **Flag contradictions.** Note disagreements explicitly.
 4. **Compound knowledge.** Good query answers should become wiki pages.
-5. **Be honest about gaps.** If the wiki doesn't cover something, say so.
+5. **Be honest about gaps.** If the wiki doesn't cover something, say so, then use model judgment if the user asked for advice rather than a vault fact.

@@ -37,8 +37,14 @@ tags: [gtd, index, navigation]
 | 页面 | 摘要 |
 |------|------|
 | [[natural-planning\|自然计划法]] | 五步规划：目的→愿景→头脑风暴→组织→下一步行动 |
-| [[reference-system\|参考资料系统]] | 不需要行动但有保存价值的信息的归档与检索结构 |
+| [[reference-system|参考资料系统]] | 不需要行动但有保存价值的信息的归档与检索结构 |
+
+## 系统架构
+
+| 页面 | 摘要 |
+|------|------|
+| [[architecture|LLM-GTD 系统架构]] | 三层模型（Agent Runtime / Computer Tools / Vault）、Manifest 副作用注册表、安装升级卸载的生命周期协调 |
 
 ---
 
-> 建议入门路径：先读 [[inbox-processing|收集箱处理]] 理解基本流程，再读 [[project-definition|项目定义]] 和 [[next-action|下一步行动]] 掌握核心概念，最后通过 [[weekly-review|周回顾]] 学会系统维护。
+> 建议入门路径：先读 [[inbox-processing|收集箱处理]] 理解基本流程，再读 [[project-definition|项目定义]] 和 [[next-action|下一步行动]] 掌握核心概念，最后通过 [[weekly-review|周回顾]] 学会系统维护。想了解系统设计，读 [[architecture|LLM-GTD 系统架构]]。

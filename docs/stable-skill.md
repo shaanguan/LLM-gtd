@@ -1,53 +1,57 @@
 # Stable Skill Contract
 
-Personal LLM-GTD uses a **stable skill + evolving vault** split so users can upgrade with natural language (`升级 GTD`) without reinstalling the skill every release.
+Personal LLM-GTD uses a **stable Agent-facing skill + component-upgraded installed system** split. Users can say `升级 GTD`; the skill runs the component-aware upgrade helper instead of reinstalling the skill for every release.
 
 ## Roles
 
 | Artifact | Role | Update frequency |
 |---|---|---|
-| `skills/llm-gtd/SKILL.md` | Loader: intent routing, path resolution, script dispatch | **Rare** |
-| `vault-template/AGENTS.md` | Brain: GTD behavior, authority, routines | **Often** |
-| `setup/*.py`, `VERSION` | Install, upgrade, doctor, automation | **Often** |
-| `docs/setup-guide-for-agent.md`, `docs/upgrading.md` | Detailed operational reference | **Often** |
+| `skills/llm-gtd/SKILL.md` | Agent action protocol: intent routing, path resolution, script dispatch, post-script runtime obligations | Rare |
+| `vault-template/AGENTS.md` | Secretary handbook: GTD behavior, authority, routines, sync rules | Often |
+| `setup/components.json` | Component manifest for upgrade decisions | When managed components change |
+| `setup/*.py`, `VERSION` | Factory/Distribution scripts for install, upgrade, doctor, local tools | Often |
+| `.llm-gtd/component-state.json` | Per-vault applied component hashes | Written by setup/upgrade |
 
-## What belongs in the skill (frozen contract v1)
+## What Belongs In Skill.md
 
-- Broad intent matching (description + short mode table)
-- `$VAULT_PATH` / `$REPO_PATH` resolution rules
-- **Always read `AGENTS.md`**
-- Dispatch table: setup → `init.py`, upgrade → `upgrade.py`, doctor → `doctor.py`, uninstall → `uninstall.py`
-- Hard safety rules: preserve `00~07`, `npx skills add -y`, no Qoder APIs
+- Broad intent matching.
+- `$VAULT_PATH` / `$REPO_PATH` resolution rules.
+- Always read `AGENTS.md` before GTD work.
+- Mode protocols for setup, upgrade, doctor, uninstall, and daily.
+- Host reliability rules for workspace-bound vs semantic-injection-only Agents.
+- Clear Agent obligations when scripts cannot act: scheduler jobs, IM MCP/Gateway, online docs credentials, installed skill package.
+- Hard safety rules: preserve `00~07`, do not claim runtime cleanup without verification, no legacy Qoder APIs.
 
-## What must NOT go in the skill
+## What Must Not Go In Skill.md
 
-- GTD methodology details (MIT rules, inbox tree, review steps)
-- Platform-specific cron CLI examples (belongs in `.llm-gtd/agent-cron-guide.md`)
-- Feature flags, IM doc sync, OKR conditionals
-- Version-specific release notes
+- GTD methodology details such as MIT rules or inbox decision trees.
+- Platform-specific cron command inventories beyond where to read the guide.
+- IM document sync protocols.
+- Release notes or component implementation detail.
 
-Put those in **vault template** or **repo docs**. Users pick them up via `upgrade.py --apply`.
+Put those in `vault-template/AGENTS.md`, `.llm-gtd/agent-cron-guide.md`, `setup/components.json`, and repo docs.
 
-## When to bump the skill version
+## When To Bump Skill Version
 
-Bump `skills/llm-gtd/SKILL.md` version and cut a new `.skill` release only when:
+Bump `skills/llm-gtd/SKILL.md` and package a new `.skill` only when:
 
-1. Intent routing must change (new top-level mode)
-2. Path resolution or clone URL changes
-3. Stable contract commands rename (`upgrade.py` → something else)
-4. Install plumbing changes (skills CLI flags, package name)
+1. Intent routing changes.
+2. Path resolution changes.
+3. Mode protocol changes in a way the Agent must know.
+4. Activation / ambiguity policy changes for semantic-injection-only hosts.
+5. Stable command names or install plumbing changes.
 
-Do **not** bump the skill for AGENTS.md edits, dashboard changes, or setup script improvements — bump repo `VERSION` and let users run vault upgrade.
+Do not bump the skill for ordinary AGENTS, Dashboard, template, or local tool changes. Those are component upgrades.
 
-## User-facing upgrade path
+## User-Facing Upgrade Path
 
 ```text
 User: 升级 GTD
-  → skill (stable) runs upgrade.py
-  → vault gets new AGENTS.md + templates
-  → user notes in 00~07 untouched
+  -> skill resolves vault/repo
+  -> upgrade.py --check --json returns changed components
+  -> upgrade.py --apply applies only changed components
+  -> Agent handles runtime_actions_required if any
+  -> user notes in 00~07 are preserved
 ```
 
-Skill reinstall: first install, or when stable contract version changes.
-
-Track contract with frontmatter `stable_contract: 1` in `SKILL.md`. Increment only on breaking loader changes.
+Skill reinstall is needed only for first install or when the `skill_loader` component changes and the user wants the installed loader updated.

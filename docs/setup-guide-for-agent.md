@@ -1,39 +1,55 @@
 # Agent Setup Guide
 
-> Operational instructions for the `llm-gtd` skill.
-> Platform-neutral: works with any agent that can run shell, install skills, and read `AGENTS.md`.
+Operational instructions for the `llm-gtd` skill. This guide is for Agents that can run shell commands, read vault files, and may or may not have scheduler / IM tools.
 
-## Agent Neutrality Principles
+## Architecture Contract
 
-1. **`AGENTS.md` is canonical** — the GTD brain lives in the vault, not in a specific agent product.
-2. **Skill = loader** — `llm-gtd` skill explicitly reads `AGENTS.md`; it does not depend on workspace auto-injection.
-3. **Platform hint is optional** — `--agent-platform` only tailors cron guide examples, not feature availability.
-4. **No vendor lock-in** — do not require Hermes, OpenClaw, Claude, or Cursor by name unless the user chose that scheduler.
+LLM-GTD installs three layers and is produced by one Factory/Distribution layer:
 
-Legacy QoderWork APIs (`qoder_cron`, `小Q`, `mcp__builtin_qoderwork__action`) are **deprecated**.
-
-## Two automation layers
-
-| Layer | Purpose | Registration |
+| Layer | Examples | Agent responsibility |
 |---|---|---|
-| **Local launchd** | Dashboard refresh, git snapshot | `setup/create_launchd.py` (macOS) |
-| **Agent cron** | Morning / evening / weekly review | Platform scheduler, if available |
+| Agent Runtime | `SKILL.md`, rendered `AGENTS.md`, agent cron, IM MCP/Gateway, online docs | Complete what scripts cannot: scheduler jobs, IM/doc integrations, skill package updates |
+| Computer Tools | Dashboard.app, launchd, QuickCapture, local scripts | Let repo scripts install/upgrade/remove; verify with doctor |
+| Vault State | `00 - Inbox` through `07 - Achievements` | Preserve always; this is user data |
+| Factory/Distribution | `setup/*`, `vault-template/*`, `components.json`, packaged skill | Source of setup and component upgrades |
 
-## Setup flow
+`AGENTS.md` is canonical for GTD behavior. `SKILL.md` is the loader/action protocol.
+
+## Host Reliability
+
+Agents enter LLM-GTD through different hosts:
+
+| Host type | Example | Risk | Required behavior |
+|---|---|---|---|
+| Workspace-bound | Claude-style session opened on the GTD vault | Low | Read `AGENTS.md` / `CLAUDE.md` and proceed. |
+| Semantic skill injection | Hermes-style Agent without workspace selection | Medium | Treat generic capture phrases as ambiguous unless GTD markers are present. |
+
+For semantic-injection-only hosts, `记一下`, `帮我记`, or `remember this` may mean GTD, memory, or wiki knowledge. If the message lacks clear GTD markers, ask whether it should go to GTD Inbox before writing vault files.
+
+## Experience / Render View
+
+The operational layers explain installation. The experience view explains surfaces:
+
+- Input channels: chat, workspace Agent, skill Agent, QuickCapture, IM, import.
+- Pipeline: raw Inbox item -> clarification -> GTD object in the vault.
+- Render surfaces: Dashboard, Daily IM brief, Scheduling doc, IM messages.
+
+Render surfaces must always be regenerated from a full vault scan, not from the current turn's diff.
+
+## Setup Mode
 
 ### Step 1: Ask preferences
 
-**Q1: Vault path** — default `~/Documents/GTD`
+Ask only for values scripts cannot safely infer:
 
-**Q2: Scheduler hint (optional)** — `generic` / `hermes` / `openclaw` / `claude` / `cursor` — for cron guide only
+- Vault path, default `~/Documents/GTD`
+- Scheduler/platform hint: `generic`, `hermes`, `openclaw`, `claude`, `cursor`
+- IM / phone channel: Feishu, DingTalk, Telegram, WeCom, WeChat, or none
+- Feature toggles: OKR, doc sync, side project, knowledge base
+- Routine times: morning, evening, weekly
+- User name/role if needed for rendered instructions
 
-**Q3: IM platform** — Feishu / DingTalk / Telegram / WeCom / WeChat / None
-
-**Q4: Feature toggles** — OKR, doc sync, side project, knowledge base
-
-**Q5: Routine times** — morning, evening, weekly
-
-### Step 2: Run init.py
+### Step 2: Run setup
 
 ```bash
 python3 <repo-path>/setup/init.py \
@@ -42,71 +58,85 @@ python3 <repo-path>/setup/init.py \
   --agent-platform generic \
   --im-platform "<feishu|dingtalk|telegram|wecom|wechat|none>" \
   --morning-time "<HH:MM>" \
-  --evening-time "<HH:MM>"
+  --evening-time "<HH:MM>" \
+  --no-open
 ```
 
-`init.py` creates the vault, installs local helpers, renders `AGENTS.md` + `CLAUDE.md`, and writes `.llm-gtd/agent-cron-guide.md`.
+`init.py` creates the vault scaffold, renders `AGENTS.md` / `CLAUDE.md`, installs scriptable Computer Tools, writes `.llm-gtd/agent-cron-guide.md`, and initializes `.llm-gtd/component-state.json`.
 
-In `--non-interactive` mode, QuickCapture is skipped by default to avoid a long Swift build in agent terminals. Pass `--install-quickcapture` only when the user wants the native hotkey built during setup.
+### Step 3: Finish Agent Runtime
 
-### Step 3: Load instructions
+Read:
 
-**Skill mode (default):** use `llm-gtd` from any session. **Explicitly read** `<vault-path>/AGENTS.md` before GTD work.
+- `.llm-gtd/setup-report.md`
+- `.llm-gtd/agent-cron-guide.md`
+- `.llm-gtd/setup-state.json`
 
-**Workspace mode:** optionally open the vault as project root for auto-loaded context.
+If scheduler tools are available, register the three Agent cron jobs. If not, report `agent_cron` as pending/manual.
 
-### Step 4A: Local launchd (macOS)
+If IM MCP/Gateway tools are available and doc sync is enabled, create or connect the online docs/message integration. If not, report `im_docs` as pending/manual.
 
-```bash
-python3 <repo-path>/setup/create_launchd.py --vault "<vault-path>"
-python3 <repo-path>/setup/create_launchd.py --vault "<vault-path>" --verify
-```
-
-### Step 4B: Register agent cron jobs (if platform supports scheduling)
-
-```bash
-python3 <repo-path>/setup/agent_cron.py --vault "<vault-path>" --platform generic --json
-```
-
-Read `.llm-gtd/agent-cron-guide.md`. Create three jobs with self-contained prompts.
-
-**Known examples** (use only what applies):
-
-- Hermes: prefer the `cronjob` tool with the JSON from `setup/agent_cron.py --platform hermes --json`
-- OpenClaw: `openclaw cron add ... --announce`
-
-**No scheduler?** On-demand triggers (`早`, `回顾`, `周回顾`) are the fallback. Mark `agent_cron: manual`.
-
-### Step 5: Online docs / Telegram
-
-If Feishu/DingTalk MCP is available, create scheduling + daily docs and backfill `AGENTS.md` §4.
-
-### Step 6: Doctor
+### Step 4: Verify
 
 ```bash
 python3 <repo-path>/setup/doctor.py --vault "<vault-path>" --check-cron --check-quickcapture --json
 ```
 
-### Step 7: Obsidian (optional)
+Report findings by layer: Vault State, Computer Tools, Agent Runtime.
 
-User can open the vault folder in Obsidian; system works without it.
+Report render/IM findings separately: Dashboard, Daily IM brief, Scheduling doc, IM message runtime.
 
-### Step 8: Confirm success
+## Upgrade Mode
 
-> **本地自动化**：Dashboard 刷新 + git 快照（macOS launchd）
-> **Agent 定时任务**：若平台支持，早/晚/周回顾会主动找你；否则随时说 `早` / `回顾`
-> 验证：见 `.llm-gtd/setup-report.md` 和 `agent-cron-guide.md`
+Upgrade is component-level. Do not blindly rerun full setup.
 
-## Uninstall
+```bash
+python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --check --json
+python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --pull-repo
+```
+
+`--check --json` returns `components`, `runtime_actions_required`, and `skill_reinstall_recommended`.
+
+Use targeted repair when appropriate:
+
+```bash
+python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --components dashboard_app --force
+python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --components agent_instructions
+```
+
+Rules:
+
+- `agent_instructions` re-renders `AGENTS.md` / `CLAUDE.md` with backups.
+- `dashboard_app` only rebuilds Dashboard.app.
+- `dashboard` only updates Dashboard.html / exporter and runs export.
+- `agent_cron_guide` marks `agent_cron: runtime_review_required`; the Agent must review or re-register scheduler jobs.
+- `skill_loader` recommends skill reinstall; routine upgrade does not run `npx skills add`.
+
+## Uninstall Mode
 
 ```bash
 python3 <repo-path>/setup/uninstall.py --vault "<vault-path>"
 ```
 
-Remove platform cron jobs per the guide. **Never delete** `00~07` folders.
+The script removes scriptable Computer Tools only:
 
-## Important notes
+- launchd plists
+- QuickCapture launch agent
+- optional Dashboard.app
+- optional `.llm-gtd` state with `--purge-state`
 
-- NEVER hardcode user personal info into the llm-gtd repo
-- Cron prompts must be self-contained — scheduled sessions have no chat memory
-- Git snapshot at 23:55 is launchd, not agent cron
+The script cannot remove Agent Runtime:
+
+- platform agent cron jobs
+- IM Gateway credentials / bots / webhooks
+- online docs permissions
+- installed skill package
+
+After running the script, read `.llm-gtd/setup-state.json` and `.llm-gtd/agent-cron-guide.md`. If the current Agent has scheduler or IM tools, finish cleanup there. Otherwise report `runtime_cleanup_pending`. Never delete `00 - Inbox` through `07 - Achievements`.
+
+## Important Notes
+
+- Cron prompts must be self-contained; scheduled sessions have no chat memory.
+- Git snapshot at 23:55 is local launchd, not Agent cron.
+- Never hardcode user personal information into the repo.
+- Legacy QoderWork APIs (`qoder_cron`, `小Q`, `mcp__builtin_qoderwork__action`) are deprecated.
