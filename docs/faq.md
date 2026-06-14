@@ -59,6 +59,15 @@ npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
 
 Or pin one agent to skip the picker: add `-a hermes-agent` (or `openclaw`, `cursor`, `claude-code`, etc.).
 
+**Q: How do I upgrade an existing installation?**
+Three layers: skill, repo/vault runtime, automation. See [Upgrading](upgrading.md). Quick path:
+
+```bash
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
+python3 setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
+python3 setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
+```
+
 **Q: The agent seems to have "forgotten" a rule I set.**
 Rules belong in AGENTS.md, not just in conversation memory. If you established something important, verify it's written into the appropriate section. AGENTS.md is re-injected every session — memory can fade, this file can't.
 

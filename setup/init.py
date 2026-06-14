@@ -18,6 +18,7 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from state import load_setup_state, update_setup_state
+from version import read_repo_version
 
 # ---------------------------------------------------------------------------
 # Constants
@@ -36,9 +37,6 @@ FEATURES_ALL = ["okr", "doc_sync", "side_project", "knowledge_base"]
 
 IM_PLATFORMS = ["feishu", "dingtalk", "telegram", "wecom", "wechat"]
 AGENT_PLATFORMS = ["generic", "hermes", "openclaw", "claude", "cursor"]
-
-# Version written to .llm-gtd/version for upgrade detection
-VERSION = "1.1.0"
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -366,7 +364,7 @@ def main():
     (state_dir / "logs").mkdir(exist_ok=True)
 
     # Write version for upgrade detection (#6)
-    (state_dir / "version").write_text(VERSION + "\n", encoding="utf-8")
+    (state_dir / "version").write_text(read_repo_version() + "\n", encoding="utf-8")
     update_setup_state(
         vault_path,
         steps={
@@ -383,7 +381,7 @@ def main():
             "weekly_time": weekly_time,
             "agent_platform": agent_platform,
         },
-        components={"repo_path": str(REPO_ROOT), "version": VERSION},
+        components={"repo_path": str(REPO_ROOT), "version": read_repo_version()},
     )
 
     # ── Render agent instructions ────────────────────────────────────────

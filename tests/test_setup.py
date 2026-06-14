@@ -180,6 +180,57 @@ class AgentCronTest(unittest.TestCase):
         self.assertEqual(jobs[0].key, "morning")
 
 
+class VersionTest(unittest.TestCase):
+    def test_compare_versions(self):
+        import version
+        self.assertEqual(version.compare_versions("2.3.3", "2.4.0"), -1)
+        self.assertEqual(version.compare_versions("2.4.0", "2.4.0"), 0)
+        self.assertEqual(version.compare_versions("2.5.0", "2.4.0"), 1)
+
+    def test_read_repo_version(self):
+        import version
+        self.assertEqual(version.read_repo_version(), "2.4.0")
+
+    def test_check_for_updates_offline(self):
+        import version
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            vault.mkdir()
+            (vault / ".llm-gtd").mkdir()
+            (vault / ".llm-gtd" / "version").write_text("2.3.0\n", encoding="utf-8")
+            status = version.check_for_updates(
+                local_repo_version="2.4.0",
+                vault_version="2.3.0",
+                fetch_remote=False,
+            )
+            self.assertTrue(status["update_available"])
+            self.assertTrue(status["vault_behind_repo"])
+
+
+class UpgradeTest(unittest.TestCase):
+    def test_build_init_command_uses_preferences(self):
+        import upgrade
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            vault.mkdir()
+            state.update_setup_state(
+                vault,
+                preferences={
+                    "agent_platform": "hermes",
+                    "im_platform": "telegram",
+                    "morning_time": "09:00",
+                    "evening_time": "21:00",
+                    "features": {"okr": False, "doc_sync": False},
+                },
+            )
+            cmd = upgrade.build_init_command(vault, REPO_ROOT)
+            joined = " ".join(cmd)
+            self.assertIn("--agent-platform hermes", joined)
+            self.assertIn("--im-platform telegram", joined)
+            self.assertIn("--disable-okr", joined)
+            self.assertIn("--disable-doc-sync", joined)
+
+
 class LaunchdVerifyTest(unittest.TestCase):
     def test_verify_loaded_returns_mapping(self):
         ok, loaded = create_launchd.verify_loaded()

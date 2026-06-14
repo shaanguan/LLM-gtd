@@ -97,6 +97,16 @@ python3 setup/uninstall.py --vault "$HOME/Documents/GTD"
 
 This removes automation only. **Your user data in `00 - Inbox` through `07 - Achievements` is always preserved.**
 
+## Upgrade
+
+```bash
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
+python3 setup/upgrade.py --vault "$HOME/Documents/GTD" --check
+python3 setup/upgrade.py --vault "$HOME/Documents/GTD" --apply --pull-repo
+```
+
+See [Upgrading](docs/upgrading.md) for the full flow.
+
 ## Daily Routine
 
 | Moment | What you say | What happens |
@@ -142,6 +152,7 @@ python3 scripts/package_skill.py
 - [Architecture](docs/architecture.md)
 - [Project tracks](docs/project-tracks.md)
 - [Personal edition design](docs/personal-edition-design.md)
+- [Upgrading](docs/upgrading.md)
 - [FAQ](docs/faq.md)
 
 ## License

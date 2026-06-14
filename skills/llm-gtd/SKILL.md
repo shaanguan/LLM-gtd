@@ -1,147 +1,111 @@
 ---
 name: llm-gtd
-description: "LLM-GTD setup and daily GTD secretary. Platform-neutral: initializes vault, local launchd jobs, optional agent cron when the platform supports scheduling, and explicitly loads AGENTS.md for capture and routines. Triggers: /llm-gtd, 设置 GTD, 早, 回顾, 卸载 GTD."
-version: 2.3.3
+description: "Personal GTD secretary + setup + upgrade + uninstall. Capture tasks, clarify Inbox, morning brief, evening review, weekly review, MIT, next actions, waiting-for, projects, Obsidian vault, Dashboard. Triggers include: 设置GTD, 初始化, 安装GTD, 升级, 更新, 卸载, 早, 早报, 今日安排, 回顾, 复盘, 周回顾, 帮我记, 记一下, 待办, inbox, GTD, todo, capture, morning, review, weekly, upgrade, doctor, uninstall, /llm-gtd. Platform-neutral: loads AGENTS.md explicitly."
+version: 2.4.0
 ---
 
 # LLM-GTD
 
-Platform-neutral GTD secretary skill. Works with any agent that can run shell commands, install skills, and read `AGENTS.md`.
+One skill for the full personal GTD lifecycle: **setup, daily runtime, upgrade, doctor, uninstall**.
 
-## Context Loading (two modes)
+Platform-neutral. Works with any agent that can run shell commands and read files.
 
-| Mode | When | How instructions load |
-|---|---|---|
-| **Skill mode** | Agent supports skills (recommended) | This skill explicitly reads `$VAULT_PATH/AGENTS.md` each session |
-| **Workspace mode** | Vault opened as project root | `AGENTS.md` / `CLAUDE.md` auto-injected by the host |
+## Intent Router (match broadly)
 
-`AGENTS.md` is canonical. `CLAUDE.md` is a compatibility alias with identical content.
+Use this skill when the user message **looks like GTD work**, even if they do not say exact keywords.
 
-## Two Automation Layers (do not confuse them)
+| Intent | Example phrases (zh / en) |
+|---|---|
+| **Setup** | 设置 GTD, 初始化 GTD, 安装 GTD, 配置 GTD, 帮我建 vault, setup gtd, install gtd, configure gtd, `/llm-gtd` |
+| **Upgrade** | 升级 GTD, 更新 GTD, 检查更新, upgrade gtd, update gtd, new version, 版本更新 |
+| **Capture** | 帮我记, 记一下, 别忘了, 待办, 任务, 提醒我这个, capture, remember, todo, add task, inbox |
+| **Morning** | 早, 早报, 今日安排, 今天做什么, morning, daily brief, MIT, 最重要的事 |
+| **Evening review** | 回顾, 复盘, 收尾, 今天完成了吗, review, evening, wrap up |
+| **Weekly review** | 周回顾, 每周回顾, 清零 inbox, weekly, weekly review |
+| **Inbox processing** | 过 inbox, 清 inbox, 处理收集箱, process inbox, clarify inbox |
+| **Status / dashboard** | 看看 gtd, 打开 dashboard, 项目进展, status, what's on my plate |
+| **Doctor** | 检查 GTD, GTD 健康检查, doctor, diagnose, 安装成功了吗 |
+| **Uninstall** | 卸载 GTD, 删除自动化, uninstall gtd, remove gtd |
 
-| Layer | What | How to verify |
-|---|---|---|
-| **Local launchd** | Dashboard refresh every 30m, git snapshot 23:55 | `launchctl list \| grep llm-gtd` |
-| **Agent cron** | Morning brief, evening review, weekly review | Your platform scheduler CLI, or `.llm-gtd/agent-cron-guide.md` |
+If unsure but the user is talking about **tasks, priorities, deadlines, projects, or their GTD vault**, prefer this skill.
 
-Setup addresses both layers when the OS/platform supports them.
+## Context Loading
+
+| Mode | How |
+|---|---|
+| **Skill mode** | Explicitly read `$VAULT_PATH/AGENTS.md` (fallback `CLAUDE.md`) before any GTD action |
+| **Workspace mode** | Vault as project root may auto-load instructions; still read `AGENTS.md` if unsure |
 
 ## Hard Rules
 
-- Execute shell commands and read output. Do not claim jobs exist without verification.
-- **Always read `$VAULT_PATH/AGENTS.md`** before GTD work — do not rely on chat memory alone.
-- Register agent cron jobs **if the user's platform supports scheduled agent tasks**. Otherwise document on-demand triggers.
-- Uninstall must preserve `00 - Inbox` through `07 - Achievements` and all markdown notes inside them.
-
-## Trigger
-
-- Setup: `/llm-gtd`, `/llm-gtd-setup`, `设置 GTD`
-- Daily: `早`, `morning`, `回顾`, `review`, `周回顾`, `weekly`, `帮我记`, `inbox`
-- Doctor: `GTD doctor`, `检查 GTD`
-- Uninstall: `卸载 GTD`, `uninstall GTD`
+- Execute shell commands and read output.
+- **Always read `AGENTS.md`** before GTD work — never rely on chat memory alone.
+- Uninstall/automation removal must preserve `00 - Inbox` through `07 - Achievements`.
+- When installing/upgrading the skill: `npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y`
 
 ## Daily Runtime Mode
 
-1. Resolve `$VAULT_PATH` from `$GTD_VAULT`, `~/Documents/GTD`, or user input.
-2. Read `.llm-gtd/setup-state.json`.
-3. **Explicitly read `$VAULT_PATH/AGENTS.md`** (fallback: `CLAUDE.md`).
-4. Route capture / morning / review / weekly / doctor from vault data only.
+1. Resolve vault: `$GTD_VAULT`, `~/Documents/GTD`, or ask once.
+2. Read `.llm-gtd/setup-state.json` if present.
+3. **Read `$VAULT_PATH/AGENTS.md`.**
+4. Act only from vault evidence.
 
 ## Setup Mode
 
-### 1. Locate repo and ask preferences
-
-Clone `https://github.com/shaanguan/LLM-gtd.git` if needed. Ask:
-
-1. Vault path — default `~/Documents/GTD`
-2. Scheduler hint (optional) — `generic` / `hermes` / `openclaw` / `claude` / `cursor` — only affects cron guide examples
-3. IM platform — Feishu, DingTalk, Telegram, WeCom, WeChat, or none
-4. Morning / evening / weekly times
-
-### 2. Run init.py
+Triggers: setup / 设置 / 初始化 / 安装 GTD
 
 ```bash
 cd "$REPO_PATH"
 python3 setup/init.py --vault "$VAULT_PATH" --agent-platform generic --non-interactive
 ```
 
-Use a specific `--agent-platform` only when the user names their scheduler and wants tailored cron examples.
+Then macOS launchd, agent cron (if supported), and doctor. See existing setup sections in repo `docs/setup-guide-for-agent.md`.
 
-In `--non-interactive` mode, `init.py` skips the QuickCapture Swift build by default to avoid long-running agent setup. Pass `--install-quickcapture` only when the user explicitly wants the build inline.
+Non-interactive setup skips QuickCapture build by default; pass `--install-quickcapture` only when requested.
 
-`init.py` writes `.llm-gtd/agent-cron-guide.md`. Read it before registering cron jobs.
+## Upgrade Mode
 
-### 3. Local launchd gate (macOS)
+Triggers: upgrade / 升级 / 更新 / 检查更新 / update gtd
 
-```bash
-python3 "$REPO_PATH/setup/create_launchd.py" --vault "$VAULT_PATH"
-python3 "$REPO_PATH/setup/create_launchd.py" --vault "$VAULT_PATH" --verify
-```
-
-### 4. Register agent cron jobs (when platform supports scheduling)
-
-Generate platform-specific commands:
+### 1. Check for updates
 
 ```bash
-python3 "$REPO_PATH/setup/agent_cron.py" --vault "$VAULT_PATH" --platform generic --write-guide
-python3 "$REPO_PATH/setup/agent_cron.py" --vault "$VAULT_PATH" --platform <scheduler-hint> --json
+python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --check --json
 ```
 
-Create **three jobs** with self-contained prompts from the guide:
-
-- `GTD Morning Brief` — default `30 10 * * *`
-- `GTD Evening Review` — default `30 22 * * *`
-- `GTD Weekly Review` — default `0 21 * * 0`
-
-Each job must load vault instructions (`llm-gtd` skill or explicit AGENTS.md read in prompt).
-
-**Examples** (use only what matches the user's platform):
+Or with remote GitHub release lookup (default):
 
 ```bash
-# OpenClaw
-openclaw cron add --name "GTD Morning Brief" --cron "30 10 * * *" --tz "Asia/Shanghai" \
-  --session isolated --message "<prompt>" --announce
+python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-updates --json
 ```
 
-For Hermes, prefer the platform `cronjob` tool in chat using the job data from:
+### 2. Upgrade skill
 
 ```bash
-python3 "$REPO_PATH/setup/agent_cron.py" --vault "$VAULT_PATH" --platform hermes --json
+npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
 ```
 
-**No platform scheduler?** Tell the user routines work on demand via `早` / `回顾` / `周回顾`. Mark `agent_cron: manual`.
-
-After registering jobs:
+### 3. Pull repo (if git checkout)
 
 ```bash
-python3 - <<'PY'
-from pathlib import Path
-import sys
-sys.path.insert(0, "$REPO_PATH/setup")
-from state import update_setup_state
-update_setup_state(Path("$VAULT_PATH"), steps={"register_agent_cron": "ok"}, capabilities={"agent_cron": "ok"})
-PY
+cd "$REPO_PATH" && git pull --ff-only
 ```
 
-### 5. Doctor verification
+### 4. Apply vault runtime upgrade
+
+Updates `AGENTS.md`, Dashboard template, guides, and `.llm-gtd/version`. **Does not overwrite user notes in 00~07.**
 
 ```bash
-python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-quickcapture --json
+python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --apply --pull-repo
 ```
 
-Report separately: `launchd`, `agent_cron`, `git_snapshots`, `quickcapture`.
+### 5. Verify
 
-### 6. Final summary
+```bash
+python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-updates --json
+```
 
-> **本地自动化（launchd，macOS）**
-> - Dashboard 每 30 分钟刷新
-> - 每晚 23:55 git 快照
-> - 验证：`launchctl list | grep llm-gtd`
->
-> **Agent 定时任务（若平台支持）**
-> - 早间播报 / 晚间回顾 / 周回顾
-> - 验证：见 `.llm-gtd/agent-cron-guide.md`
-> - 无定时器时，随时说 `早` / `回顾` / `周回顾` 即可
+Tell the user if a custom-edited `AGENTS.md` may have been refreshed — they should use git on the vault if they maintain local rule overrides.
 
 ## Safe Uninstall
 
@@ -149,17 +113,17 @@ Report separately: `launchd`, `agent_cron`, `git_snapshots`, `quickcapture`.
 python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH"
 ```
 
-Also remove agent cron jobs per `.llm-gtd/agent-cron-guide.md`.
+Remove agent cron jobs per `.llm-gtd/agent-cron-guide.md`. Never delete user markdown in 00~07.
 
-### Never delete
+## Automation Layers
 
-- `00 - Inbox/` through `07 - Achievements/`
-- any `.md` notes inside those folders
+| Layer | Verify |
+|---|---|
+| launchd | `launchctl list \| grep llm-gtd` |
+| agent cron | `.llm-gtd/agent-cron-guide.md` or platform scheduler CLI |
 
 ## Pitfalls
 
-- When installing this skill via `npx skills add`, always pass **`-y`** (and optionally **`-a <agent>`**). Without it, the CLI blocks on an interactive agent picker that Agent terminals cannot operate.
-- Do not use legacy QoderWork APIs (`qoder_cron`, `小Q`, `mcp__builtin_qoderwork__action`).
-- `init.py` alone does not register agent cron jobs — the skill must do it when supported.
-- Do not assume a specific agent brand — always load `AGENTS.md` explicitly in skill mode.
-- `doctor --check-cron` checks launchd (macOS) and agent cron (best-effort per platform hint).
+- `npx skills add` needs **`-y`** or it hangs on interactive agent picker.
+- No legacy QoderWork APIs (`qoder_cron`, `小Q`).
+- `init.py` / `upgrade.py` do not register agent cron by themselves — do that when the platform supports scheduling.

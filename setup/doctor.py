@@ -153,31 +153,55 @@ def check_state_dir(vault: Path) -> list:
 
 
 def check_version(vault: Path) -> list:
-    """Check vault version against repo version for upgrade detection."""
+    """Check vault version against repo VERSION file."""
     issues = []
-    version_file = vault / ".llm-gtd" / "version"
-    if not version_file.is_file():
-        issues.append(("INFO", "No .llm-gtd/version file — cannot detect upgrades (pre-1.1.0 vault?)"))
+    try:
+        from version import read_repo_version, read_vault_version, compare_versions
+    except ImportError:
         return issues
 
-    # Import VERSION from init.py or fallback
-    repo_root = Path(__file__).resolve().parent.parent
-    init_py = repo_root / "setup" / "init.py"
-    repo_version = "unknown"
-    if init_py.is_file():
-        for line in init_py.read_text(encoding="utf-8").splitlines():
-            if line.startswith("VERSION"):
-                repo_version = line.split('"')[1] if '"' in line else line.split("'")[1]
-                break
+    vault_version = read_vault_version(vault)
+    repo_version = read_repo_version()
+    if vault_version is None:
+        issues.append(("INFO", "No .llm-gtd/version file — run setup/upgrade.py --apply to stamp version"))
+        return issues
 
-    vault_version = version_file.read_text(encoding="utf-8").strip()
-    if vault_version != repo_version and repo_version != "unknown":
+    if compare_versions(vault_version, repo_version) < 0:
         issues.append((
             "WARN",
             f"Vault version {vault_version} < repo version {repo_version}. "
-            f"Run: python3 setup/init.py --vault \"{vault}\" to upgrade runtime files."
+            f"Run: python3 setup/upgrade.py --vault \"{vault}\" --apply"
         ))
+    return issues
 
+
+def check_remote_updates(vault: Path) -> list:
+    issues = []
+    try:
+        from version import check_for_updates, read_vault_version, read_repo_version
+    except ImportError:
+        return issues
+
+    status = check_for_updates(
+        local_repo_version=read_repo_version(),
+        vault_version=read_vault_version(vault),
+        fetch_remote=True,
+    )
+    if status.get("error"):
+        issues.append(("INFO", f"Could not check GitHub release: {status['error']}"))
+    remote = status.get("remote_version")
+    repo_version = status.get("repo_version")
+    if remote and status.get("repo_behind_remote"):
+        issues.append((
+            "WARN",
+            f"Local repo {repo_version} is behind GitHub release {remote}. "
+            f"Run: git pull && python3 setup/upgrade.py --vault \"{vault}\" --apply"
+        ))
+    if status.get("update_available"):
+        issues.append((
+            "INFO",
+            "Upgrade skill with: npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y"
+        ))
     return issues
 
 
@@ -372,6 +396,7 @@ def main():
     parser.add_argument("--check-cron", action="store_true", help="Also verify launchd and agent cron registration")
     parser.add_argument("--check-quickcapture", action="store_true", help="Also verify QuickCapture installation")
     parser.add_argument("--json", action="store_true", help="Print machine-readable doctor results")
+    parser.add_argument("--check-updates", action="store_true", help="Also check GitHub latest release")
     parser.add_argument("--fix", action="store_true", help="Auto-fix simple issues (missing dirs, state dir)")
     args = parser.parse_args()
 
@@ -412,6 +437,9 @@ def main():
     env_issues = check_env_var()
     if env_issues:
         all_issues.extend(env_issues)
+
+    if args.check_updates:
+        checks.append(("Remote updates", check_remote_updates))
 
     for name, fn in checks:
         issues = fn(vault)
