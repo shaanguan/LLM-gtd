@@ -26,25 +26,29 @@ npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y -a <agent>   # e.g. herme
 设置 GTD
 ```
 
-The skill asks **three quick preferences** (or `全部默认`), then creates everything for you:
+The skill asks a few quick preferences (or `全部默认`), then creates the LLM-GTD core:
 
 - local GTD vault (Obsidian-ready)
 - Agent instructions (`AGENTS.md`, with `CLAUDE.md` as compatibility alias)
-- Dashboard + `Dashboard.app`
-- QuickCapture hotkey (installed by default during setup; Swift build may take ~1 min)
-- **scheduled jobs** (Dashboard refresh every 30 min + git snapshot at 23:55)
 - QUICKSTART onboarding
-- Feishu / DingTalk / Telegram when credentials are available
 
-**3. Confirm automation (two layers)**
+Optional capabilities can be injected by your Agent framework, installed from other packages, or enabled from this repo's bundled examples:
 
-Local launchd:
+- capture providers
+- render providers
+- scheduler providers
+- messaging / online-doc providers
+- backup / automation / health-check providers
+
+**3. Optional: enable capabilities**
+
+Bundled local automation example, if you enabled that provider:
 
 ```bash
 launchctl list | grep llm-gtd
 ```
 
-Agent cron (if your platform supports scheduled agent tasks):
+Bundled scheduler guide example, if you enabled or injected a scheduler provider:
 
 See `.llm-gtd/agent-cron-guide.md` in your vault, or run:
 
@@ -52,22 +56,22 @@ See `.llm-gtd/agent-cron-guide.md` in your vault, or run:
 python3 tools/setup/agent_cron.py --vault "$GTD_VAULT" --platform generic --json
 ```
 
-You should see morning / evening / weekly GTD jobs when scheduling is supported.
+You should see morning / evening / weekly GTD jobs only when a scheduler provider is supported and verified.
 Otherwise use on-demand triggers: `早`, `回顾`, `周回顾`.
 
 **4. Try your first capture**
 
 ```text
-加到 GTD：明天看一下 LLM-GTD Dashboard
+加到 GTD：明天整理发票
 ```
 
-You should see: say something → lands in Inbox → Dashboard updates → review later.
+You should see: say something → lands in Inbox → review later. If a render provider is enabled, its output updates from the vault.
 
 On agents that rely only on semantic skill injection, generic phrases like `记一下` may be ambiguous. The skill should ask whether the note belongs in GTD Inbox or in memory/knowledge before filing.
 
 Fallback: download [`llm-gtd.skill`](https://github.com/shaanguan/LLM-gtd/releases/latest) if your agent installs `.skill` bundles directly.
 
-Recommended defaults: `~/Documents/GTD`, Feishu for docs, morning brief 10:30, evening review 22:30. Say `全部默认` to accept all defaults in one sentence.
+Recommended core defaults: `~/Documents/GTD`, no required providers, morning brief 10:30, evening review 22:30. Say `全部默认` to accept all defaults in one sentence.
 
 Setup auto-opens `QUICKSTART.html` in your browser when complete.
 
@@ -75,18 +79,18 @@ Setup auto-opens `QUICKSTART.html` in your browser when complete.
 
 LLM-GTD turns an AI agent into a senior GTD secretary. It captures messy thoughts, clarifies them into projects and next actions, reminds you at the right time, and keeps a local Markdown vault as the source of truth.
 
-All data stays in your Obsidian vault. Dashboard, QuickCapture, scheduled reviews, Telegram/IM, and shared docs are just surfaces around that vault.
+All data stays in your Obsidian vault. Capture tools, render views, scheduled reviews, messages, and shared docs are optional providers or projections around that vault.
 
 The Agent is expected to act like a high-agency secretary, not a passive form-filler: it reads the vault, interprets intent, recommends sequencing, surfaces blockers, and handles routine GTD operations while escalating irreversible or externally binding decisions.
 
 ## What You Get
 
 - **AI GTD secretary**: the Agent understands GTD so the user does not have to.
-- **Zero-friction capture**: chat, QuickCapture hotkey, Telegram, IM, paste, or import all land in Inbox first.
+- **Zero-friction capture**: chat, paste, import, or an optional capture provider can land in Inbox first.
 - **Intelligent clarification**: messy notes become projects, next actions, waiting-for items, someday ideas, or reference notes.
 - **Daily operating rhythm**: say `morning`, `review`, or `weekly` to run stable GTD routines from vault data.
-- **Local Dashboard**: one page for active projects, next actions, waiting-for items, stale items, and progress.
-- **Native surfaces**: macOS QuickCapture, Telegram bot UX, Feishu/DingTalk docs, and local scheduled jobs.
+- **Optional render providers**: generated views for active projects, next actions, waiting-for items, stale items, and progress.
+- **Optional native/provider surfaces**: capture, messaging/doc integrations, scheduling, backup, and local automation can be injected or installed separately.
 - **Recoverable setup**: setup-state and doctor capabilities make installation resumable and debuggable.
 
 ## Uninstall Safely
@@ -97,7 +101,7 @@ Say `卸载 GTD` to your Agent, or run:
 python3 tools/setup/uninstall.py --vault "$HOME/Documents/GTD"
 ```
 
-This removes automation only. **Your user data in `00 - Inbox` through `07 - Achievements` is always preserved.**
+This removes selected scriptable local providers only. **Your user data in `00 - Inbox` through `07 - Achievements` is always preserved.**
 
 ## Upgrade
 
@@ -114,28 +118,46 @@ See [Upgrading](docs/upgrading.md) for the full flow.
 | Moment | What you say | What happens |
 |---|---|---|
 | Morning | `morning` / `早` | MITs, upcoming deadlines, waiting-for nudges |
-| Anytime | `帮我记...` | Captured into Inbox from chat/Telegram/QuickCapture |
+| Anytime | `加到 GTD：...` | Captured into Inbox from chat or an optional capture provider |
 | Inbox sweep | `帮我过一下 Inbox` | Agent clarifies items with GTD judgement |
-| Evening | `review` / `回顾` | Batch-confirm completions, archive, refresh Dashboard |
+| Evening | `review` / `回顾` | Batch-confirm completions, archive, refresh enabled projections |
 | Weekly | `weekly` / `周回顾` | Full system audit: Inbox, projects, next actions, waiting, someday |
 
 ## How It Works
 
-LLM-GTD has two views:
+LLM-GTD is a skill-centered system with three composable blocks:
 
 ```text
-Operational view: Agent Runtime / Computer Tools / Vault State / Factory
-Experience view:  input channels -> Inbox pipeline -> Dashboard / IM docs / briefs
+Skills: Agent-facing GTD behavior and mode protocols
+Vaults: durable GTD state, templates, and knowledge that other skills can reuse
+Capability providers: optional capture/render/scheduler/messaging/backup/automation/diagnostic providers
 ```
 
-Core rule: the vault wins. Dashboard and docs are generated views.
+The `llm-gtd` skill is the default GTD secretary for this repo, but the blocks are intentionally Lego-like: another skill can operate on the same vault contract, and different providers can be injected, added, or swapped around the vault as user needs change. Provider examples include render surfaces, hotkey capture, schedulers, messaging connectors, backup helpers, and diagnostics.
+
+Operational and render views still matter under that model:
+
+```text
+Runtime view:  skill protocol -> vault contract -> local/remote tool authority
+Experience view: input channels -> Inbox pipeline -> optional projections / briefs
+```
+
+Capability rule: core defines extension points, providers supply capabilities, the Agent discovers capabilities at runtime, and the vault remains source of truth.
+
+LLM-GTD supports two interface profiles: `remote-im` for IM/mobile/gateway use, with OpenClaw and Hermes Agent as primary current hosts, and `desktop-workspace` when the vault is opened directly as an Agent workspace.
+
+Core rule: the vault wins. Provider outputs and briefings are generated projections.
+
+Knowledge rule: the vault is a compiled action knowledge base. Raw captures, review conclusions, project context, and useful judgments should compound into durable Markdown objects with traceable evidence, not disappear into chat history.
+
+Maintenance writing rule: product docs define ownership and capability slots in positive terms. See [docs/writing-guidelines.md](docs/writing-guidelines.md).
 
 ## Requirements
 
 - Any agent that can install the `llm-gtd` skill and read `AGENTS.md`
 - Obsidian for viewing/editing the vault
 - Python 3.9+
-- macOS for Dashboard.app, launchd automation, and QuickCapture
+- macOS only for some optional bundled provider examples
 
 ## For Developers
 
@@ -143,8 +165,8 @@ Core rule: the vault wins. Dashboard and docs are generated views.
 git clone https://github.com/shaanguan/LLM-gtd.git
 cd LLM-gtd
 python3 tools/setup/init.py --vault "$HOME/Documents/GTD"
-python3 tools/setup/create_launchd.py --vault "$HOME/Documents/GTD" --verify
-python3 tools/setup/doctor.py --vault "$HOME/Documents/GTD" --check-cron --check-quickcapture --json
+python3 tools/setup/init.py --vault "$HOME/Documents/GTD" --with-bundled-tools
+python3 tools/setup/doctor.py --vault "$HOME/Documents/GTD" --json
 python3 tools/scripts/package_skill.py
 ```
 
@@ -153,9 +175,13 @@ python3 tools/scripts/package_skill.py
 - [Install via skills CLI](#install-in-30-seconds)
 - [Download .skill fallback](https://github.com/shaanguan/LLM-gtd/releases/latest)
 - [Architecture](docs/architecture.md)
+- [Capability contract](docs/capability-contract.md)
+- [Action knowledge base](docs/action-knowledge-base.md)
 - [Maintenance map](docs/maintenance-map.md)
 - [Project tracks](docs/project-tracks.md)
 - [Personal edition design](docs/personal-edition-design.md)
+- [Interface profiles](docs/profiles.md)
+- [Tool plugins](docs/tool-plugins.md)
 - [Stable skill contract](docs/stable-skill.md)
 - [Upgrading](docs/upgrading.md)
 - [FAQ](docs/faq.md)

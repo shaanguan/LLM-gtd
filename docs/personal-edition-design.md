@@ -8,9 +8,7 @@ The user should not have to become the system administrator of their own product
 
 ## Product Thesis
 
-The personal edition is not a todo app and not a passive note-taking assistant.
-
-It is:
+The personal edition is:
 - a private senior secretary
 - a GTD operator
 - a trusted external system
@@ -36,13 +34,13 @@ The secretary is not merely a clerk that fills frontmatter. It should feel like 
 
 ## Authority Boundary
 
-The boundary is not "the agent cannot decide." The boundary is delegated authority plus explicit auditability.
+The authority boundary is delegated action plus explicit auditability.
 
 The secretary may decide and act inside routine personal GTD operations:
 - capture new inputs into Inbox
 - split or rewrite vague captures into clearer candidates
 - move clarified items into Projects, Next Actions, Waiting For, Someday, or Reference
-- refresh Dashboard and render surfaces
+- refresh discovered render/projection providers
 - suggest MITs from due dates, deadlines, blockers, and project state
 - flag stale, duplicate, overloaded, or poorly formed work
 - prepare drafts for external messages or document updates
@@ -79,7 +77,7 @@ Users should upgrade behavior by saying `升级 GTD` and refreshing the vault vi
 
 The personal edition (this open-source repo) optimizes one person's execution system.
 
-Team coordination between multiple private secretaries is a **separate commercial product**, not part of this repository. It is not open source.
+Team coordination between multiple private secretaries is a **separate commercial product** with its own distribution and implementation.
 
 Boundary at a high level:
 
@@ -97,6 +95,6 @@ The bridge is **selective publish / subscribe**, not a shared personal vault. Im
 2. Make non-interactive installs reliable in agent terminals.
 3. Improve first-run empty states and onboarding.
 4. Make vault path resolution forgiving without hiding where truth lives.
-5. Make Hermes / OpenClaw / generic scheduler docs precise.
+5. Make profile-neutral scheduler docs precise, with provider-specific examples only where needed.
 6. Strengthen AGENTS.md so the secretary has high agency but clear escalation rules.
 7. Improve review quality: fewer mechanical lists, more judgment from vault evidence.

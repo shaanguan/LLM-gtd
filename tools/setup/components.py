@@ -123,13 +123,16 @@ def current_component_status(
             continue
         current_hash = component_hash(component, repo_root)
         applied_hash = previous.get(component["id"], {}).get("source_hash")
+        previous_status = previous.get(component["id"], {}).get("status")
         changed = force or applied_hash != current_hash
         rows.append({
             "id": component["id"],
             "layer": component["layer"],
             "changed": changed,
+            "enabled": previous_status != "skipped",
             "current_hash": current_hash,
             "applied_hash": applied_hash,
+            "previous_status": previous_status,
             "action": component.get("action"),
             "apply_mode": component.get("apply_mode"),
             "target": component.get("target"),

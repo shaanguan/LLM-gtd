@@ -9,9 +9,7 @@ Checks:
   1. $GTD_VAULT is set and directory exists
   2. Required directories present (00-Inbox through 07-Achievements)
   3. AGENTS.md exists and has no unresolved {{placeholders}}
-  4. Scripts/ present and importable
-  5. Dashboard.html exists
-  6. export_dashboard.py exists
+  4. Optional tool plugin files are internally consistent when installed
   7. .llm-gtd/ state directory exists
   8. config.yaml (optional) is valid YAML if present
   9. --check-cron: verify launchd plists are loaded
@@ -42,12 +40,14 @@ REQUIRED_DIRS = [
     "05 - Reference",
     "06 - Archive",
     "07 - Achievements",
-    "Scripts",
     "Templates",
 ]
 
 REQUIRED_FILES = [
     "AGENTS.md",
+]
+
+DASHBOARD_PLUGIN_FILES = [
     "Dashboard.html",
     "export_dashboard.py",
 ]
@@ -106,12 +106,26 @@ def check_files(vault: Path) -> list:
     return issues
 
 
+def check_dashboard_plugin(vault: Path) -> list:
+    issues = []
+    existing = [name for name in DASHBOARD_PLUGIN_FILES if (vault / name).is_file()]
+    if not existing:
+        return issues
+    missing = [name for name in DASHBOARD_PLUGIN_FILES if not (vault / name).is_file()]
+    for name in missing:
+        issues.append(("WARN", f"Dashboard plugin partially installed; missing file: {name}"))
+    return issues
+
+
 def check_scripts(vault: Path) -> list:
     issues = []
+    scripts_dir = vault / "Scripts"
+    if not scripts_dir.exists():
+        return issues
     for s in REQUIRED_SCRIPTS:
         p = vault / s
         if not p.is_file():
-            issues.append(("WARN", f"Missing script: {s}"))
+            issues.append(("WARN", f"Tool plugin scripts partially installed; missing script: {s}"))
     return issues
 
 
@@ -331,7 +345,9 @@ def load_agent_platform(vault: Path) -> str:
 
 
 def build_capabilities(vault: Path, include_cron: bool = False, include_quickcapture: bool = False) -> dict:
-    dashboard_ok = (vault / "Dashboard.html").is_file() and (vault / "export_dashboard.py").is_file()
+    dashboard_files = [(vault / name).is_file() for name in DASHBOARD_PLUGIN_FILES]
+    dashboard_ok = all(dashboard_files)
+    dashboard_partial = any(dashboard_files) and not dashboard_ok
     vault_ok = vault.is_dir() and all((vault / d).is_dir() for d in REQUIRED_DIRS)
     state_dir_ok = (vault / ".llm-gtd").is_dir()
     git_ok = (vault / ".git").is_dir()
@@ -342,7 +358,7 @@ def build_capabilities(vault: Path, include_cron: bool = False, include_quickcap
         "vault": "ok" if vault_ok else "error",
         "agent_instructions": "ok" if instructions else "missing",
         "gtd_knowledge_base": "ok" if knowledge_link and knowledge_link.is_dir() else ("missing" if knowledge_link is None else "error"),
-        "dashboard": "ok" if dashboard_ok else "error",
+        "dashboard": "ok" if dashboard_ok else ("warning" if dashboard_partial else "skipped"),
         "quickcapture": "unknown",
         "launchd": "unknown",
         "agent_cron": "unknown",
@@ -477,7 +493,8 @@ def main():
         ("Vault path", check_vault_path),
         ("Directories", check_directories),
         ("Core files", check_files),
-        ("Scripts", check_scripts),
+        ("Dashboard plugin", check_dashboard_plugin),
+        ("Tool plugin scripts", check_scripts),
         ("AGENTS.md quality", check_claude_md),
         ("Knowledge contract", check_knowledge_contract),
         ("State directory", check_state_dir),

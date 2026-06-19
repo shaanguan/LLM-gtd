@@ -2,7 +2,7 @@
 
 > Detailed operational protocol for DingTalk document sync.
 > This is a reference file — consult during document sync operations.
-> For the summary, see AGENTS.md §4.
+> Core `AGENTS.md` defines when online-doc providers may be used. This file owns provider-specific write protocol.
 
 ## Scheduling Document Block Layout (6 blocks, index 0–5)
 

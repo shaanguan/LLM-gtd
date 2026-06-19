@@ -29,6 +29,8 @@ class InitHelpersTest(unittest.TestCase):
         )
         self.assertEqual(result.returncode, 0)
         self.assertIn("--vault", result.stdout)
+        self.assertIn("--core-only", result.stdout)
+        self.assertIn("--with-bundled-tools", result.stdout)
         self.assertNotIn("--non-interactive", result.stdout)
 
     def test_validate_hhmm_accepts_24_hour_time(self):
@@ -82,6 +84,82 @@ OKR
 
         self.assertEqual(init.render_conditionals(text, {"okr": False}), "No OKR\n")
         self.assertEqual(init.render_conditionals(text, {"okr": True}), "OKR\n")
+
+    def test_default_setup_skips_tool_plugins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(REPO_ROOT / "tools" / "setup" / "init.py"),
+                    "--vault",
+                    str(vault),
+                    "--no-open",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            loaded = state.load_setup_state(vault)
+            self.assertEqual(loaded["preferences"]["setup_recipe"], "core_only")
+            self.assertEqual(loaded["capabilities"]["launchd"], "skipped")
+            self.assertEqual(loaded["capabilities"]["quickcapture"], "skipped")
+            self.assertEqual(loaded["capabilities"]["dashboard_app"], "skipped")
+            self.assertEqual(loaded["capabilities"]["agent_cron"], "skipped")
+            self.assertEqual(loaded["capabilities"]["im_docs"], "skipped")
+            component_state = components.load_component_state(vault)
+            self.assertEqual(component_state["components"]["dashboard"]["status"], "skipped")
+            self.assertEqual(component_state["components"]["quickcapture"]["status"], "skipped")
+            self.assertEqual(component_state["components"]["agent_instructions"]["status"], "ok")
+            self.assertTrue((vault / "AGENTS.md").exists())
+            self.assertFalse((vault / "Dashboard.html").exists())
+            self.assertFalse((vault / "Scripts").exists())
+
+    def test_vault_template_excludes_tool_provider_assets(self):
+        template = REPO_ROOT / "vaults" / "template"
+        quickstart = (template / "QUICKSTART.html").read_text(encoding="utf-8")
+        reference_readme = (template / "05 - Reference" / "README.md").read_text(encoding="utf-8")
+
+        self.assertFalse((template / "Dashboard.html").exists())
+        self.assertFalse((template / "export_dashboard.py").exists())
+        self.assertFalse((template / "Scripts").exists())
+        self.assertFalse((template / "05 - Reference" / "doc-sync-protocol.md").exists())
+        self.assertTrue((REPO_ROOT / "tools" / "plugins" / "dashboard" / "vault-assets" / "Dashboard.html").exists())
+        self.assertTrue((REPO_ROOT / "tools" / "plugins" / "vault-scripts" / "vault-assets" / "Scripts" / "query_audit.py").exists())
+        self.assertTrue((REPO_ROOT / "tools" / "plugins" / "online-docs" / "vault-assets" / "05 - Reference" / "doc-sync-protocol.md").exists())
+        self.assertNotIn("Dashboard", quickstart)
+        self.assertNotIn("QuickCapture", quickstart)
+        self.assertNotIn("launchctl", quickstart)
+        self.assertNotIn("export_dashboard", reference_readme)
+        self.assertNotIn("Dashboard", reference_readme)
+
+    def test_bundled_tools_init_installs_provider_assets_from_plugins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    str(REPO_ROOT / "tools" / "setup" / "init.py"),
+                    "--vault",
+                    str(vault),
+                    "--with-bundled-tools",
+                    "--no-open",
+                    "--no-app",
+                    "--skip-automation",
+                    "--skip-quickcapture",
+                ],
+                capture_output=True,
+                text=True,
+                timeout=20,
+            )
+
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertTrue((vault / "Dashboard.html").exists())
+            self.assertTrue((vault / "export_dashboard.py").exists())
+            self.assertTrue((vault / "Scripts" / "query_audit.py").exists())
+            self.assertFalse((vault / "Scripts" / "__pycache__").exists())
 
 
 class LaunchdTest(unittest.TestCase):
@@ -168,6 +246,19 @@ class StateAndDoctorTest(unittest.TestCase):
             for dirname in doctor.REQUIRED_DIRS:
                 (vault / dirname).mkdir(parents=True, exist_ok=True)
             for filename in doctor.REQUIRED_FILES:
+                (vault / filename).write_text("", encoding="utf-8")
+
+            capabilities = doctor.build_capabilities(vault)
+
+            self.assertEqual(capabilities["vault"], "ok")
+            self.assertEqual(capabilities["dashboard"], "skipped")
+
+    def test_doctor_detects_dashboard_plugin_when_installed(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            for dirname in doctor.REQUIRED_DIRS:
+                (vault / dirname).mkdir(parents=True, exist_ok=True)
+            for filename in doctor.REQUIRED_FILES + doctor.DASHBOARD_PLUGIN_FILES:
                 (vault / filename).write_text("", encoding="utf-8")
 
             capabilities = doctor.build_capabilities(vault)
@@ -280,63 +371,198 @@ class VersionTest(unittest.TestCase):
 
 
 class SkillContractTest(unittest.TestCase):
-    def test_skill_documents_semantic_injection_ambiguity(self):
-        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+    SKILL_DIR = REPO_ROOT / "skills" / "llm-gtd"
 
-        self.assertIn("Semantic-injection only", text)
+    def _skill_text(self) -> str:
+        return (self.SKILL_DIR / "SKILL.md").read_text(encoding="utf-8")
+
+    def _reference_text(self, name: str) -> str:
+        return (self.SKILL_DIR / "references" / name).read_text(encoding="utf-8")
+
+    def test_skill_loader_is_thin_and_points_to_references(self):
+        text = self._skill_text()
+
+        self.assertIn("version: 2.6.0", text)
+        self.assertIn("references/setup.md", text)
+        self.assertIn("references/upgrade.md", text)
+        self.assertIn("references/render-surfaces.md", text)
+        self.assertIn("references/profiles/remote-im.md", text)
+        self.assertIn("references/profiles/desktop-workspace.md", text)
+        self.assertIn("daily (inline", text)
+
+    def test_skill_documents_semantic_injection_ambiguity(self):
+        text = self._skill_text()
+
+        self.assertIn("remote-im", text)
         self.assertIn("GTD Inbox", text)
-        self.assertIn("memory/wiki", text)
+        self.assertIn("普通记忆/知识库", text)
+
+    def test_skill_profile_references_are_platform_neutral(self):
+        remote = self._reference_text("profiles/remote-im.md")
+        desktop = self._reference_text("profiles/desktop-workspace.md")
+
+        self.assertIn("Remote IM Profile", remote)
+        self.assertIn("Desktop Workspace Profile", desktop)
+        self.assertIn("platform-neutral", remote)
+        self.assertFalse((self.SKILL_DIR / "references" / "profiles" / "hermes-im.md").exists())
 
     def test_skill_documents_render_and_im_surface_duties(self):
-        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+        text = self._reference_text("render-surfaces.md")
 
-        self.assertIn("Render And IM Surface Duties", text)
-        self.assertIn("External Surfaces", text)
-        self.assertIn("Scheduling doc / online docs", text)
-        self.assertIn("runtime_cleanup_pending", text)
+        self.assertIn("Projection Capability Duties", text)
+        self.assertIn("Scheduling doc", text)
+        self.assertIn("Discover", text)
+
+    def test_skill_documents_composable_block_contract(self):
+        text = self._skill_text()
+
+        self.assertIn("Composable Block Contract", text)
+        self.assertIn("Skills:", text)
+        self.assertIn("Vaults:", text)
+        self.assertIn("Capability providers:", text)
+        self.assertIn("another compatible skill may use the same vault contract", text)
+
+    def test_skill_documents_capability_injection_boundary(self):
+        text = self._skill_text()
+
+        self.assertIn("Capability Injection Boundary", text)
+        self.assertIn("Core defines extension points", text)
+        self.assertIn("Agent discovers capabilities at runtime", text)
+        self.assertIn("Discover providers from setup state", text)
+
+    def test_skill_documents_agent_framework_boundary(self):
+        text = self._skill_text()
+
+        self.assertIn("Agent Framework Boundary", text)
+        self.assertIn("Agent frameworks provide runtime", text)
+        self.assertIn("scheduler, IM, MCP", text)
+        self.assertIn("provider/tool verification", text)
 
     def test_skill_setup_requires_preference_questionnaire(self):
-        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+        text = self._reference_text("setup.md")
 
         self.assertIn("全部默认", text)
         self.assertIn("Round 1", text)
-        self.assertIn("--install-quickcapture", text)
+        self.assertIn("--core-only", text)
+        self.assertIn("可选能力", text)
         self.assertNotIn("| 14 | Install QuickCapture", text)
 
     def test_skill_setup_includes_full_playbook(self):
-        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+        text = self._reference_text("setup.md")
 
         self.assertIn("Step 0", text)
-        self.assertIn("create_launchd.py", text)
+        self.assertIn("tools/setup/create_launchd.py", text)
         self.assertIn("--verify", text)
         self.assertIn("Obsidian", text)
         self.assertIn("Final summary", text)
-        self.assertIn("Setup pitfalls", text)
-        self.assertIn("skip-automation", text)
+        self.assertIn("Pitfalls", text)
+        self.assertIn("bundled provider examples", text)
 
     def test_skill_documents_onboard_cold_start_menu(self):
-        text = (REPO_ROOT / "skills" / "llm-gtd" / "SKILL.md").read_text(encoding="utf-8")
+        text = self._reference_text("setup.md")
 
         self.assertIn("七天 GTD 冷启动", text)
         self.assertIn("直接告诉我", text)
         self.assertIn("链接或文件", text)
         self.assertIn("粘贴清单", text)
         self.assertIn("import_onboarding.py", text)
-        self.assertIn("--no-open", text)
+        self.assertIn("QUICKSTART", text)
 
     def test_maintenance_map_routes_host_and_render_views(self):
         text = (REPO_ROOT / "docs" / "maintenance-map.md").read_text(encoding="utf-8")
 
+        self.assertIn("Which Block", text)
+        self.assertIn("Skills", text)
+        self.assertIn("Vaults", text)
+        self.assertIn("Capability Providers", text)
         self.assertIn("Operational / install view", text)
-        self.assertIn("Experience / render view", text)
-        self.assertIn("Semantic-injection only", text)
-        self.assertIn("Scheduling doc", text)
+        self.assertIn("Experience / projection view", text)
+        self.assertIn("Interface Profile", text)
+        self.assertIn("remote-im", text)
+        self.assertIn("desktop-workspace", text)
+        self.assertIn("Projection Capability Checklist", text)
+        self.assertIn("online_docs", text)
+
+    def test_architecture_documents_skill_centered_lego_model(self):
+        text = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+
+        self.assertIn("skill product", text)
+        self.assertIn("Composable Blocks", text)
+        self.assertIn("skills/", text)
+        self.assertIn("vaults/", text)
+        self.assertIn("tools/", text)
+        self.assertIn("Another skill can operate on a compatible GTD vault", text)
+
+    def test_architecture_documents_capability_providers_as_optional(self):
+        text = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+        plugins = (REPO_ROOT / "docs" / "tool-plugins.md").read_text(encoding="utf-8")
+        contract = (REPO_ROOT / "docs" / "capability-contract.md").read_text(encoding="utf-8")
+
+        self.assertIn("Capability Providers", text)
+        self.assertIn("Product Boundary", text)
+        self.assertIn("Core contract", text)
+        self.assertIn("tools/setup/init.py --core-only", text)
+        self.assertIn("Core defines extension points", text)
+        self.assertIn("Agent discovers capabilities at runtime", contract)
+        self.assertIn("Capability slot", plugins)
+        self.assertIn("Optional provider", plugins)
+
+    def test_docs_include_writing_guidelines_for_product_language(self):
+        text = (REPO_ROOT / "docs" / "writing-guidelines.md").read_text(encoding="utf-8")
+
+        self.assertIn("Write from ownership first", text)
+        self.assertIn("Providers supply capabilities", text)
+        self.assertIn("positive ownership statement", text)
+
+    def test_component_manifest_labels_tool_plugins(self):
+        manifest = {item["id"]: item for item in components.load_manifest(REPO_ROOT)}
+
+        self.assertEqual(manifest["dashboard"]["layer"], "tool_plugins")
+        self.assertEqual(manifest["dashboard_app"]["layer"], "tool_plugins")
+        self.assertEqual(manifest["quickcapture"]["layer"], "tool_plugins")
+        self.assertEqual(manifest["launchd"]["layer"], "tool_plugins")
+
+    def test_tool_plugin_ownership_dirs_exist(self):
+        root = REPO_ROOT / "tools" / "plugins"
+
+        for name in ["dashboard", "quickcapture", "local-automation", "scheduler", "online-docs"]:
+            self.assertTrue((root / name / "README.md").is_file(), name)
+
+    def test_core_agents_keeps_online_doc_provider_details_out(self):
+        text = (REPO_ROOT / "vaults" / "template" / "AGENTS.md").read_text(encoding="utf-8")
+
+        self.assertIn("Online Docs Capability", text)
+        self.assertIn("provider protocol", text)
+        for phrase in [
+            "DingTalk",
+            "Feishu",
+            "Telegram",
+            "WeCom",
+            "WeChat",
+            "block-level",
+            "blockId",
+            "insert_document_block",
+            "markdown-overwrite",
+            "Document Sync Operations",
+        ]:
+            self.assertNotIn(phrase, text)
+
+    def test_architecture_documents_platform_neutral_profiles(self):
+        text = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+        profiles = (REPO_ROOT / "docs" / "profiles.md").read_text(encoding="utf-8")
+
+        self.assertIn("Interface Profiles", text)
+        self.assertIn("remote-im", text)
+        self.assertIn("desktop-workspace", text)
+        self.assertIn("not platform names", profiles)
+        self.assertNotIn("hermes-im", text.lower())
+        self.assertNotIn("hermes-im", profiles.lower())
 
     def test_architecture_documents_online_doc_lifecycle(self):
         text = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
 
         self.assertIn("External surfaces", text)
-        self.assertIn("Online document responsibility", text)
+        self.assertIn("Online document / messaging responsibility", text)
         self.assertIn("runtime_cleanup_pending", text)
 
     def test_rendered_agents_contains_knowledge_evidence_contract(self):
@@ -374,8 +600,22 @@ class SkillContractTest(unittest.TestCase):
 
         self.assertIn("Knowledge & Evidence Contract", rendered)
         self.assertIn("Methodology is model-assisted", rendered)
+        self.assertIn("compiled action knowledge", rendered)
+        self.assertIn("Index-first", rendered)
+        self.assertIn("Capability slots are discovered", rendered)
+        self.assertIn("minimum viable loop", rendered)
         self.assertIn("Classify the query before answering", rendered)
         self.assertIn("Answer compounding", rendered)
+
+    def test_action_knowledge_base_contract_is_documented(self):
+        architecture = (REPO_ROOT / "docs" / "architecture.md").read_text(encoding="utf-8")
+        action_knowledge = (REPO_ROOT / "docs" / "action-knowledge-base.md").read_text(encoding="utf-8")
+
+        self.assertIn("compiled, compounding, auditable personal action knowledge base", architecture)
+        self.assertIn("Action Knowledge Base", action_knowledge)
+        self.assertIn("State compounding", action_knowledge)
+        self.assertIn("Index-first querying", action_knowledge)
+        self.assertIn("Fact / Judgment Boundary", action_knowledge)
 
 
 class UpgradeTest(unittest.TestCase):
@@ -482,6 +722,33 @@ class UpgradeTest(unittest.TestCase):
             self.assertEqual(rc, 0)
             self.assertEqual(agents.read_text(encoding="utf-8"), "keep me")
 
+    def test_apply_upgrade_skips_disabled_tool_plugins_by_default(self):
+        import upgrade
+        with tempfile.TemporaryDirectory() as tmp:
+            vault = Path(tmp) / "GTD"
+            vault.mkdir()
+            manifest = {item["id"]: item for item in components.load_manifest(REPO_ROOT)}
+            for component in manifest.values():
+                source_hash = components.component_hash(component, REPO_ROOT)
+                components.mark_component_applied(vault, component, source_hash)
+            components.mark_component_applied(vault, manifest["dashboard"], "old-hash", status="skipped")
+
+            original = upgrade.APPLIERS["dashboard"]
+            try:
+                upgrade.APPLIERS["dashboard"] = lambda vault, repo_root: self.fail("disabled plugin should not apply")
+                rc = upgrade.apply_upgrade(
+                    vault,
+                    REPO_ROOT,
+                    pull_repo=False,
+                    selected_ids=None,
+                    force=False,
+                )
+            finally:
+                upgrade.APPLIERS["dashboard"] = original
+
+            self.assertEqual(rc, 0)
+            self.assertFalse((vault / "Dashboard.html").exists())
+
     def test_apply_gtd_knowledge_base_only_refreshes_link(self):
         import upgrade
         with tempfile.TemporaryDirectory() as tmp:
@@ -538,7 +805,7 @@ class QueryAuditTest(unittest.TestCase):
             vault.mkdir()
             (vault / "AGENTS.md").write_text("agent", encoding="utf-8")
             env = {**os.environ, "GTD_VAULT": str(vault)}
-            script = REPO_ROOT / "vaults" / "template" / "Scripts" / "query_audit.py"
+            script = REPO_ROOT / "tools" / "plugins" / "vault-scripts" / "vault-assets" / "Scripts" / "query_audit.py"
 
             result = subprocess.run(
                 [

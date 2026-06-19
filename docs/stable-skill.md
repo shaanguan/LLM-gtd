@@ -1,6 +1,8 @@
 # Stable Skill Contract
 
-Personal LLM-GTD uses a **stable Agent-facing skill + component-upgraded installed system** split. Users can say `升级 GTD`; the skill runs the component-aware upgrade helper instead of reinstalling the skill for every release.
+Personal LLM-GTD is a **skill-centered product** with a durable Vault contract and optional capability providers. The `llm-gtd` skill is the default Agent behavior layer, while the vault contract and providers are designed to be composable: another compatible skill can use the same vault, and providers can be externally injected, added, or replaced around it.
+
+Users can say `升级 GTD`; the skill runs the component-aware upgrade helper instead of reinstalling the skill for every release.
 
 ## Roles
 
@@ -14,13 +16,14 @@ Personal LLM-GTD uses a **stable Agent-facing skill + component-upgraded install
 
 ## What Belongs In Skill.md
 
+- The Skills / Vaults / Capability Providers contract: skill decides behavior, vault holds truth, providers supply optional capabilities.
 - Broad intent matching.
 - `$VAULT_PATH` / `$REPO_PATH` resolution rules.
 - Always read `AGENTS.md` before GTD work.
 - Mode protocols for setup, upgrade, doctor, uninstall, and daily.
-- Host reliability rules for workspace-bound vs semantic-injection-only Agents.
-- Clear Agent obligations when scripts cannot act: scheduler jobs, IM MCP/Gateway, online docs credentials, installed skill package.
-- Hard safety rules: preserve `00~07`, do not claim runtime cleanup without verification, no legacy Qoder APIs.
+- Interface profile rules for `remote-im` vs `desktop-workspace`.
+- Clear Agent obligations when optional capabilities are unavailable: scheduler jobs, messaging/online-doc providers, MCP/Gateway, credentials, installed skill package.
+- Hard safety rules: preserve `00~07` and require provider/tool verification before reporting external runtime cleanup.
 
 ## What Must Not Go In Skill.md
 
@@ -41,7 +44,7 @@ Bump `skills/llm-gtd/SKILL.md` and package a new `.skill` only when:
 4. Activation / ambiguity policy changes for semantic-injection-only hosts.
 5. Stable command names or install plumbing changes.
 
-Do not bump the skill for ordinary AGENTS, Dashboard, template, or local tool changes. Those are component upgrades.
+Ordinary AGENTS, template, and provider implementation changes are component upgrades.
 
 ## User-Facing Upgrade Path
 

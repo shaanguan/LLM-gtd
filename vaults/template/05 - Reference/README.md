@@ -2,23 +2,18 @@
 
 Long-lived reference material that doesn't fit into a project or action.
 
-## Optional config files read by export_dashboard.py
+Use this folder for durable context the Agent should be able to consult later:
 
-### `okr.yaml` (optional)
+- collaborator notes
+- operating preferences
+- project background
+- review conclusions
+- reusable checklists
+- personal methodology notes
 
-If present, populates the OKR card on the Dashboard.
+Keep action-bearing work in `01 - Projects/`, `02 - Next Actions/`, or `03 - Waiting For/`. Reference material should explain context, not become a hidden task list.
 
-```yaml
-labels:
-  O1: First objective
-  O1-KR1: A measurable key result
-  O1-KR2: Another key result
-  O2: Second objective
-colors:
-  O1: var(--blue)
-  O2: var(--purple)
-milestone: 2026-12-31   # optional countdown date in the header
-```
+Optional providers may read reference files when they render views or publish projections, but this folder belongs to the vault contract first.
 
 ### `weeks.yaml` (optional)
 

@@ -9,8 +9,8 @@ Personal LLM-GTD upgrades are component-level. User notes in `00 - Inbox` throug
 | Put changes in… | When | User action |
 |---|---|---|
 | **Agent Runtime** (`AGENTS.md`, cron guide) | GTD rules, routines, runtime prompts | Natural language: `升级 GTD` |
-| **Computer Tools** (Dashboard.app, launchd, QuickCapture) | Local UI and automation | Component upgrade or targeted repair |
-| **Vault managed files** (templates, scripts, Dashboard shell) | Runtime support files around user data | Component upgrade |
+| **Capability Providers** (render, capture, scheduler, automation, etc.) | Optional injected or bundled capabilities | Component upgrade or targeted repair only when enabled or explicitly selected |
+| **Vault managed files** (templates, optional provider files) | Runtime support files around user data | Component upgrade |
 | **Repo knowledge** (`vaults/knowledge/gtd`) | GTD methodology calibration and durable synthesis | Component hash + vault link refresh; no user-data copy |
 | **Skill** (`skills/llm-gtd/SKILL.md`) | Agent-facing loader protocol | Reinstall skill — rare |
 
@@ -64,7 +64,7 @@ python3 tools/setup/doctor.py --vault "$GTD_VAULT" --check-updates
 
 ## 3. Apply component upgrade
 
-Applies only changed managed components. Does **not** overwrite existing markdown inside `00~07` folders.
+Applies only changed managed components. Components whose previous state is `skipped` are not installed by routine upgrade; select them explicitly with `--components` if the user wants that provider. The upgrade does **not** overwrite existing markdown inside `00~07` folders.
 
 ```bash
 git -C /path/to/LLM-gtd pull --ff-only   # if you use a git checkout
@@ -85,14 +85,14 @@ Or let the upgrade script pull for you:
 python3 tools/setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
 ```
 
-## 4. Verify automation
+## 4. Verify optional providers
 
 ```bash
 python3 tools/setup/doctor.py --vault "$GTD_VAULT" --check-cron --check-quickcapture --check-updates --json
 python3 tools/setup/create_launchd.py --vault "$GTD_VAULT" --verify
 ```
 
-Re-register agent cron jobs if needed using `.llm-gtd/agent-cron-guide.md`.
+Re-register scheduler routines only if a scheduler provider is enabled and its tools are available.
 
 ## Version files
 
@@ -109,9 +109,9 @@ If `.llm-gtd/version` is older than repo `VERSION`, run `tools/setup/upgrade.py 
 
 When the `agent_instructions` component changes, `upgrade.py` re-renders `AGENTS.md` / `CLAUDE.md` from the latest template and writes backups to `.llm-gtd/backups/`. Keep personal rules in dedicated reference files when possible.
 
-## QuickCapture after setup
+## Bundled capture example after setup
 
-If QuickCapture was skipped during setup (default):
+If the bundled QuickCapture provider was skipped during setup (default) and the user later wants it:
 
 ```bash
 python3 tools/setup/install_quickcapture.py --vault "$GTD_VAULT" --repo /path/to/LLM-gtd

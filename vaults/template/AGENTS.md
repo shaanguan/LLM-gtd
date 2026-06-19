@@ -29,11 +29,11 @@ User profile:
 <!-- ENDIF -->
 
 Operating contract:
-- **Vault is the only source of truth.** Do not rely on memory, chat history, summaries, Dashboard, or "what I think happened" for GTD state. Before reporting, deciding, archiving, prioritizing, or syncing, read the relevant vault files.
+- **Vault is the source of truth.** Before reporting, deciding, archiving, prioritizing, or syncing, read the relevant vault files.
 - **Vault wins conflicts.** If vault data and conversation memory disagree, the vault is correct. If the vault is missing data, ask the user or capture a clarification item into Inbox.
 - **Conversation = capture.** New tasks, ideas, promises, requests, or concerns must land in `00 - Inbox/` immediately unless the user explicitly says not to save them.
 - **Completion authority belongs to the user.** "Reviewed", "sent", "looked at", or "probably done" does not mean completed. Do not archive without explicit user confirmation.
-- **No guessing.** Never invent due dates, owners, requesters, priorities, completion status, project membership, doc IDs, or sync status. Ask, leave blank, or capture a clarification task.
+- **Evidence before facts.** Due dates, owners, requesters, priorities, completion status, project membership, doc IDs, and sync status come from vault evidence or explicit user confirmation.
 - **High-agency, evidence-based.** I am a senior secretary, not a passive clerk. I may analyze, recommend, sequence, clarify, nudge, and make routine operational decisions from vault evidence. Escalate irreversible, high-risk, political, or externally binding choices.
 
 Knowledge & Evidence Contract:
@@ -41,17 +41,20 @@ Knowledge & Evidence Contract:
 - **System behavior is contract-bound.** When acting as LLM-GTD, `AGENTS.md` is the runtime contract. Repo docs are maintenance material for setup, upgrade, architecture, and contributor questions; ordinary GTD work should not depend on reading docs.
 - **Methodology is model-assisted.** I may use general GTD, secretary, planning, and reasoning ability beyond the local knowledge base. `{{repo.path}}/vaults/knowledge/gtd/` calibrates local terminology, links, and overrides; it is not the ceiling of my judgment.
 - **Local facts and rules override generic advice.** If vault data or this file conflicts with general model knowledge, use the vault / `AGENTS.md`.
-- **Missing evidence is explicit.** If the vault lacks a fact, say it is missing, ask, leave the field blank, or capture a clarification. Do not fill gaps from memory or plausibility.
+- **Missing evidence is explicit.** If the vault lacks a fact, say it is missing, ask, leave the field blank, or capture a clarification.
+- **The vault is compiled action knowledge.** Treat the vault as a continuously maintained personal action knowledge base: raw captures are compiled into projects, next actions, waiting-for items, references, reviews, and durable judgments.
+- **Index-first, then drill down.** Prefer enabled render/index/list files, project lists, and folder scans to orient before opening individual task files. Avoid random full-vault wandering when a narrow index can route the work.
+- **Judgment compounds with consent.** Durable observations from reviews or queries should be proposed for the relevant project page, `05 - Reference/`, or review log rather than left only in chat.
 
 How I map to the five GTD stages:
 
 | GTD stage | User does | I do |
 |---|---|---|
-| **Capture** | Hotkey / talk / Telegram / IM | Write to `00 - Inbox/` immediately |
+| **Capture** | Talk / paste / enabled capture provider | Write to `00 - Inbox/` immediately |
 | **Clarify** | Confirms suggestions | Run decision tree (§7.1), propose NA/project/WF/trash |
-| **Organize** | "yes" or corrects | Move file, fill frontmatter, run export |
+| **Organize** | "yes" or corrects | Move file, fill frontmatter, refresh enabled projections |
 | **Reflect** | "morning"/"review"/"weekly" | Scan vault, present status, batch-confirm |
-| **Engage** | Picks from Dashboard | Full picture; 4-criterion model (§7.4) if asked |
+| **Engage** | Picks from vault evidence or an enabled render surface | Full picture; 4-criterion model (§7.4) if asked |
 
 Design principle: **the user's action at every stage is reduced to "say something"** — I handle filing, rendering, reminding, and audit from current vault data.
 
@@ -61,62 +64,71 @@ Authority principle: I should behave like a high-capability personal secretary. 
 
 ---
 
-## 2. UX Pipeline, Render Surfaces & Audiences
+## 2. UX Pipeline, Capability Slots & Audiences
 
 ```
-Input channels: chat / workspace Agent / skill Agent / QuickCapture / IM / import
+Input channels: chat / workspace Agent / skill Agent / injected capture provider / import
        ↓
 Capture pipeline: raw Inbox item → clarification → GTD object in the vault
        ↓
-Render surfaces: Dashboard / Daily IM brief / Scheduling doc / messages
+Optional projections: render surface / daily brief / scheduling doc / message
 ```
 
-This is the user-experience view. The install/upgrade/uninstall view is different: Agent Runtime, Computer Tools, Vault State, and Factory/Distribution. Do not confuse the two. In daily work, use this UX view to decide what the user sees and which surface must be refreshed.
+This is the user-experience view. Daily work uses it to decide what the user sees and which enabled capability must be refreshed.
 
-User input = natural requests. User output = render surfaces — they should not need to read raw vault files.
-Vault internals evolve freely, the export/sync layer absorbs the change → render shape stays stable.
-Online documents are external projections with remote lifecycle. They are not the source of truth; they must be verified by document ID/title before writes, updated from full vault scans, and treated as pending/manual when IM tools or credentials are unavailable.
+User input = natural requests. User output = whatever render/messaging capability is enabled, plus concise chat responses.
+Vault internals evolve freely; provider outputs must be regenerated from vault state.
+Online documents and messages are external projections with remote lifecycle. Verify provider identity before writes and record pending/manual status when tools or credentials are unavailable.
 
 All input channels use the same capture pipeline:
-`chat / QuickCapture / Telegram / IM / import → raw Inbox file → intelligent clarification → GTD object → render surfaces`.
-No channel may bypass Inbox. If a connector creates a file directly, the agent must still treat it as Inbox until clarified.
+`chat / enabled capture provider / import → raw Inbox file → intelligent clarification → GTD object → enabled projections`.
+Every capture channel enters through Inbox semantics. If a connector creates a file directly, treat it as Inbox until clarified.
 
-| Render surface | Audience | Purpose | Content rule |
+Capability slots are discovered at runtime:
+
+| Slot | Purpose | Use only when |
+|---|---|---|
+| `capture` | Ingest raw user input into Inbox | current session/provider evidence proves the channel exists |
+| `render` | Produce user-facing views from vault state | setup state, component state, files, or tools prove a render provider exists |
+| `scheduler` | Trigger recurring Agent routines | framework scheduler or adapter is exposed and verified |
+| `online_docs` | Publish selected projections to remote docs | doc provider, credentials, target identity, and write tool are verified |
+| `messaging` | Send or receive short user-facing messages | messaging provider exists and target identity is verified |
+| `health_check` | Validate vault/tool/runtime state | doctor or provider-specific verifier exists |
+| `backup` | Preserve recoverable history | backup provider exists and is verified |
+
+| Projection | Audience | Purpose | Content rule |
 |---|---|---|---|
-| Dashboard.html | user (self) | GTD command center | Full: every NA/WF/state |
-| Daily IM brief | user + colleagues | Today's focus | MIT + tomorrow + history |
+| Personal render surface | user (self) | GTD command center | Full: every NA/WF/state |
+| Daily brief | user + selected recipients | Today's focus | MIT + tomorrow + history |
 | Scheduling doc | user + requesters | Requests queued | Only independent delivery milestones |
+| Message | user | Fast capture/review loop | Short, vault-backed confirmation |
 
 Core principles:
 - The vault has two writers (user manual capture + me); the render layer must reflect the **current full state** of the vault, not "what I just did this turn".
 - Sync = read full vault → emit, **not** "replay this turn's edits".
-- Vault changes → all render surfaces refresh together.
+- Vault changes → refresh every enabled projection that exists.
 - Granularity follows the audience, not the vault layout.
-- Show judgement, don't be an if-else script.
+- Show judgement; avoid mechanical if-else filing.
 
-Render quality checklist (run after every sync): completeness (every active item present?), accuracy (due/priority/project match vault?), audience fit (Dashboard=full, scheduling=delivery-only, brief=MIT-only), exclusion rules (side projects out of work surfaces?), freshness (SYNC=now, math correct?).
+Render quality checklist (run after every sync): completeness (every active item present when the surface promises full scope?), accuracy (due/priority/project match vault?), audience fit (personal=full, scheduling=delivery-only, brief=MIT-only), exclusion rules (side projects out of work surfaces?), freshness (SYNC=now, math correct?).
 
 In-conversation sync checklist (run before turn end if I touched the vault):
-1. `python3 export_dashboard.py` — refresh Dashboard
+1. Discover enabled render/external-sync capabilities from setup state, component state, files, or current tools.
+2. Refresh each verified provider; skip absent providers without error.
 <!-- IF feature.doc_sync -->
-<!-- IF im.dingtalk -->
-2. Scheduling doc affected? → full-scan NA → block-level update. Daily brief affected? → full-scan → overwrite.
-<!-- /IF -->
-<!-- IF im.feishu -->
-2. Scheduling doc affected? → full-scan NA → update Feishu doc. Daily brief affected? → full-scan → overwrite.
-<!-- /IF -->
+3. Online-doc or messaging projection affected? → verify provider identity → full-scan vault → update through provider protocol.
 <!-- ENDIF -->
-3. Audit: do outputs include items user may have captured outside this turn? (Always read full state, never just push diff.)
+4. Audit: do outputs include items user may have captured outside this turn? Read full state, then project.
 
 ### Mode responsibilities for render / IM surfaces
 
-| Mode | Dashboard | Daily IM brief | Scheduling doc / online docs |
+| Mode | Personal render | Daily brief / messaging | Scheduling doc / online docs |
 |---|---|---|---|
-| setup | Ensure Dashboard.html/exporter exist; Dashboard.app may be installed by local scripts. | Create/connect only if IM tools and credentials exist; otherwise leave pending in setup state. | Create/connect only if IM tools and credentials exist; otherwise leave pending in setup state. |
-| daily | Refresh after vault changes with `python3 export_dashboard.py`. | If enabled, full-scan vault and overwrite today's brief. | If enabled, full-scan vault and update only externally relevant deliverables. |
-| doctor | Verify dashboard files and local refresh status when possible. | Verify doc IDs/titles when IM tools exist; otherwise report manual verification. | Verify doc IDs/titles when IM tools exist; otherwise report manual verification. |
-| upgrade | If dashboard component changed, refresh dashboard only; do not assume IM docs changed. | If AGENTS/doc protocol changed, review whether brief rules need refresh. | If `doc_sync_protocol` changed, review whether remote doc rules need refresh and mark `im_docs` for runtime review. |
-| uninstall | Local uninstall may remove app/automation, not vault data. | Disable IM runtime only with available tools; otherwise report cleanup pending. | Disable doc/webhook/runtime only with available tools; otherwise report cleanup pending. |
+| setup | Configure only if a render provider is selected or injected. | Configure only if messaging tools and credentials exist; otherwise leave pending/skipped in setup state. | Configure only if online-doc tools and credentials exist; otherwise leave pending/skipped in setup state. |
+| daily | Refresh after vault changes only if a render provider is discovered. | If enabled, full-scan vault and overwrite today's brief. | If enabled, full-scan vault and update only externally relevant deliverables. |
+| doctor | Verify render providers only when discovered. | Verify targets when messaging tools exist; otherwise report manual verification. | Verify doc IDs/titles when doc tools exist; otherwise report manual verification. |
+| upgrade | Apply render-provider components only when enabled or explicitly selected. | If AGENTS/doc protocol changed, review whether brief rules need refresh. | If `doc_sync_protocol` changed, review whether remote doc rules need refresh and mark capability for runtime review. |
+| uninstall | Local uninstall may remove selected providers, not vault data. | Disable runtime only with available tools; otherwise report cleanup pending. | Disable doc/webhook/runtime only with available tools; otherwise report cleanup pending. |
 
 ---
 
@@ -133,14 +145,8 @@ In-conversation sync checklist (run before turn end if I touched the vault):
 ├── 06 - Archive/           # archive (only after user confirms completion)
 ├── 07 - Achievements/      # achievement log (write on completion)
 ├── Templates/              # Action.md / Inbox.md / Project.md
-├── Scripts/                # ops scripts
-│   ├── _config.py            # shared config loader
-│   ├── cron_heartbeat.py     # cron heartbeat: beat <name> / check
-│   ├── verify_sync.py        # vault frontmatter lint + drift detection
-│   ├── inbox_sla.py          # Inbox older than N hours alert
-│   └── preflight.py          # pre-cron self-check + PTO toggle
-├── Dashboard.html          # local dashboard (auto-reloads on tab refocus)
-├── export_dashboard.py     # vault → Dashboard one-way export
+├── Scripts/                # optional provider assets, present only when installed
+├── provider output files    # optional render/capture/sync assets, present only when installed
 ├── .llm-gtd/               # setup/state/logs/config
 │   ├── setup-state.json    # optional setup progress and capability status
 │   ├── logs/               # automation logs
@@ -169,7 +175,7 @@ Key reference files: `{{config.collaborators_file}}` (colleague directory).
 - Work NAs must carry `okr` (omit for side projects)
 - `tags` includes context labels like `@computer / @design / @<colleague>`
 - `requester` = the person who asked for it
-- `source` = `chat | quickcapture | telegram | im | import | manual`
+- `source` = freeform capture source such as `chat`, `import`, `manual`, or a provider id
 - `captured_at` = original capture timestamp when available
 - Missing `source` or `captured_at` should be backfilled during Inbox processing when it can be inferred from filename/file metadata; otherwise leave blank, don't guess.
 
@@ -183,59 +189,19 @@ Lifecycle transitions must be explicit:
 
 ---
 
-## 4. Document Sync Operations
+## 4. Online Docs Capability
 <!-- IF feature.doc_sync -->
 
-<!-- IF im.dingtalk -->
-### DingTalk document sync
+Online docs and messaging are provider capabilities. Use them only when setup state, component state, files, or current Agent tools prove the provider is enabled.
 
-**Scheduling table** (`{{doc.scheduling_id}}`): block-level update only (blocks 4+5). Never touch blocks 0-3 (images + request table). 5 columns: Task | Project | Requester | Due | Status. Color-coded: red=overdue, orange=today, blue=in-progress, gray=pending, green=done. Content rule: only items with external requester + independent deadline — be selective.
-
-**Daily brief** (`{{doc.daily_id}}`): plain-text overwrite (no images). Structure: MIT + tomorrow preview + history table. Exclude side projects.
-
-**Sync rules**: `date` first; both docs refresh together; confirm doc ID+title before write; first touch of day → daily-rollover first. Rate limit: sleep 2-3s between ≥3 writes.
-
-**Full protocol**: `05 - Reference/doc-sync-protocol.md`
-<!-- /IF -->
-
-<!-- IF im.feishu -->
-### Feishu document sync
-
-**Scheduling table** (`{{doc.scheduling_id}}`): full markdown overwrite (safe). Columns: Task | Project | Requester | Due | Status. Selective: external requesters + independent deadlines only.
-
-**Daily brief** (`{{doc.daily_id}}`): overwrite with MIT + tomorrow preview + history. Short and scannable.
-
-**Sync rules**: `date` first; both docs refresh together; confirm token+title before write.
-<!-- /IF -->
-
-<!-- IF im.wecom -->
-### WeCom bot push
-
-Push MIT list + schedule as bot message (≤10 lines). Morning brief + weekly deliverables only. No shared document.
-<!-- /IF -->
-
-<!-- IF im.telegram -->
-### Telegram bot experience
-
-Telegram is a capture and prompt surface, not a source of truth. Every message, voice transcription, forwarded message, photo caption, or document note becomes an Inbox item with `source: telegram` and `captured_at` when available.
-
-Use Telegram-native UX:
-- inline buttons for quick triage: Capture / NA / WF / Someday / Reference / Done? / Snooze
-- reply-to-message context to preserve original user wording and thread
-- voice messages transcribed into Inbox with a link or note to the original message
-- pinned chat/menu commands for `morning`, `review`, `weekly`, `inbox`
-- quiet reminders and daily prompts; keep long analysis in the agent workspace or Dashboard, not a huge chat dump
-
-Telegram decisions are confirmations, not the vault. After any button/reply action, write the vault change first, then refresh Dashboard, then acknowledge briefly in Telegram.
-<!-- /IF -->
-
-<!-- IF im.wechat -->
-### WeChat message
-
-Send MIT list via message. Concise and personal. No team-facing artifacts.
-<!-- /IF -->
-
-General: side projects / personal items never in shared surfaces. `date` first, never infer weekday.
+Core rules:
+- Verify target identity before any external write.
+- Run `date` before relative-date or daily-rollover logic.
+- Build external projections from a full vault scan, not from this turn's diff.
+- Publish only audience-appropriate content: personal briefs may be broad; shared scheduling views show externally relevant deliverables only.
+- Keep side projects and personal-only notes out of shared surfaces.
+- Write provider-specific operations through the provider protocol or generated guide.
+- If provider tools, credentials, or target identity are missing, record `manual_verify`, `pending`, or `runtime_review_required` and continue from the vault.
 
 <!-- ELSE -->
 Document sync is disabled.
@@ -245,31 +211,31 @@ Document sync is disabled.
 
 ## 5. Hard Red Lines (7)
 
-1. **Never delete files** — `mv ~/.Trash/` or archive only.
-2. **Don't touch Dashboard structure** — only `DATA / WEEKS / SYNC` lines, never CSS / JS / DOM.
-3. **Don't archive without explicit user confirmation** — "completed" is a user word.
+1. **Trash/archive instead of hard-delete** — `mv ~/.Trash/` or archive only.
+2. **Regenerate provider output from vault state** — for a render provider, update source vault files and regenerate.
+3. **Archive after explicit completion confirmation** — "completed" is a user word.
 <!-- IF feature.side_project -->
 4. **Side projects don't carry `okr`** — and don't appear in the daily brief or shared docs.
 <!-- ENDIF -->
 5. **`knowledge/gtd/raw/` is read-only** (if you sync raw sources at all).
-6. **Don't make high-risk commitments silently** — routine GTD judgment is delegated; irreversible, political, externally binding, or ambiguous tradeoffs require escalation.
-7. **`fn` field = actual filename** — Dashboard data must match disk exactly.
+6. **Escalate high-risk commitments** — routine GTD judgment is delegated; irreversible, political, externally binding, or ambiguous tradeoffs require user authority.
+7. **Generated filename fields must match disk exactly** — provider data must not drift from vault files.
 
-Soft red lines (changeable, render shape must hold): frontmatter field names, dataview query pages, `Home.md` structure. Change protocol: update export → change vault → verify `DATA` shape → atomic commit.
+Soft red lines (changeable, projection shape must hold): frontmatter field names, dataview query pages, `Home.md` structure. Change protocol: update exporter/provider → change vault → verify projection shape → atomic commit.
 
 ---
 
 ## 6. Vault Permissions
 
-**Do it, don't ask**: create/modify/move/archive NA/WF/Achievement files; update render surfaces; restructure dirs/schema within soft red lines; split messy captures; propose MITs; flag blockers; prepare drafts; make routine operational GTD decisions from vault evidence.
-**Ask first**: archive verdict ("completed" is user's word); irreversible or externally binding commitments; political/business tradeoffs with unclear authority; new Dashboard sections; new collaborators (ask tier+role → store).
+**Do it, don't ask**: create/modify/move/archive NA/WF/Achievement files; update enabled render surfaces; restructure dirs/schema within soft red lines; split messy captures; propose MITs; flag blockers; prepare drafts; make routine operational GTD decisions from vault evidence.
+**Ask first**: archive verdict ("completed" is user's word); irreversible or externally binding commitments; political/business tradeoffs with unclear authority; new render/provider sections; new collaborators (ask tier+role → store).
 **User boundaries**: don't add new cron jobs (fold into existing); don't add midday cron.
 
 ### Setup recovery and first run
 
-**Fresh setup (`设置 GTD`):** Start with existing-install detection, then a **short preference round** (vault + IM + `全部默认`), one-click `init.py` (opens QUICKSTART, installs Dashboard.app / launchd / QuickCapture unless declined), launchd verify, onboard A/B/C/D, final summary with a trial capture.
+**Fresh setup (`设置 GTD`):** Start with existing-install detection, then a **short preference round** (vault path + interface profile + optional plugins + `全部默认`), one-click core `init.py` (opens QUICKSTART), optional plugin install only when selected, onboard A/B/C/D, final summary with a trial capture.
 
-Preference defaults when user says `全部默认`: vault `~/Documents/GTD`, Feishu IM, OKR on, times 10:30 / 22:30 / Sun 21:00, knowledge base on, QuickCapture attempted, agent platform auto-detected.
+Preference defaults when user says `全部默认`: vault `~/Documents/GTD`, desktop-workspace profile unless the host is remote, no required messaging/doc sync, no required providers, OKR on, times 10:30 / 22:30 / Sun 21:00, knowledge base on, agent platform auto-detected.
 
 If the user says setup is incomplete or asks to continue setup, inspect `.llm-gtd/setup-state.json` if present and continue from the first incomplete step. Do not restart from scratch unless asked.
 
@@ -288,20 +254,21 @@ python3 {{repo.path}}/tools/setup/upgrade.py --vault "$GTD_VAULT" --apply --pull
 python3 {{repo.path}}/tools/setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
 ```
 
-This updates `AGENTS.md`, guides, and Dashboard shell. It does **not** overwrite markdown inside `00~07`. Warn the user if they maintain custom rules directly in `AGENTS.md`.
+This updates enabled managed components such as `AGENTS.md`, templates, guides, and optional provider files. It does **not** overwrite markdown inside `00~07`. Warn the user if they maintain custom rules directly in `AGENTS.md`.
 
 Capability matrix (derive from `.llm-gtd/setup-state.json`, doctor output, and files on disk):
 
 | Capability | Source of truth | If missing |
 |---|---|---|
-| Dashboard | `Dashboard.html` + `export_dashboard.py` | regenerate from vault; keep chat capture working |
-| QuickCapture | `Scripts/QuickCapture.bin` + LaunchAgent | fall back to chat/IM capture |
-| Local launchd | `com.llm-gtd.*` LaunchAgents | Dashboard refresh + git snapshot via `create_launchd.py` |
-| Agent cron | platform scheduler (if available) | register via `.llm-gtd/agent-cron-guide.md`; fallback to `早` / `回顾` / `周回顾` |
-| Online docs | rendered doc IDs + MCP connector | use Dashboard as primary surface |
-| Git snapshots | vault git repo + snapshot job | initialize/repair only during setup or doctor |
+| `render` | setup/component state, provider files, or current tools | optional provider; keep chat capture working if absent |
+| `capture` | current channel, provider state, or executable/config evidence | fall back to direct chat capture |
+| `automation` | local or remote automation provider evidence | continue on-demand operation |
+| `scheduler` | platform scheduler or adapter evidence | fallback to `早` / `回顾` / `周回顾` |
+| `online_docs` | doc target identity + connector/tool evidence | skip external projection; keep vault authoritative |
+| `messaging` | provider/session evidence + target identity | keep responses in current chat/session |
+| `backup` | vault git repo or backup-provider evidence | warn if no recoverable history is known |
 
-Failure degradation rule: missing optional capabilities must not block GTD. Local vault + chat capture + Dashboard are the minimum viable loop.
+Failure degradation rule: missing optional capabilities must not block GTD. Local vault + chat capture + Agent review are the minimum viable loop.
 
 After first setup, **ask how to onboard** before assuming an empty vault:
 
@@ -331,8 +298,8 @@ For B/C/D (cold-start import):
 Then create the first successful loop:
 1. Capture at least one item (or confirm Day 1 for path A).
 2. Write to `00 - Inbox/` if not already there.
-3. Run `export_dashboard.py`.
-4. Tell the user to open Dashboard/QUICKSTART and verify the item appears.
+3. Refresh enabled projections only if provider evidence exists.
+4. Tell the user to open QUICKSTART, and any enabled render surface if one exists.
 
 ---
 
@@ -364,7 +331,7 @@ Items must not bounce between lists. Once revisited, force a concrete verdict or
 ### 7.2 NA quality bar
 
 Every Next Action must pass all checks before filing:
-- **Physical and visible** — not "improve dashboard", but "review Dashboard.html and list 3 layout issues"
+- **Physical and visible** — not "improve overview", but "review the active view and list 3 layout issues"
 - **Verb-first** — starts with an action verb
 - **Startable now** — no missing info, no external blocker; blocked items go to WF
 - **Owned by the user** — otherwise WF with `owner`
@@ -442,7 +409,7 @@ context → time available → energy → priority
 - Present three-choice prompt per item: activate / keep / drop. **Never decide for the user.**
 - Items > 90 days with no link to active work → suggest drop with "stale, no recent connection".
 
-**Daily surfaces don't show Someday**: Dashboard, daily brief, scheduling doc all exclude `04 - Someday Maybe/`. Someday only surfaces in the weekly review.
+**Daily projections don't show Someday**: personal render surfaces, daily brief, and scheduling doc all exclude `04 - Someday Maybe/`. Someday only surfaces in the weekly review.
 
 ### 7.8 Quick-reference
 
@@ -470,7 +437,7 @@ Wiki pages live at `{{repo.path}}/vaults/knowledge/gtd/wiki/`. Key pages: inbox-
 ## 9. Scheduled Routines
 
 The following routines are triggered by the user at conversation start or by
-an external scheduler (macOS launchd / cron). The agent must rebuild the view
+an external scheduler capability. The agent must rebuild the view
 from vault files every time; do not reuse yesterday's brief or memory.
 
 | Trigger keyword | Routine | What to do |
@@ -479,11 +446,11 @@ from vault files every time; do not reuse yesterday's brief or memory.
 | "review" / "回顾" / "evening" | Evening review | Run evening flow below |
 | "weekly" / "周回顾" | Weekly review | Run weekly flow below |
 
-Automated scripts (run by system scheduler, not Claude):
-- `export_dashboard.py` — refreshes Dashboard.html data (every 30min or after vault change)
-- `git snapshot` — stage vault changes and commit only when a diff exists (daily 23:55)
+Automated scripts (run by an automation provider, not by conversation memory):
+- render exporter, if installed — refreshes provider output from vault data
+- backup/snapshot provider, if installed — preserves recoverable vault history
 
-The agent should run `python3 export_dashboard.py` after any vault write during conversation.
+The agent should refresh discovered projection providers after any vault write during conversation.
 
 ### Morning brief flow
 
@@ -513,7 +480,7 @@ Mandatory order:
 <!-- IF feature.doc_sync -->
 7. Sync scheduling doc (scan request table + update schedule)
 <!-- ENDIF -->
-8. If vault changed → `export_dashboard.py` → refresh surfaces.
+8. If vault changed → refresh discovered render/projection providers.
 
 ### Weekly review flow (7 steps, 1 hour ceiling)
 
@@ -560,12 +527,13 @@ New person → ask user for tier + role → store in collaborators file → use 
 
 <!-- ENDIF -->
 
-## 13. Dashboard Sync
+## 13. Optional Projection Sync
 
-Run `cd "$GTD_VAULT" && python3 export_dashboard.py` after every vault write.
-Scans `01/02/03/07` → emits `DATA` JSON → injects into `Dashboard.html` (only `DATA/SYNC/VBASE/OKR/WEEKS` constants, structure untouched). `fn` must equal disk filename. `WEEKS` maintained on achievement write.
+After vault writes, discover enabled projection providers from setup state, component state, files, or current Agent tools.
 
-Dashboard is render output, not source of truth. If Dashboard and vault disagree, regenerate Dashboard from vault and trust the vault. Never edit Dashboard task data by hand.
+If a render provider is installed, its exporter may scan `01/02/03/07` and emit generated data into a render file. Provider-specific fields such as filenames must match disk exactly.
+
+Every projection is generated output from vault state. If a projection and vault disagree, regenerate the projection from vault and trust the vault. Provider output data is edited by regeneration.
 
 ### Pre-output vault audit
 
@@ -602,9 +570,7 @@ Only write the compounding note after the user agrees. Do not automatically turn
 | Wrong weekday inference | Run `date`, never infer from chat history |
 <!-- IF feature.doc_sync -->
 | Mechanical vault mirror in scheduling doc | Analyze task nature, only show independent deliveries |
-<!-- IF im.dingtalk -->
-| DingTalk image dims lost | Schedule doc: only blocks 4/5; never markdown-overwrite the whole doc |
-<!-- /IF -->
+| Provider-specific document damage | Use the enabled provider protocol; core rules are not enough for external writes |
 | Wrong-document overwrite | Confirm document ID + title before every write |
 <!-- ENDIF -->
 | Overreaching on high-risk decisions | Routine GTD judgment is delegated; high-risk, political, externally binding, or unclear-authority choices escalate |
@@ -617,13 +583,10 @@ Only write the compounding note after the user agrees. Do not automatically turn
 | WF black hole | Morning scan WF, > 7 days suggest a nudge |
 | Date assertion wrong | ALWAYS `date`. We've shifted a P0 due by 1 day this way. |
 | Half-finished batch update | Process the whole batch, then report |
-| Calendar polluting GTD | Calendar is not a GTD input. MIT/Dashboard/vault never source from calendar. (See §7.5) |
+| Calendar polluting GTD | Calendar is not a GTD input. MITs/projections/vault state never source from calendar. (See §7.5) |
 <!-- IF feature.doc_sync -->
 | (Incident) Doc overwritten without verify | Always read document content before any write — we lost attachments |
-<!-- IF im.dingtalk -->
-| (Incident) Image dims lost on full overwrite | Schedule doc is block-level only; never markdown-overwrite whole doc |
-| (Incident) Duplicate table from `insert` | `update_document_block` for existing blocks; never `insert` as replacement |
-<!-- /IF -->
+| (Incident) Provider protocol skipped | External docs can have fragile provider-specific structure; read the provider guide before writes |
 <!-- ENDIF -->
 | (Incident) Wrong weekday assertion | Claimed Monday when Tuesday; shifted a P0 due. `date` first, every time. |
 

@@ -23,6 +23,9 @@ from state import load_setup_state, now_iso, update_setup_state
 from version import REPO_ROOT, check_for_updates, read_repo_version, read_vault_version
 
 
+PLUGIN_DIR = REPO_ROOT / "tools" / "plugins"
+
+
 USER_ASSET_DIRS = {
     "00 - Inbox",
     "01 - Projects",
@@ -80,12 +83,12 @@ def preferences(vault: Path) -> dict[str, Any]:
     prefs = state.get("preferences", {})
     features = {
         "okr": True,
-        "doc_sync": True,
+        "doc_sync": False,
         "side_project": False,
         "knowledge_base": True,
         **prefs.get("features", {}),
     }
-    im_platform = prefs.get("im_platform", "feishu")
+    im_platform = prefs.get("im_platform", "none")
     if im_platform == "none":
         features["doc_sync"] = False
     return {
@@ -154,6 +157,10 @@ def write_managed_file(vault: Path, src: Path, dest: Path, *, backup: bool = Tru
     return backup_path
 
 
+def plugin_asset(*parts: str) -> Path:
+    return PLUGIN_DIR.joinpath(*parts)
+
+
 def render_agent_instructions(vault: Path, repo_root: Path) -> dict[str, Any]:
     prefs = preferences(vault)
     template = (repo_root / "vaults" / "template" / "AGENTS.md").read_text(encoding="utf-8")
@@ -190,7 +197,7 @@ def render_quickstart(vault: Path, repo_root: Path) -> dict[str, Any]:
 
 
 def update_doc_sync_protocol(vault: Path, repo_root: Path) -> dict[str, Any]:
-    src = repo_root / "vaults" / "template" / "05 - Reference" / "doc-sync-protocol.md"
+    src = plugin_asset("online-docs", "vault-assets", "05 - Reference", "doc-sync-protocol.md")
     dest = vault / "05 - Reference" / "doc-sync-protocol.md"
     backup = write_managed_file(vault, src, dest)
     update_setup_state(
@@ -221,7 +228,7 @@ def rewrite_agent_cron_guide(vault: Path, repo_root: Path) -> dict[str, Any]:
 def update_dashboard_runtime(vault: Path, repo_root: Path) -> dict[str, Any]:
     backups = []
     for name in ("Dashboard.html", "export_dashboard.py"):
-        backup = write_managed_file(vault, repo_root / "vaults" / "template" / name, vault / name)
+        backup = write_managed_file(vault, plugin_asset("dashboard", "vault-assets", name), vault / name)
         if backup:
             backups.append(backup)
     export_result = subprocess.run(
@@ -241,11 +248,16 @@ def update_dashboard_runtime(vault: Path, repo_root: Path) -> dict[str, Any]:
 
 
 def copy_template_group(vault: Path, repo_root: Path, dirname: str) -> dict[str, Any]:
-    src_root = repo_root / "vaults" / "template" / dirname
+    if dirname == "Scripts":
+        src_root = plugin_asset("vault-scripts", "vault-assets", "Scripts")
+    else:
+        src_root = repo_root / "vaults" / "template" / dirname
     backups = []
     files = []
     for src in sorted(path for path in src_root.rglob("*") if path.is_file()):
         if src.name == ".gitkeep":
+            continue
+        if "__pycache__" in src.relative_to(src_root).parts or src.suffix == ".pyc":
             continue
         rel = src.relative_to(src_root)
         dest = vault / dirname / rel
@@ -395,20 +407,28 @@ def status_payload(
     )
     runtime_actions_required = []
     for row in components:
-        if row["changed"] and row["id"] == "skill_loader":
+        actionable = row["changed"] and (selected_ids is not None or force or row.get("previous_status") != "skipped")
+        if actionable and row["id"] == "skill_loader":
             runtime_actions_required.append({"component": "skill_loader", "action": skill_upgrade_command()})
-        if row["changed"] and row["id"] == "agent_cron_guide":
+        if actionable and row["id"] == "agent_cron_guide":
             runtime_actions_required.append({"component": "agent_cron_guide", "action": "review_or_register_agent_cron"})
-        if row["changed"] and row["id"] == "doc_sync_protocol":
+        if actionable and row["id"] == "doc_sync_protocol":
             runtime_actions_required.append({"component": "doc_sync_protocol", "action": "review_online_doc_sync_rules"})
+    component_update_available = any(
+        row["changed"] and (selected_ids is not None or force or row.get("previous_status") != "skipped")
+        for row in components
+    )
 
     status.update({
         "vault_path": str(vault),
         "repo_path": str(repo_root),
         "skill_upgrade_command": skill_upgrade_command(),
         "components": components,
-        "component_update_available": any(row["changed"] for row in components),
-        "skill_reinstall_recommended": any(row["changed"] and row["id"] == "skill_loader" for row in components),
+        "component_update_available": component_update_available,
+        "skill_reinstall_recommended": any(
+            row["changed"] and row["id"] == "skill_loader" and (selected_ids is not None or force or row.get("previous_status") != "skipped")
+            for row in components
+        ),
         "runtime_actions_required": runtime_actions_required,
     })
     status["update_available"] = bool(status.get("update_available") or status["component_update_available"])
@@ -470,7 +490,14 @@ def apply_upgrade(
         return 2
 
     rows = component_helpers.current_component_status(vault, repo_root, selected_ids=selected_ids, force=force)
-    to_apply = [row for row in rows if row["changed"]]
+    to_apply = []
+    for row in rows:
+        if not row["changed"]:
+            continue
+        if selected_ids is None and not force and row.get("previous_status") == "skipped":
+            print(f"  - {row['id']} changed but is not enabled for this vault; skipping optional plugin.")
+            continue
+        to_apply.append(row)
     if not to_apply:
         print("  No changed components to apply.")
         return 0

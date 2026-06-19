@@ -116,15 +116,15 @@ h1 {
   <div class="card" style="padding: 20px 24px;">
     <div class="rhythm" style="grid-template-columns: 80px 1fr;">
       <span class="rhythm-time">收集</span>
-      <span class="rhythm-desc">快捷键 ⌘I / 对 Agent 说话 / IM 上给助手发消息</span>
+      <span class="rhythm-desc">对 Agent 说话 / 粘贴清单 / 导入材料 / 使用已启用的捕获入口</span>
       <span class="rhythm-time">厘清</span>
       <span class="rhythm-desc">Agent 像 GTD 高手一样理解意图、拆分行动、识别等待和项目，你只需确认或纠正</span>
       <span class="rhythm-time">组织</span>
-      <span class="rhythm-desc">自动归档到正确目录、填写元数据、刷新 Dashboard</span>
+      <span class="rhythm-desc">归档到正确目录、填写元数据，并在有 provider 时刷新对应视图</span>
       <span class="rhythm-time">回顾</span>
       <span class="rhythm-desc">早间播报 / 晚间回顾 / 周回顾 — 说一句话触发</span>
       <span class="rhythm-time">执行</span>
-      <span class="rhythm-desc">Dashboard 一页看全，排期表告诉同事你在做什么</span>
+      <span class="rhythm-desc">从 vault 证据选择下一步；已启用的视图或消息会作为辅助投影</span>
     </div>
   </div>
 </div>
@@ -135,8 +135,8 @@ h1 {
   <div class="card">
     <div class="card-title">📥 捕获想法</div>
     <div class="card-body">
-      随时对你的 GTD Agent 说：<code>帮我记：明天跟前端对齐动效方案</code><br>
-      macOS 用户也可以按 <span class="kbd">⌘</span> <span class="kbd">I</span> 唤出全局捕获面板，输入后回车即保存。
+      随时对你的 GTD Agent 说：<code>加到 GTD：明天跟前端对齐动效方案</code><br>
+      如果你启用了捕获 provider，也可以从对应入口把内容送入 Inbox。
     </div>
   </div>
 
@@ -175,8 +175,8 @@ h1 {
   <div class="card">
     <div class="card-title">🧭 确认自动化</div>
     <div class="card-body">
-      setup 完成后会生成 <code>.llm-gtd/setup-report.md</code>。里面能看到 Dashboard、定时任务、Git 快照、QuickCapture、在线文档的状态。<br>
-      macOS 也可以运行 <code>launchctl list | grep llm-gtd</code>，应看到 <code>com.llm-gtd.export-dashboard</code> 和 <code>com.llm-gtd.git-snapshot</code>。
+      setup 完成后会生成 <code>.llm-gtd/setup-report.md</code>。里面能看到 core vault、Agent instructions、以及已选择 provider 的状态。<br>
+      如果某个 provider 是后续启用的，再用对应 provider 的 verify 命令检查。
     </div>
   </div>
 </div>
@@ -191,22 +191,29 @@ h1 {
       <span class="rhythm-desc">晚间回顾：批量确认完成项、处理新 Inbox、更新周报</span>
       <span class="rhythm-time">说 "周回顾"</span>
       <span class="rhythm-desc">完整周回顾：7 步清理，确保系统不腐化</span>
-      <span class="rhythm-time">自动</span>
-      <span class="rhythm-desc">Dashboard 每 30 分钟刷新 / git 每晚 23:55 快照</span>
+      <span class="rhythm-time">可选 provider</span>
+      <span class="rhythm-desc">渲染视图、备份、消息、在线文档或调度能力按需启用</span>
     </div>
   </div>
 </div>
 
 <div class="section">
-  <div class="section-label">你的工具</div>
+  <div class="section-label">你的系统</div>
 
-  <a href="{{dashboard_url}}" class="card" style="text-decoration:none; color:inherit; display:block; transition: border-color .15s;" onmouseover="this.style.borderColor='#a8a29e'" onmouseout="this.style.borderColor='#e7e5e4'">
-    <div class="card-title">📊 Dashboard</div>
+  <div class="card">
+    <div class="card-title">📂 Vault</div>
     <div class="card-body">
-      你的 GTD 指挥中心。一页看清：今日重点、逾期项、等待回复、活跃项目。<br>
-      <span style="font-size:12px;color:#a8a29e;">点击打开 → 建议收藏到浏览器书签栏</span>
+      所有事实都在本地 Markdown vault 里：Inbox、Projects、Next Actions、Waiting For、Reference、Archive、Achievements。<br>
+      <span style="font-size:12px;color:#a8a29e;">Agent 回答状态问题前会从这些文件取证。</span>
     </div>
-  </a>
+  </div>
+
+  <div class="card">
+    <div class="card-title">🧩 Providers</div>
+    <div class="card-body">
+      捕获、渲染、调度、消息、在线文档、备份都属于可选 provider。没有启用 provider 时，GTD 仍然通过 vault + Agent 对话正常工作。
+    </div>
+  </div>
 
   <!-- IF feature.doc_sync -->
   <a href="{{doc_scheduling_url}}" class="card" style="text-decoration:none; color:inherit; display:block; transition: border-color .15s;" onmouseover="this.style.borderColor='#a8a29e'" onmouseout="this.style.borderColor='#e7e5e4'">
@@ -228,7 +235,7 @@ h1 {
 </div>
 
 <div class="tip">
-  <strong>第一步建议：</strong>先点上面的 Dashboard 看看（目前是空的，正常）。然后回到对话，把脑子里飘着的待办/承诺/想法一条条倒给它。说"帮我记：xxx"就行。积攒几条后说"帮我过一下 Inbox"开始分拣——Dashboard 会实时刷新。
+  <strong>第一步建议：</strong>回到对话，把脑子里飘着的待办/承诺/想法一条条倒给 Agent。说 <code>加到 GTD：xxx</code> 就行。积攒几条后说 <code>帮我过一下 Inbox</code> 开始分拣。
 </div>
 
 <div class="footer">

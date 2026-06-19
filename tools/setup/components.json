@@ -10,23 +10,23 @@
   {
     "id": "agent_cron_guide",
     "layer": "agent_runtime",
-    "source_paths": ["tools/setup/agent_cron.py"],
+    "source_paths": ["tools/setup/agent_cron.py", "tools/plugins/scheduler/**"],
     "target": ".llm-gtd/agent-cron-guide.md",
     "apply_mode": "generate_runtime_guide",
     "action": "rewrite_agent_cron_guide"
   },
   {
     "id": "dashboard",
-    "layer": "computer_tools",
-    "source_paths": ["vaults/template/Dashboard.html", "vaults/template/export_dashboard.py"],
+    "layer": "tool_plugins",
+    "source_paths": ["tools/plugins/dashboard/vault-assets/**"],
     "target": "Dashboard.html and export_dashboard.py",
     "apply_mode": "copy_managed_files",
     "action": "update_dashboard_runtime"
   },
   {
     "id": "vault_scripts",
-    "layer": "computer_tools",
-    "source_paths": ["vaults/template/Scripts/*"],
+    "layer": "tool_plugins",
+    "source_paths": ["tools/plugins/vault-scripts/vault-assets/Scripts/*"],
     "target": "Scripts/",
     "apply_mode": "copy_managed_files",
     "action": "update_vault_scripts"
@@ -50,31 +50,31 @@
   {
     "id": "doc_sync_protocol",
     "layer": "external_surfaces",
-    "source_paths": ["vaults/template/05 - Reference/doc-sync-protocol.md"],
+    "source_paths": ["tools/plugins/online-docs/vault-assets/**"],
     "target": "05 - Reference/doc-sync-protocol.md",
     "apply_mode": "copy_managed_file",
     "action": "update_doc_sync_protocol"
   },
   {
     "id": "dashboard_app",
-    "layer": "computer_tools",
-    "source_paths": ["tools/setup/create_app.py", "tools/resources/AppIcon.*"],
+    "layer": "tool_plugins",
+    "source_paths": ["tools/setup/create_app.py", "tools/resources/AppIcon.*", "tools/plugins/dashboard/**"],
     "target": "~/Applications/GTD Dashboard.app",
     "apply_mode": "reinstall_local_tool",
     "action": "reinstall_dashboard_app"
   },
   {
     "id": "launchd",
-    "layer": "computer_tools",
-    "source_paths": ["tools/setup/create_launchd.py"],
+    "layer": "tool_plugins",
+    "source_paths": ["tools/setup/create_launchd.py", "tools/plugins/local-automation/**"],
     "target": "~/Library/LaunchAgents/com.llm-gtd.*.plist",
     "apply_mode": "reinstall_local_tool",
     "action": "reinstall_launchd"
   },
   {
     "id": "quickcapture",
-    "layer": "computer_tools",
-    "source_paths": ["tools/setup/install_quickcapture.py", "tools/scripts/quickcapture/*"],
+    "layer": "tool_plugins",
+    "source_paths": ["tools/setup/install_quickcapture.py", "tools/scripts/quickcapture/*", "tools/plugins/quickcapture/**"],
     "target": "QuickCapture binary and LaunchAgent",
     "apply_mode": "reinstall_local_tool",
     "action": "reinstall_quickcapture"
@@ -90,7 +90,7 @@
   {
     "id": "skill_loader",
     "layer": "factory_distribution",
-    "source_paths": ["skills/llm-gtd/SKILL.md"],
+    "source_paths": ["skills/llm-gtd/SKILL.md", "skills/llm-gtd/references/**"],
     "target": "installed llm-gtd skill package",
     "apply_mode": "manual_agent_runtime",
     "action": "recommend_skill_reinstall"

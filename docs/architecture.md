@@ -1,36 +1,93 @@
 # Architecture
 
-LLM-GTD needs two orthogonal views:
+LLM-GTD is a **skill product**: it teaches an Agent how to help a user build, manage, and use GTD. The core product is the skill plus the GTD vault contract.
 
-- **Operational / install view:** three installed-system layers, one External Surfaces boundary, plus one Factory/Distribution layer. This explains setup, upgrade, uninstall, ownership, and what scripts can or cannot manage.
-- **Experience / render view:** input channels, GTD state, and user-facing render surfaces. This explains what the user sees: Dashboard, daily IM brief, scheduling docs, and capture flows.
+The canonical repo model is three composable Lego blocks:
 
-Do not treat one view as replacing the other. The operational view is for maintainers and Agents executing modes. The experience view is for product behavior and user-facing surfaces.
+```text
+skills/  -> Agent-facing GTD behavior and mode protocols
+vaults/  -> durable GTD state contract, templates, and knowledge
+tools/   -> optional provider examples, installers, adapters, and diagnostics
+```
+
+The default core is `skills/llm-gtd` + `vaults/template`. Provider examples under `tools/` can be enabled, replaced, or supplied by an Agent framework. Another skill can operate on a compatible GTD vault. The vault remains the durable contract between them.
+
+The capability rule is:
+
+```text
+Core defines extension points.
+Providers supply capabilities.
+Agent discovers capabilities at runtime.
+Vault remains the source of truth.
+```
+
+See [Capability Contract](capability-contract.md) for the stable extension-point model.
+
+LLM-GTD has two operating views:
+
+- **Operational / install view:** three installed-system layers, one External Surfaces boundary, plus one Factory/Distribution layer. This explains setup, upgrade, uninstall, ownership, and script authority.
+- **Experience / projection view:** input channels, GTD state, and user-facing projections. This explains what the user sees: render surfaces, daily briefs, scheduling docs, messages, and capture flows.
+
+The repository model explains composition and replaceability. The operational view explains runtime authority. The experience view explains user-facing behavior.
+
+## Composable Blocks
+
+| Block | Path | Owns | Replaceability rule |
+|---|---|---|---|
+| Skills | `skills/` | Agent-facing intent routing, mode protocols, and runtime obligations | `llm-gtd` is the default skill, not the only possible GTD skill |
+| Vaults | `vaults/` and installed user vaults | GTD folder contract, templates, managed runtime files, methodology links, user state | Vault state is the stable interface; multiple skills or tools may read/write it through explicit rules |
+| Capability Providers | `tools/`, external packages, or Agent framework tools | optional setup recipes, upgrade helpers, doctor, local apps, automation, capture, render, online docs, schedulers | Providers are injected around the vault; add, remove, or swap them while preserving the vault contract |
+
+The main dependency direction is:
+
+```text
+Skill chooses behavior
+  -> reads/writes Vault contract
+  -> discovers capability providers at runtime
+  -> calls a provider only when evidence proves it is enabled
+```
+
+Scripts manage files and local providers within their authority. Agent frameworks and remote providers manage their own runtime.
+
+## Product Boundary
+
+| Part | Category | Distribution rule |
+|---|---|---|
+| `llm-gtd` skill loader and mode playbooks | Core contract | Install as the skill package |
+| GTD vault contract and `AGENTS.md` secretary handbook | Core contract | Render into each user's vault |
+| GTD methodology knowledge | Shared reference | Link from repo; keep user data in the vault |
+| Render providers | Capability provider | Can visualize GTD or other vaults |
+| Capture providers | Capability provider | Capture target should be configurable: GTD Inbox, knowledge inbox, or other vault entrypoint |
+| Automation providers | Capability provider | Install only when user chooses or framework injects automation |
+| Scheduler providers | Host adapter or integration | Register only with scheduler tools and user intent |
+| Online docs / messaging providers | Capability provider | Connect only with credentials and tool evidence |
+
+`tools/setup/init.py --core-only` is the preferred core recipe. The bundled-tools recipe remains available as one possible provider bundle for users who want a batteries-included local setup.
 
 ## Operational View
 
-The installed system has three local layers, an external-surface boundary, plus one Factory/Distribution layer that produces and upgrades them. The important rule is that each `SKILL.md` mode has different authority in each layer.
+The installed system has three runtime responsibility layers, an external-surface boundary, plus one Factory/Distribution layer that produces and upgrades them. The important rule is that each `SKILL.md` mode has different authority in each layer.
 
 ```
 ┌────────────────────────────────────────────────────────────────────┐
-│  1. Agent runtime                                                   │
+│  1. Skill / Agent runtime                                           │
 │  SKILL.md loader │ AGENTS.md handbook │ agent cron │ IM MCP/Gateway │
 │  Intent routing, secretary behavior, scheduled agent work, online   │
 │  document/message operations.                                       │
 └───────────────┬────────────────────────────────────────────────────┘
                 │ reads/writes through explicit GTD rules
 ┌───────────────▼────────────────────────────────────────────────────┐
-│  2. Computer tools                                                  │
-│  QuickCapture │ Dashboard.app │ launchd jobs │ local helper scripts │
-│  Desktop capture, rendering shell, local refresh, snapshots, health │
-│  checks. Mostly script-installable and script-removable.            │
+│  2. Capability providers                                             │
+│  Capture │ Render │ Scheduler │ Online docs │ Automation │ Backup    │
+│  Optional injected or installed providers discovered at runtime.     │
+│  Local selected providers can be managed by setup scripts.           │
 └───────────────┬────────────────────────────────────────────────────┘
                 │ all persistent user state lives below
 ┌───────────────▼────────────────────────────────────────────────────┐
 │  3. Vault                                                           │
-│  00 - Inbox ... 07 - Achievements │ Templates │ Scripts │ .llm-gtd  │
+│  00 - Inbox ... 07 - Achievements │ Templates │ .llm-gtd │ optional Scripts │
 │  User-owned source of truth. Setup and upgrade may add runtime files │
-│  around it, but uninstall must never remove user GTD content.        │
+│  around it; uninstall preserves user GTD content.                   │
 └────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -38,17 +95,17 @@ The installed system has three local layers, an external-surface boundary, plus 
 
 | Layer | Owns | Can scripts fully manage it? | Persistence rule |
 |---|---|---:|---|
-| Agent runtime | `SKILL.md`, rendered `AGENTS.md`, cron prompts, IM MCP/Gateway doc operations | Partially | Runtime may be generated or guided, but platform cron and IM connections often require agent/user action |
-| Computer tools | QuickCapture, `Dashboard.app`, launchd plists, local dashboard refresh, git snapshot jobs | Mostly | Safe to install, verify, upgrade, and remove with scripts |
-| Vault | `00 - Inbox` through `07 - Achievements`, user notes, project/action/reference state | No | User data is sacred; scripts may scaffold and migrate, never destructively uninstall |
-| External surfaces | Online docs, Daily IM brief, scheduling docs, IM messages, webhooks, credentials | No | Remote projections must be verified through IM MCP/Gateway; local scripts cannot truthfully create/remove them alone |
+| Skill / Agent runtime | `SKILL.md`, rendered `AGENTS.md`, cron prompts, IM MCP/Gateway doc operations | Partially | Runtime may be generated or guided, but platform cron and IM connections often require agent/user action |
+| Capability providers | capture, render, scheduler, messaging, online docs, health check, backup, automation providers | For local selected providers | Install, verify, upgrade, and remove through the provider's authority |
+| Vault | `00 - Inbox` through `07 - Achievements`, user notes, project/action/reference state | No | User data is sacred; scripts scaffold and migrate around it |
+| External surfaces | Online docs, daily briefs, scheduling docs, messages, webhooks, credentials | No | Remote projections are verified through provider tools |
 | Factory/Distribution | `tools/setup/*`, `vaults/template/*`, `skills/llm-gtd/SKILL.md`, `VERSION`, packaged `.skill` | Yes | Produces component updates; not part of user data |
 
 Render surfaces exist in the experience view, but their implementation is distributed across operational layers:
 
-- `Dashboard.html` is a Vault file, displayed through Dashboard.app or a browser.
-- Daily IM brief and scheduling docs are External Surfaces maintained by Agent Runtime through IM MCP/Gateway.
-- `export_dashboard.py` and verification scripts are Vault-local tools installed by setup.
+- Personal render surfaces are provider outputs; a Dashboard file/app is only one example.
+- Daily briefs, messages, and scheduling docs are External Surfaces maintained only when messaging/online-doc providers are injected and verified.
+- Exporters and verification scripts are provider files installed only when the relevant provider is selected or externally injected.
 
 ## Experience / Render View
 
@@ -56,59 +113,63 @@ The experience view describes what the user and collaborators interact with.
 
 ```
 Input channels
-  chat / workspace Agent / semantic skill Agent / QuickCapture / IM / import
+  chat / workspace Agent / semantic skill Agent / injected capture provider / import
        ↓
 Capture pipeline
   raw Inbox item -> clarification -> GTD object in Vault State
        ↓
-Render surfaces
-  Dashboard.html / Daily IM brief / Scheduling doc / messages
+Optional projections
+  personal render surface / daily brief / scheduling doc / messages
 ```
 
-| Surface | Audience | Source of truth | Maintenance rule |
+| Projection | Audience | Source of truth | Maintenance rule |
 |---|---|---|---|
-| Dashboard.html | User | Full vault scan | Refresh after vault changes and via local automation |
-| Daily IM brief | User and selected colleagues | Full vault scan | Overwrite from current MIT / tomorrow / history rules |
-| Scheduling doc | User and requesters | Full vault scan | Show only externally relevant deliverables |
-| IM messages | User | Inbox and review flows | Capture into Inbox first; decisions update the vault before acknowledgement |
+| Personal render surface | User | Full vault scan | Refresh after vault changes only when a render provider exists |
+| Daily brief | User and selected recipients | Full vault scan | Overwrite from current MIT / tomorrow / history rules only when a messaging/render provider exists |
+| Scheduling doc | User and requesters | Full vault scan | Show only externally relevant deliverables only when an online-doc provider exists |
+| Message | User | Inbox and review flows | Capture into Inbox first; decisions update the vault before acknowledgement |
 
-All render surfaces are projections. They must be regenerated from current vault state, not from the current turn's diff.
+All projections are provider outputs regenerated from current vault state. If no provider exists, the vault and current Agent response remain sufficient.
 
 ## Knowledge & Evidence Boundaries
 
 LLM-GTD absorbs the LLM-wiki pattern as a disciplined evidence and compounding layer, not as a limit on model reasoning.
 
+In product terms: the GTD vault is a **compiled, compounding, auditable personal action knowledge base**. Raw input is not left as chat residue; it is continuously compiled into structured GTD objects, project context, references, review conclusions, and logs. See [Action Knowledge Base](action-knowledge-base.md) for the detailed contract.
+
 | Layer | Governs | Rule |
 |---|---|---|
 | Vault user state | Tasks, projects, waiting-for items, due dates, owners, priorities, completion, sync status | Must be read from current vault files before state-bearing answers or writes |
 | `AGENTS.md` runtime contract | Secretary authority, routines, escalation, render/sync behavior, query audit requirements | Overrides memory and generic model behavior during LLM-GTD work |
-| Model judgment | GTD interpretation, planning, secretary reasoning, prioritization advice | May exceed local wiki content, but must not invent user-specific facts |
-| Repo `knowledge/gtd` | Methodology calibration, local terminology, wiki links, durable synthesis | Repo asset tracked by component hash; linked from vault, not copied into user data |
-| Repo docs | Setup, upgrade, architecture, contributor maintenance | Read for maintenance contexts only; not required for ordinary daily GTD interactions |
+| Model judgment | GTD interpretation, planning, secretary reasoning, prioritization advice | May exceed local wiki content while grounding user-specific facts in vault evidence |
+| Repo `vaults/knowledge/gtd` | Methodology calibration, local terminology, wiki links, durable synthesis | Repo asset tracked by component hash; linked from vault, not copied into user data |
+| Repo docs | Setup, upgrade, architecture, contributor maintenance | Maintenance context for repo work; daily GTD starts from the vault |
 
-State answers should be auditable through vault paths. Methodology answers can use model ability; when local convention matters, consult `knowledge/gtd/wiki/index.md` and the relevant page. Durable query insights can be proposed for compounding into a project page, `05 - Reference/`, or the repo knowledge base, but should not be written automatically.
+State answers should be auditable through vault paths. Methodology answers can use model ability; when local convention matters, consult `vaults/knowledge/gtd/wiki/index.md` and the relevant page. Durable query insights can be proposed for compounding into a project page, `05 - Reference/`, or the repo knowledge base after the Agent has a clear target and appropriate user consent.
+
+Inspired by plain, open knowledge formats, LLM-GTD-managed knowledge should remain Markdown-first, frontmatter-readable, linkable, and portable across Agent frameworks and capability providers.
 
 Online documents have remote lifecycle in addition to render rules:
 
-| Mode | Online document responsibility |
+| Mode | Online document / messaging responsibility |
 |---|---|
-| setup | Create or connect docs only if IM tools and credentials exist; otherwise mark `im_docs: pending`. |
-| daily | Verify target document identity, then full-scan vault and update selected blocks/content. |
-| doctor | Check doc IDs/titles when tools exist; otherwise report manual verification. |
-| upgrade | If `agent_instructions` or `doc_sync_protocol` changed, mark `im_docs: runtime_review_required`. |
-| uninstall | Disable webhooks/docs/bots only with tools; otherwise mark `im_docs: runtime_cleanup_pending`. |
-| fallback | Never claim remote docs were updated, created, or removed without tool evidence. |
+| setup | Create/connect only if a provider, credentials, and target identity exist; otherwise mark skipped or pending. |
+| daily | Verify target identity, then full-scan vault and update selected blocks/content. |
+| doctor | Check provider targets when tools exist; otherwise report manual verification. |
+| upgrade | If `agent_instructions` or projection protocol changed, mark the capability `runtime_review_required`. |
+| uninstall | Disable webhooks/docs/bots only with provider tools; otherwise mark `runtime_cleanup_pending`. |
+| fallback | Report the current provider state and continue from the vault. |
 
-## Host / Activation Reliability
+## Interface Profiles
 
-Agents do not all enter the system the same way:
+Agents enter the system through different interfaces. Interface profiles describe the user's operating surface without naming a specific platform.
 
-| Host type | Example | Reliability | Required behavior |
-|---|---|---:|---|
-| Workspace-bound | Claude-style session opened on the GTD vault | High | `AGENTS.md` / `CLAUDE.md` is loaded or directly readable; proceed from vault instructions |
-| Semantic skill injection | Hermes-style Agent without workspace selection | Medium | Treat generic phrases like `记一下` as ambiguous unless GTD markers are present |
+| Profile | Entry surface | Vault relationship | Required behavior |
+|---|---|---|---|
+| `desktop-workspace` | Desktop Agent with the GTD vault as workspace | High evidence: `AGENTS.md` / `CLAUDE.md` and vault folders are directly readable | Read workspace instructions, then do full-vault operations and local-tool verification |
+| `remote-im` | IM, mobile, gateway, scheduled job, or semantic skill injection; primary current hosts are OpenClaw and Hermes Agent | Lower evidence: vault path and capabilities may need resolution | Resolve vault/tools first; treat generic phrases like `记一下` as ambiguous unless GTD markers are present |
 
-For semantic-injection-only hosts, `Skill.md` must avoid false capture. If a message could be GTD, memory, or wiki knowledge, the Agent asks whether to put it in GTD Inbox before writing vault files.
+For `remote-im`, `Skill.md` must avoid false capture. If a message could be GTD, memory, or wiki knowledge, the Agent asks whether to put it in GTD Inbox before writing vault files.
 
 ## Stable Loader Boundary
 
@@ -120,28 +181,28 @@ For semantic-injection-only hosts, `Skill.md` must avoid false capture. If a mes
 4. Dispatch mode to repo scripts and post-script agent actions.
 5. Preserve `00 - Inbox` through `07 - Achievements` on uninstall.
 
-Do not move secretary judgment, GTD methodology, IM protocols, or cron platform details into `SKILL.md`. They belong in `vaults/template/AGENTS.md`, `.llm-gtd/agent-cron-guide.md`, and repo docs.
+Keep `SKILL.md` focused on loading and routing. Secretary judgment belongs in `vaults/template/AGENTS.md`; provider details belong in generated guides, provider docs, and repo docs.
 
 ## Mode Matrix
 
-| Mode | Agent runtime | Computer tools | Vault | Render / IM surfaces |
+| Mode | Skill / Agent runtime | Capability providers | Vault | Projections |
 |---|---|---|---|---|
-| `setup` | Ask preferences. Render `AGENTS.md`. Generate cron guide. Register platform cron/IM only with tools. | Create Dashboard.app, launchd, optional QuickCapture, local scripts. | Create scaffold and state. Never overwrite user notes. | Create/connect docs only with IM tools; otherwise mark pending. |
-| `daily` | Read `AGENTS.md`, then capture, clarify, review, prioritize from evidence. | Use export/lint/preflight helpers. | Create/move/update GTD files. Archive only after confirmation. | Refresh Dashboard and enabled IM docs from full vault scan. |
-| `doctor` | Check cron and IM docs; report manual verification when tools are unavailable. | Verify launchd, QuickCapture, Dashboard.app, scripts, snapshots. | Validate folders, instructions, state, version, schema. | Verify doc IDs/titles when tools exist; otherwise mark manual. |
-| `upgrade` | Apply changed runtime components. Mark cron review required when guide changes. | Apply changed local-tool components only. | Apply managed runtime/template files, preserving `00` through `07`. | Review IM/doc rules when AGENTS or doc protocol changes. |
-| `uninstall` | Scripts cannot remove remote runtime; Agent cleans or reports pending. | Remove scriptable local tools. | Never remove `00 - Inbox` through `07 - Achievements`. | Disable IM/doc runtime with tools, else report cleanup pending. |
+| `setup` | Ask preferences. Render `AGENTS.md`. Register platform runtime only with injected tools. | Core recipe starts with the vault contract; install or connect explicitly selected providers. | Create scaffold and state while preserving user notes. | Create/connect only when a projection provider is selected, injected, and verified; otherwise mark skipped or pending. |
+| `daily` | Read `AGENTS.md`, then capture, clarify, review, prioritize from evidence. | Use helpers only when provider discovery proves they exist. | Create/move/update GTD files. Archive only after confirmation. | Refresh enabled projections from full vault scan. |
+| `doctor` | Check runtime capabilities; report manual verification when tools are unavailable. | Verify discovered providers only. | Validate folders, instructions, state, version, schema. | Verify projection targets when tools exist; otherwise mark manual. |
+| `upgrade` | Apply changed runtime components. Mark runtime review required when provider-facing protocols change. | Apply enabled or explicitly selected provider components only. | Apply managed runtime/template files, preserving `00` through `07`. | Review projection rules when AGENTS or projection protocol changes. |
+| `uninstall` | Remote runtime cleanup follows provider/framework authority; Agent cleans or reports pending only for enabled capabilities. | Remove selected scriptable providers only. | Preserve `00 - Inbox` through `07 - Achievements`. | Disable projections with provider tools, else report cleanup pending. |
 
 ## Setup Flow
 
 Setup is a dialogue first, then scripts:
 
-1. Agent asks for preferences that scripts cannot safely infer: vault path, phone/IM channel, scheduler platform, doc sync choice, OKR/side-project/knowledge-base toggles, routine times.
-2. Agent runs `tools/setup/init.py` with those preferences.
-3. Scripts install what is scriptable in the Computer tools layer: Dashboard.app, launchd jobs, optional QuickCapture, vault-local scripts.
+1. Agent asks for preferences that belong to the user: vault path, interface profile, desired optional capabilities, OKR/side-project/knowledge-base toggles, routine times.
+2. Agent runs `tools/setup/init.py --core-only` for the core recipe; bundled provider examples are added when the user selects them.
+3. Scripts install selected bundled providers only; externally injected providers are discovered rather than installed by core.
 4. Scripts scaffold the Vault layer: folders, templates, `AGENTS.md`, `CLAUDE.md`, `.llm-gtd` state.
-5. Agent reads `.llm-gtd/agent-cron-guide.md` and registers platform cron jobs only when the current environment supports it.
-6. Agent creates or connects IM docs through MCP/Gateway only when credentials and tools are available; otherwise it records the pending step.
+5. If a scheduler capability is selected or injected, Agent registers routines only when the current framework exposes scheduler tools.
+6. Agent creates or connects external projections only when provider credentials and tools are available; otherwise it records skipped or pending.
 7. Doctor runs at the end and reports exact remaining manual actions.
 
 ## Upgrade Flow
@@ -149,16 +210,16 @@ Setup is a dialogue first, then scripts:
 Upgrade is component-first and vault-safe:
 
 1. Check repo, vault, and remote release versions.
-2. Read `setup/components.json` and compare source hashes against `.llm-gtd/component-state.json`.
+2. Read `tools/setup/components.json` and compare source hashes against `.llm-gtd/component-state.json`.
 3. Apply only changed components, or only the components named with `--components`.
 4. Preserve user notes in `00` through `07`.
-5. If `agent_cron_guide` changes, mark `agent_cron` as `runtime_review_required`; scripts do not silently re-register platform cron jobs.
+5. If provider-facing guidance changes, mark the relevant capability as `runtime_review_required`.
 6. If `skill_loader` changes, report `skill_reinstall_recommended`; routine `--apply` does not install the skill package.
 7. Re-read `AGENTS.md` and cron guide after upgrade.
 
 ## Uninstall Flow
 
-Uninstall is intentionally asymmetric: scripts can remove local tools, but only the agent/user can clean up remote runtime registrations.
+Uninstall is capability-aware: scripts remove selected local providers, while remote runtime registrations are handled by their providers. Provider removal is separate from the core contract and user vault data.
 
 Scripts may remove:
 
@@ -168,7 +229,7 @@ Scripts may remove:
 - `~/Applications/GTD Dashboard.app` when requested
 - `.llm-gtd` setup state when `--purge-state` is requested
 
-Agent/user must handle:
+Agent/user must handle when those providers were enabled:
 
 - Platform agent cron jobs
 - IM MCP/Gateway credentials, webhooks, bots, or online docs
@@ -193,13 +254,18 @@ Scripts must preserve:
 |---|---|
 | `vault` | Vault scaffold exists |
 | `agent_instructions` | `AGENTS.md` / `CLAUDE.md` rendered |
-| `dashboard` | Dashboard file and exporter exist |
-| `dashboard_app` | macOS app wrapper installed |
-| `launchd` | Local scheduled jobs installed |
-| `git_snapshots` | Local git snapshot job active |
-| `quickcapture` | Desktop hotkey capture installed |
-| `agent_cron` | Agent scheduler jobs active, pending, review required, or cleanup pending |
-| `im_docs` | Online docs/message integration configured, pending, skipped, or cleanup pending |
+| `render` | Render provider exists and is verified |
+| `dashboard` | Compatibility alias for an existing render provider state |
+| `capture` | Capture provider exists and is verified |
+| `quickcapture` | Compatibility alias for an existing capture provider state |
+| `automation` | Automation provider exists and is verified |
+| `launchd` | Compatibility alias for an existing automation provider state |
+| `backup` | Backup/snapshot provider exists and is verified |
+| `git_snapshots` | Compatibility alias for an existing backup provider state |
+| `scheduler` | Scheduler provider active, pending, review required, or cleanup pending |
+| `agent_cron` | Compatibility alias for an existing scheduler provider state |
+| `online_docs` | Online-doc/message provider configured, pending, skipped, or cleanup pending |
+| `im_docs` | Compatibility alias for an existing online-doc/message provider state |
 | `agent_workspace` | Vault opened or otherwise available as agent workspace |
 | `skill_loader` | Installed skill package status or review requirement |
 | `gtd_knowledge_base` | Repo methodology wiki link is present and points to an existing directory |
@@ -213,7 +279,7 @@ Capability values should admit partial reality: `ok`, `pending`, `skipped`, `par
 The user delegates routine GTD operations inside the vault, but not destructive control over their data or external commitments.
 
 - Vault content is the source of truth.
-- User notes are never deleted by uninstall.
+- Uninstall preserves user notes.
 - Completion and archiving require explicit user confirmation.
 - External sharing, doc writes, and platform cron registration require the relevant connector/tool authority.
 - Render surfaces are regenerated from a full vault scan, not from this turn's diff.

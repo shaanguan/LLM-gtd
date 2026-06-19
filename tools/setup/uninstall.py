@@ -74,7 +74,7 @@ def uninstall(
     print(f"  User notes preserved in 00~07: {count_user_notes(vault)} markdown file(s)")
     print()
 
-    print("  Removing scriptable computer tools only:")
+    print("  Removing selected scriptable tool plugins only:")
     removed = 0
     for label in SYSTEM_LAUNCH_AGENT_LABELS:
         if remove_launch_agent(label):
@@ -106,15 +106,16 @@ def uninstall(
             print("  - Dashboard.app not found in ~/Applications")
 
     print()
-    print("  Preserved user assets (never deleted):")
+    print("  Preserved user assets:")
     for dirname in USER_ASSET_DIRS:
         marker = "✓" if (vault / dirname).exists() else "-"
         print(f"    {marker} {dirname}/")
     print()
     print("  Your tasks, projects, archive, and achievements remain in the vault.")
-    print("  This script cannot remove platform agent cron jobs, IM gateways,")
-    print("  online document credentials, or the installed skill package.")
-    print("  Runtime cleanup is still required if those were configured.")
+    print("  Local scriptable providers have been handled.")
+    print("  Platform agent cron jobs, IM gateways, online document credentials,")
+    print("  and the installed skill package are managed by their provider/framework tools.")
+    print("  Runtime cleanup remains pending for any configured external providers.")
     print("    See `.llm-gtd/agent-cron-guide.md` and setup-state.json.")
     print()
 
@@ -130,7 +131,7 @@ def uninstall(
             "quickcapture": "removed",
         },
         components={
-            "uninstall": "computer_tools_removed",
+            "uninstall": "tool_plugins_removed",
             "runtime_cleanup": "pending",
         },
     )
