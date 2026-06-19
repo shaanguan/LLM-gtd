@@ -24,7 +24,7 @@ def main():
     vault = Path(args.vault).expanduser().resolve()
     repo = Path(args.repo).expanduser().resolve()
 
-    inbox_template = repo / "vault-template" / "00 - Inbox"
+    inbox_template = repo / "vaults" / "template" / "00 - Inbox"
     inbox_dest = vault / "00 - Inbox"
     inbox_dest.mkdir(parents=True, exist_ok=True)
 
@@ -42,7 +42,7 @@ def main():
     # Find Day N files
     day_files = sorted(inbox_template.glob("Day *.md"))
     if not day_files:
-        print("[!] No Day files found in vault-template/00 - Inbox/")
+        print("[!] No Day files found in vaults/template/00 - Inbox/")
         return 1
 
     count = 0

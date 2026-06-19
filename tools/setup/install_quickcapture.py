@@ -43,7 +43,7 @@ def has_swift():
 
 def build_swift(repo_path: Path) -> Optional[Path]:
     """Build QuickCapture Swift package. Returns binary path or None."""
-    pkg_dir = repo_path / "scripts" / "quickcapture"
+    pkg_dir = repo_path / "tools" / "scripts" / "quickcapture"
     if not (pkg_dir / "Package.swift").exists():
         print("  [!] Package.swift not found")
         return None
@@ -86,7 +86,7 @@ def render_launchagent_plist(template: str, bin_path: Path, inbox_dir: Path) -> 
 
 def install_launchagent(bin_path: Path, repo_path: Path, inbox_dir: Path) -> bool:
     """Render plist template and load LaunchAgent."""
-    template = repo_path / "scripts" / "quickcapture" / "com.gtd.quickcapture.plist.template"
+    template = repo_path / "tools" / "scripts" / "quickcapture" / "com.gtd.quickcapture.plist.template"
     if not template.exists():
         print("  [!] plist template not found")
         return False

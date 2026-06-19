@@ -8,7 +8,7 @@
 > - This file is the canonical source of truth, priority > memory
 > - New decisions / rule changes / lessons learned → edit this file directly
 > - Keep ≤ 400 lines / ≤ 18 KB (context sweet spot); compress or move detail to `05 - Reference/`
-> - Only keep rules every interaction needs; methodology background goes to `knowledge/gtd/`
+> - Only keep rules every interaction needs; methodology background goes to `vaults/knowledge/gtd/`
 > - Lint during weekly review: drop stale content
 
 ---
@@ -90,7 +90,7 @@ Render layer:  user-facing surfaces (stable shape, fully delegated)
 2. Don't touch Dashboard structure — only DATA/WEEKS/SYNC.
 3. Don't archive without explicit user confirmation.
 4. Side projects don't carry `okr`.
-5. `knowledge/gtd/raw/` is read-only.
+5. `vaults/knowledge/gtd/raw/` is read-only.
 6. Don't make business decisions for the user.
 7. `fn` field = actual filename.
 
@@ -137,4 +137,4 @@ Source of truth: `05 - Reference/collaborators.md`
 
 ---
 
-*This is a shortened demo version. See `vault-template/AGENTS.md` for the full 17-section template.*
+*This is a shortened demo version. See `vaults/template/AGENTS.md` for the full 17-section template.*

@@ -7,8 +7,8 @@ Creates two plists:
   2. com.llm-gtd.git-snapshot — runs git add+commit at 23:55 daily
 
 Usage:
-    python3 setup/create_launchd.py --vault ~/Documents/GTD
-    python3 setup/create_launchd.py --vault ~/Documents/GTD --uninstall
+    python3 tools/setup/create_launchd.py --vault ~/Documents/GTD
+    python3 tools/setup/create_launchd.py --vault ~/Documents/GTD --uninstall
 """
 
 import argparse
@@ -223,7 +223,7 @@ def main():
         if not ok:
             print()
             print("  ERROR: Scheduled jobs are not loaded.")
-            print(f"  Repair with: python3 setup/create_launchd.py --vault \"{args.vault}\"")
+            print(f"  Repair with: python3 tools/setup/create_launchd.py --vault \"{args.vault}\"")
             raise SystemExit(1)
         print()
         print("  Scheduled jobs are active.")

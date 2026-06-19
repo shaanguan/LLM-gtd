@@ -7,9 +7,9 @@ Personal LLM-GTD uses a **stable Agent-facing skill + component-upgraded install
 | Artifact | Role | Update frequency |
 |---|---|---|
 | `skills/llm-gtd/SKILL.md` | Agent action protocol: intent routing, path resolution, script dispatch, post-script runtime obligations | Rare |
-| `vault-template/AGENTS.md` | Secretary handbook: GTD behavior, authority, routines, sync rules | Often |
-| `setup/components.json` | Component manifest for upgrade decisions | When managed components change |
-| `setup/*.py`, `VERSION` | Factory/Distribution scripts for install, upgrade, doctor, local tools | Often |
+| `vaults/template/AGENTS.md` | Secretary handbook: GTD behavior, authority, routines, sync rules | Often |
+| `tools/setup/components.json` | Component manifest for upgrade decisions | When managed components change |
+| `tools/setup/*.py`, `VERSION` | Factory/Distribution scripts for install, upgrade, doctor, local tools | Often |
 | `.llm-gtd/component-state.json` | Per-vault applied component hashes | Written by setup/upgrade |
 
 ## What Belongs In Skill.md
@@ -29,7 +29,7 @@ Personal LLM-GTD uses a **stable Agent-facing skill + component-upgraded install
 - IM document sync protocols.
 - Release notes or component implementation detail.
 
-Put those in `vault-template/AGENTS.md`, `.llm-gtd/agent-cron-guide.md`, `setup/components.json`, and repo docs.
+Put those in `vaults/template/AGENTS.md`, `.llm-gtd/agent-cron-guide.md`, `tools/setup/components.json`, and repo docs.
 
 ## When To Bump Skill Version
 

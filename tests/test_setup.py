@@ -9,7 +9,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO_ROOT / "setup"))
+sys.path.insert(0, str(REPO_ROOT / "tools" / "setup"))
 
 import create_launchd
 import components
@@ -23,7 +23,7 @@ import uninstall
 class InitHelpersTest(unittest.TestCase):
     def test_init_requires_vault_flag(self):
         result = subprocess.run(
-            [sys.executable, str(REPO_ROOT / "setup" / "init.py"), "--help"],
+            [sys.executable, str(REPO_ROOT / "tools" / "setup" / "init.py"), "--help"],
             capture_output=True,
             text=True,
         )
@@ -340,7 +340,7 @@ class SkillContractTest(unittest.TestCase):
         self.assertIn("runtime_cleanup_pending", text)
 
     def test_rendered_agents_contains_knowledge_evidence_contract(self):
-        template = (REPO_ROOT / "vault-template" / "AGENTS.md").read_text(encoding="utf-8")
+        template = (REPO_ROOT / "vaults" / "template" / "AGENTS.md").read_text(encoding="utf-8")
         rendered = init.render_conditionals(
             template,
             {"okr": False, "doc_sync": False, "side_project": False, "knowledge_base": True},
@@ -538,7 +538,7 @@ class QueryAuditTest(unittest.TestCase):
             vault.mkdir()
             (vault / "AGENTS.md").write_text("agent", encoding="utf-8")
             env = {**os.environ, "GTD_VAULT": str(vault)}
-            script = REPO_ROOT / "vault-template" / "Scripts" / "query_audit.py"
+            script = REPO_ROOT / "vaults" / "template" / "Scripts" / "query_audit.py"
 
             result = subprocess.run(
                 [

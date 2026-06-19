@@ -49,7 +49,7 @@ Agent cron (if your platform supports scheduled agent tasks):
 See `.llm-gtd/agent-cron-guide.md` in your vault, or run:
 
 ```bash
-python3 setup/agent_cron.py --vault "$GTD_VAULT" --platform generic --json
+python3 tools/setup/agent_cron.py --vault "$GTD_VAULT" --platform generic --json
 ```
 
 You should see morning / evening / weekly GTD jobs when scheduling is supported.
@@ -94,7 +94,7 @@ The Agent is expected to act like a high-agency secretary, not a passive form-fi
 Say `卸载 GTD` to your Agent, or run:
 
 ```bash
-python3 setup/uninstall.py --vault "$HOME/Documents/GTD"
+python3 tools/setup/uninstall.py --vault "$HOME/Documents/GTD"
 ```
 
 This removes automation only. **Your user data in `00 - Inbox` through `07 - Achievements` is always preserved.**
@@ -103,8 +103,8 @@ This removes automation only. **Your user data in `00 - Inbox` through `07 - Ach
 
 ```bash
 npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
-python3 setup/upgrade.py --vault "$HOME/Documents/GTD" --check
-python3 setup/upgrade.py --vault "$HOME/Documents/GTD" --apply --pull-repo
+python3 tools/setup/upgrade.py --vault "$HOME/Documents/GTD" --check
+python3 tools/setup/upgrade.py --vault "$HOME/Documents/GTD" --apply --pull-repo
 ```
 
 See [Upgrading](docs/upgrading.md) for the full flow.
@@ -142,10 +142,10 @@ Core rule: the vault wins. Dashboard and docs are generated views.
 ```bash
 git clone https://github.com/shaanguan/LLM-gtd.git
 cd LLM-gtd
-python3 setup/init.py --vault "$HOME/Documents/GTD"
-python3 setup/create_launchd.py --vault "$HOME/Documents/GTD" --verify
-python3 setup/doctor.py --vault "$HOME/Documents/GTD" --check-cron --check-quickcapture --json
-python3 scripts/package_skill.py
+python3 tools/setup/init.py --vault "$HOME/Documents/GTD"
+python3 tools/setup/create_launchd.py --vault "$HOME/Documents/GTD" --verify
+python3 tools/setup/doctor.py --vault "$HOME/Documents/GTD" --check-cron --check-quickcapture --json
+python3 tools/scripts/package_skill.py
 ```
 
 ## Links

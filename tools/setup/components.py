@@ -12,7 +12,7 @@ from state import now_iso
 from version import REPO_ROOT, read_repo_version
 
 
-MANIFEST_PATH = REPO_ROOT / "setup" / "components.json"
+MANIFEST_PATH = REPO_ROOT / "tools" / "setup" / "components.json"
 
 
 def component_state_path(vault: Path) -> Path:
@@ -20,7 +20,7 @@ def component_state_path(vault: Path) -> Path:
 
 
 def load_manifest(repo_root: Path = REPO_ROOT) -> list[dict[str, Any]]:
-    path = repo_root / "setup" / "components.json"
+    path = repo_root / "tools" / "setup" / "components.json"
     data = json.loads(path.read_text(encoding="utf-8"))
     return sorted(data, key=lambda item: item["id"])
 

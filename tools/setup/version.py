@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Optional
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 GITHUB_REPO = "shaanguan/LLM-gtd"
 VERSION_FILE = REPO_ROOT / "VERSION"
 RELEASES_LATEST_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"

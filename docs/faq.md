@@ -47,13 +47,13 @@ Run `cd "$GTD_VAULT" && python3 export_dashboard.py`, or run `python3 export_das
 ## Knowledge Base
 
 **Q: Can I add my own methodology pages?**
-Yes. Add `.md` files to `knowledge/gtd/wiki/` following the schema in `knowledge/gtd/SCHEMA.md`. The wiki calibrates LLM-GTD terminology and preserves durable synthesis; it does not limit the agent to only those pages.
+Yes. Add `.md` files to `vaults/knowledge/gtd/wiki/` following the schema in `vaults/knowledge/gtd/SCHEMA.md`. The wiki calibrates LLM-GTD terminology and preserves durable synthesis; it does not limit the agent to only those pages.
 
 **Q: Are GTD methodology answers limited to the local wiki?**
 No. The agent may use general GTD, secretary, planning, and reasoning ability beyond the wiki. The local wiki and `AGENTS.md` override generic advice when they define an LLM-GTD convention, while user-specific facts still must come from the vault.
 
-**Q: What's the difference between knowledge/gtd/ and 05-Reference/?**
-`knowledge/gtd/` is methodology reference — GTD concepts, techniques, philosophical background. It's shared and version-controlled with the repo.
+**Q: What's the difference between vaults/knowledge/gtd/ and 05-Reference/?**
+`vaults/knowledge/gtd/` is methodology reference — GTD concepts, techniques, philosophical background. It's shared and version-controlled with the repo.
 `05 - Reference/` is personal reference — your OKR, meeting notes, colleague directory, project specs. It's per-vault and contains your data.
 
 ## Troubleshooting
@@ -72,8 +72,8 @@ Three layers: skill, repo/vault runtime, automation. See [Upgrading](upgrading.m
 
 ```bash
 npx skills add shaanguan/LLM-gtd --skill llm-gtd -g -y
-python3 setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
-python3 setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
+python3 tools/setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
+python3 tools/setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
 ```
 
 **Q: The agent seems to have "forgotten" a rule I set.**
@@ -86,13 +86,13 @@ LLM-GTD has two automation layers — check both:
 1. **Local launchd** (Dashboard refresh, git snapshot):
    ```bash
    launchctl list | grep llm-gtd
-   python3 setup/create_launchd.py --vault "$GTD_VAULT" --verify
+   python3 tools/setup/create_launchd.py --vault "$GTD_VAULT" --verify
    ```
 
 2. **Agent cron** (morning brief, evening review, weekly review — if your platform supports it):
    See `.llm-gtd/agent-cron-guide.md` or run:
    ```bash
-   python3 setup/agent_cron.py --vault "$GTD_VAULT" --platform generic --json
+   python3 tools/setup/agent_cron.py --vault "$GTD_VAULT" --platform generic --json
    ```
 
 Also verify: (1) the `llm-gtd` skill is installed, (2) the agent can read `AGENTS.md`, (3) run `python3 Scripts/preflight.py`.

@@ -39,7 +39,7 @@ Operating contract:
 Knowledge & Evidence Contract:
 - **User state is evidence-bound.** Answers about tasks, projects, waiting-for items, due dates, owners, priorities, completion, sync state, or "what should I do now?" must be grounded in current vault files.
 - **System behavior is contract-bound.** When acting as LLM-GTD, `AGENTS.md` is the runtime contract. Repo docs are maintenance material for setup, upgrade, architecture, and contributor questions; ordinary GTD work should not depend on reading docs.
-- **Methodology is model-assisted.** I may use general GTD, secretary, planning, and reasoning ability beyond the local knowledge base. `{{repo.path}}/knowledge/gtd/` calibrates local terminology, links, and overrides; it is not the ceiling of my judgment.
+- **Methodology is model-assisted.** I may use general GTD, secretary, planning, and reasoning ability beyond the local knowledge base. `{{repo.path}}/vaults/knowledge/gtd/` calibrates local terminology, links, and overrides; it is not the ceiling of my judgment.
 - **Local facts and rules override generic advice.** If vault data or this file conflicts with general model knowledge, use the vault / `AGENTS.md`.
 - **Missing evidence is explicit.** If the vault lacks a fact, say it is missing, ask, leave the field blank, or capture a clarification. Do not fill gaps from memory or plausibility.
 
@@ -283,9 +283,9 @@ When the user says **升级 GTD**, **更新 GTD**, or **upgrade gtd**, refresh r
 Repo path: `{{repo.path}}` (or read from `.llm-gtd/setup-state.json` → `components.repo_path`).
 
 ```bash
-python3 {{repo.path}}/setup/upgrade.py --vault "$GTD_VAULT" --check --json
-python3 {{repo.path}}/setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
-python3 {{repo.path}}/setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
+python3 {{repo.path}}/tools/setup/upgrade.py --vault "$GTD_VAULT" --check --json
+python3 {{repo.path}}/tools/setup/upgrade.py --vault "$GTD_VAULT" --apply --pull-repo
+python3 {{repo.path}}/tools/setup/doctor.py --vault "$GTD_VAULT" --check-updates --check-cron --json
 ```
 
 This updates `AGENTS.md`, guides, and Dashboard shell. It does **not** overwrite markdown inside `00~07`. Warn the user if they maintain custom rules directly in `AGENTS.md`.
@@ -316,7 +316,7 @@ After first setup, **ask how to onboard** before assuming an empty vault:
 
 | Choice | Action |
 |---|---|
-| A | `python3 {{repo.path}}/setup/import_onboarding.py --vault "$GTD_VAULT" --repo {{repo.path}}` |
+| A | `python3 {{repo.path}}/tools/setup/import_onboarding.py --vault "$GTD_VAULT" --repo {{repo.path}}` |
 | B | Brain dump → one Inbox file per open loop |
 | C | Fetch/read link or file → split into Inbox items |
 | D | Parse pasted list → Inbox items |
@@ -338,7 +338,7 @@ Then create the first successful loop:
 
 ## 7. GTD Methodology — Decision Anchors
 
-**For deep methodology, read `{{repo.path}}/knowledge/gtd/`.**
+**For deep methodology, read `{{repo.path}}/vaults/knowledge/gtd/`.**
 The wiki is the long-form reference; this section is the in-context decision anchor table that the agent consults during every interaction.
 
 ### 7.1 Inbox decision tree (run on every Inbox scan)
@@ -446,7 +446,7 @@ context → time available → energy → priority
 
 ### 7.8 Quick-reference
 
-Wiki pages live at `{{repo.path}}/knowledge/gtd/wiki/`. Key pages: inbox-processing, capture, next-action, context-labels, two-minute-rule, weekly-review, horizons-of-focus, project-definition, someday-maybe, waiting-for, gtd-five-steps. When in doubt, grep the wiki.
+Wiki pages live at `{{repo.path}}/vaults/knowledge/gtd/wiki/`. Key pages: inbox-processing, capture, next-action, context-labels, two-minute-rule, weekly-review, horizons-of-focus, project-definition, someday-maybe, waiting-for, gtd-five-steps. When in doubt, grep the wiki.
 
 ---
 
@@ -571,7 +571,7 @@ Dashboard is render output, not source of truth. If Dashboard and vault disagree
 
 Classify the query before answering:
 - `state/status/prioritization/sync`: scan relevant vault directories first, then answer from those files. If a relevant directory was not scanned, say so.
-- `methodology`: use model judgment; if citing local GTD terminology or prior local decisions, read `{{repo.path}}/knowledge/gtd/wiki/index.md` and relevant pages.
+- `methodology`: use model judgment; if citing local GTD terminology or prior local decisions, read `{{repo.path}}/vaults/knowledge/gtd/wiki/index.md` and relevant pages.
 - `maintenance/setup/upgrade/architecture`: read repo docs as needed; these docs are maintainer material, not daily GTD state.
 - `mixed`: separate vault facts from my recommendations. Facts require evidence; recommendations may be labeled as judgment.
 
@@ -632,7 +632,7 @@ Only write the compounding note after the user agrees. Do not automatically turn
 <!-- IF feature.knowledge_base -->
 ## 15. GTD Knowledge Base
 
-Path: `{{repo.path}}/knowledge/gtd/` — `SCHEMA.md` (conventions) + `wiki/` (distilled pages, see §7.8).
+Path: `{{repo.path}}/vaults/knowledge/gtd/` — `SCHEMA.md` (conventions) + `wiki/` (distilled pages, see §7.8).
 Usage: morning brief → pull one wiki page for insight; methodology questions → consult §7.8, then grep wiki. Maintained via `llm-wiki` skill; raw sources not committed.
 
 <!-- ENDIF -->

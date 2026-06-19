@@ -42,7 +42,7 @@ The installed system has three local layers, an external-surface boundary, plus 
 | Computer tools | QuickCapture, `Dashboard.app`, launchd plists, local dashboard refresh, git snapshot jobs | Mostly | Safe to install, verify, upgrade, and remove with scripts |
 | Vault | `00 - Inbox` through `07 - Achievements`, user notes, project/action/reference state | No | User data is sacred; scripts may scaffold and migrate, never destructively uninstall |
 | External surfaces | Online docs, Daily IM brief, scheduling docs, IM messages, webhooks, credentials | No | Remote projections must be verified through IM MCP/Gateway; local scripts cannot truthfully create/remove them alone |
-| Factory/Distribution | `setup/*`, `vault-template/*`, `skills/llm-gtd/SKILL.md`, `VERSION`, packaged `.skill` | Yes | Produces component updates; not part of user data |
+| Factory/Distribution | `tools/setup/*`, `vaults/template/*`, `skills/llm-gtd/SKILL.md`, `VERSION`, packaged `.skill` | Yes | Produces component updates; not part of user data |
 
 Render surfaces exist in the experience view, but their implementation is distributed across operational layers:
 
@@ -120,7 +120,7 @@ For semantic-injection-only hosts, `Skill.md` must avoid false capture. If a mes
 4. Dispatch mode to repo scripts and post-script agent actions.
 5. Preserve `00 - Inbox` through `07 - Achievements` on uninstall.
 
-Do not move secretary judgment, GTD methodology, IM protocols, or cron platform details into `SKILL.md`. They belong in `vault-template/AGENTS.md`, `.llm-gtd/agent-cron-guide.md`, and repo docs.
+Do not move secretary judgment, GTD methodology, IM protocols, or cron platform details into `SKILL.md`. They belong in `vaults/template/AGENTS.md`, `.llm-gtd/agent-cron-guide.md`, and repo docs.
 
 ## Mode Matrix
 
@@ -137,7 +137,7 @@ Do not move secretary judgment, GTD methodology, IM protocols, or cron platform 
 Setup is a dialogue first, then scripts:
 
 1. Agent asks for preferences that scripts cannot safely infer: vault path, phone/IM channel, scheduler platform, doc sync choice, OKR/side-project/knowledge-base toggles, routine times.
-2. Agent runs `setup/init.py` with those preferences.
+2. Agent runs `tools/setup/init.py` with those preferences.
 3. Scripts install what is scriptable in the Computer tools layer: Dashboard.app, launchd jobs, optional QuickCapture, vault-local scripts.
 4. Scripts scaffold the Vault layer: folders, templates, `AGENTS.md`, `CLAUDE.md`, `.llm-gtd` state.
 5. Agent reads `.llm-gtd/agent-cron-guide.md` and registers platform cron jobs only when the current environment supports it.

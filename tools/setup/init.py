@@ -3,7 +3,7 @@
 LLM-GTD vault initializer (Agent-driven).
 
 Usage:
-    python3 setup/init.py --vault PATH [preference flags...]
+    python3 tools/setup/init.py --vault PATH [preference flags...]
 
 Called by the Agent after collecting setup preferences in chat.
 There is no interactive terminal questionnaire — say `设置 GTD` to your Agent instead.
@@ -24,9 +24,9 @@ from version import read_repo_version
 # Constants
 # ---------------------------------------------------------------------------
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
-TEMPLATE_DIR = REPO_ROOT / "vault-template"
-KNOWLEDGE_DIR = REPO_ROOT / "knowledge"
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+TEMPLATE_DIR = REPO_ROOT / "vaults" / "template"
+KNOWLEDGE_DIR = REPO_ROOT / "vaults" / "knowledge"
 
 DEFAULT_TIMEZONE = "Asia/Shanghai"
 DEFAULT_MORNING = "10:30"
@@ -109,7 +109,7 @@ def render_placeholders(text: str, variables: dict) -> str:
 
 def copy_template(template_dir: Path, dest: Path, skip_agents: bool = True):
     """
-    Recursively copy vault-template/ to dest, skipping AGENTS.md
+    Recursively copy vaults/template/ to dest, skipping AGENTS.md
     (which gets rendered separately) and .gitkeep files.
     """
     for src_path in sorted(template_dir.rglob("*")):
@@ -186,7 +186,7 @@ def write_setup_report(vault_path: Path) -> Path:
         f"- **launchd**: {status_label(capabilities.get('launchd', capabilities.get('scheduler', 'unknown')))}",
         f"- **git_snapshots**: {status_label(capabilities.get('git_snapshots', 'unknown'))}",
         "- Labels: `com.llm-gtd.export-dashboard`, `com.llm-gtd.git-snapshot`",
-        "- Verify: `python3 setup/create_launchd.py --vault \"$GTD_VAULT\" --verify`",
+        "- Verify: `python3 tools/setup/create_launchd.py --vault \"$GTD_VAULT\" --verify`",
         "",
         "## Agent cron jobs",
         "",
@@ -197,7 +197,7 @@ def write_setup_report(vault_path: Path) -> Path:
         "",
         "## Doctor",
         "",
-        "- `python3 setup/doctor.py --vault \"$GTD_VAULT\" --check-cron --check-quickcapture --json`",
+        "- `python3 tools/setup/doctor.py --vault \"$GTD_VAULT\" --check-cron --check-quickcapture --json`",
         "",
     ])
     report.write_text("\n".join(lines), encoding="utf-8")
@@ -534,18 +534,18 @@ def main():
     if args.skip_automation:
         step += 1
         print(f'  {step}. Install launchd plists for automation:')
-        print(f'     python3 {REPO_ROOT}/setup/create_launchd.py --vault "{vault_path}"')
+        print(f'     python3 {REPO_ROOT}/tools/setup/create_launchd.py --vault "{vault_path}"')
         print(f'     (creates: export_dashboard every 30min + git snapshot at 23:55)')
         print()
     if quickcapture_skipped:
         step += 1
         print(f'  {step}. Install QuickCapture:')
-        print(f'     python3 {REPO_ROOT}/setup/install_quickcapture.py --vault "{vault_path}" --repo "{REPO_ROOT}"')
+        print(f'     python3 {REPO_ROOT}/tools/setup/install_quickcapture.py --vault "{vault_path}" --repo "{REPO_ROOT}"')
         print(f'     Tip: pass --install-quickcapture during setup if you want the Swift build inline.')
         print()
     step += 1
     print(f'  {step}. Run the self-check:')
-    print(f'     python3 {REPO_ROOT}/setup/doctor.py --vault "{vault_path}"')
+    print(f'     python3 {REPO_ROOT}/tools/setup/doctor.py --vault "{vault_path}"')
     print()
     print("  Happy GTD-ing! 🎯")
     print()

@@ -6,7 +6,7 @@ import zipfile
 from pathlib import Path
 
 
-REPO_ROOT = Path(__file__).resolve().parent.parent
+REPO_ROOT = Path(__file__).resolve().parent.parent.parent
 DEFAULT_SKILL_DIR = REPO_ROOT / "skills" / "llm-gtd"
 DEFAULT_OUTPUT = REPO_ROOT / "dist" / "llm-gtd.skill"
 

@@ -156,7 +156,7 @@ def write_managed_file(vault: Path, src: Path, dest: Path, *, backup: bool = Tru
 
 def render_agent_instructions(vault: Path, repo_root: Path) -> dict[str, Any]:
     prefs = preferences(vault)
-    template = (repo_root / "vault-template" / "AGENTS.md").read_text(encoding="utf-8")
+    template = (repo_root / "vaults" / "template" / "AGENTS.md").read_text(encoding="utf-8")
     rendered = init_helpers.render_conditionals(template, prefs["features"])
     rendered = init_helpers.render_im_conditionals(rendered, prefs["im_platform"])
     rendered = init_helpers.render_placeholders(rendered, render_variables(vault, repo_root))
@@ -178,7 +178,7 @@ def render_agent_instructions(vault: Path, repo_root: Path) -> dict[str, Any]:
 
 def render_quickstart(vault: Path, repo_root: Path) -> dict[str, Any]:
     prefs = preferences(vault)
-    src = repo_root / "vault-template" / "QUICKSTART.html"
+    src = repo_root / "vaults" / "template" / "QUICKSTART.html"
     text = src.read_text(encoding="utf-8")
     text = init_helpers.render_conditionals(text, prefs["features"])
     text = init_helpers.render_placeholders(text, render_variables(vault, repo_root))
@@ -190,7 +190,7 @@ def render_quickstart(vault: Path, repo_root: Path) -> dict[str, Any]:
 
 
 def update_doc_sync_protocol(vault: Path, repo_root: Path) -> dict[str, Any]:
-    src = repo_root / "vault-template" / "05 - Reference" / "doc-sync-protocol.md"
+    src = repo_root / "vaults" / "template" / "05 - Reference" / "doc-sync-protocol.md"
     dest = vault / "05 - Reference" / "doc-sync-protocol.md"
     backup = write_managed_file(vault, src, dest)
     update_setup_state(
@@ -221,7 +221,7 @@ def rewrite_agent_cron_guide(vault: Path, repo_root: Path) -> dict[str, Any]:
 def update_dashboard_runtime(vault: Path, repo_root: Path) -> dict[str, Any]:
     backups = []
     for name in ("Dashboard.html", "export_dashboard.py"):
-        backup = write_managed_file(vault, repo_root / "vault-template" / name, vault / name)
+        backup = write_managed_file(vault, repo_root / "vaults" / "template" / name, vault / name)
         if backup:
             backups.append(backup)
     export_result = subprocess.run(
@@ -241,7 +241,7 @@ def update_dashboard_runtime(vault: Path, repo_root: Path) -> dict[str, Any]:
 
 
 def copy_template_group(vault: Path, repo_root: Path, dirname: str) -> dict[str, Any]:
-    src_root = repo_root / "vault-template" / dirname
+    src_root = repo_root / "vaults" / "template" / dirname
     backups = []
     files = []
     for src in sorted(path for path in src_root.rglob("*") if path.is_file()):
@@ -298,7 +298,7 @@ def recommend_skill_reinstall(vault: Path, repo_root: Path) -> dict[str, Any]:
 
 
 def refresh_gtd_knowledge_link(vault: Path, repo_root: Path) -> dict[str, Any]:
-    knowledge_path = repo_root / "knowledge" / "gtd"
+    knowledge_path = repo_root / "vaults" / "knowledge" / "gtd"
     if not knowledge_path.is_dir():
         raise FileNotFoundError(f"GTD knowledge base not found: {knowledge_path}")
     dest = vault / ".llm-gtd" / "knowledge-link.txt"
@@ -340,7 +340,7 @@ def build_init_command(vault: Path, repo_root: Path) -> list[str]:
     features = prefs.get("features", {})
     cmd = [
         sys.executable,
-        str(repo_root / "setup" / "init.py"),
+        str(repo_root / "tools" / "setup" / "init.py"),
         "--vault",
         str(vault),
         "--agent-platform",

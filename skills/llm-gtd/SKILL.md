@@ -37,7 +37,7 @@ Once the user confirms GTD, continue with this skill. If they choose memory/wiki
 - **Computer Tools:** Dashboard.app, QuickCapture, launchd jobs, local vault scripts. Scripts can mostly install, verify, upgrade, and remove these.
 - **Vault State:** `00 - Inbox` through `07 - Achievements`, user notes, projects, actions, waiting-for, archive, achievements. This is user-owned and must not be uninstalled.
 - **External Surfaces:** online documents, IM messages, webhooks, bots, and credentials maintained through IM MCP/Gateway. Scripts can update local protocols, but the Agent must verify remote state with tools.
-- **Factory/Distribution:** repo files such as `setup/*`, `vault-template/*`, `skills/llm-gtd/SKILL.md`, `VERSION`, and packaged `.skill`.
+- **Factory/Distribution:** repo files such as `tools/setup/*`, `vaults/template/*`, `skills/llm-gtd/SKILL.md`, `VERSION`, and packaged `.skill`.
 
 ## Intent -> Mode
 
@@ -107,7 +107,7 @@ git clone https://github.com/shaanguan/LLM-gtd.git ~/Projects/llm-gtd
 Real user setup must **not** pass `--no-open`, `--no-app`, `--skip-automation`, or `--skip-quickcapture`.
 
 ```bash
-python3 "$REPO_PATH/setup/init.py" \
+python3 "$REPO_PATH/tools/setup/init.py" \
   --vault "$VAULT_PATH" \
   --agent-platform "<detected>" \
   --im-platform "<feishu|dingtalk|telegram|wecom|wechat|none>" \
@@ -129,7 +129,7 @@ Omit `--install-quickcapture` only if the user explicitly declined QuickCapture 
 2. **Mandatory launchd gate (macOS):**
 
 ```bash
-python3 "$REPO_PATH/setup/create_launchd.py" --vault "$VAULT_PATH" --verify
+python3 "$REPO_PATH/tools/setup/create_launchd.py" --vault "$VAULT_PATH" --verify
 launchctl list | grep llm-gtd
 ```
 
@@ -147,7 +147,7 @@ Expect `com.llm-gtd.export-dashboard` and `com.llm-gtd.git-snapshot`. If verify 
 4. Run doctor:
 
 ```bash
-python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-quickcapture --json
+python3 "$REPO_PATH/tools/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-quickcapture --json
 ```
 
 **Step 5 — Onboard (required)**
@@ -157,7 +157,7 @@ python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-cron --check-
 
 | Choice | Action |
 |---|---|
-| **A** | `python3 "$REPO_PATH/setup/import_onboarding.py" --vault "$VAULT_PATH" --repo "$REPO_PATH"` |
+| **A** | `python3 "$REPO_PATH/tools/setup/import_onboarding.py" --vault "$VAULT_PATH" --repo "$REPO_PATH"` |
 | **B/C/D** | One Inbox file per open loop; `status/lifecycle: captured`, `source`, `captured_at`, `clarification_needed: true`; summarize; ask before organizing |
 
 Ask: "还要从别的来源再导入吗？" Then `export_dashboard.py` if vault changed.
@@ -191,20 +191,20 @@ Mark `onboard` complete in `.llm-gtd/setup-state.json` when finished.
 1. Run:
 
 ```bash
-python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --check --json
+python3 "$REPO_PATH/tools/setup/upgrade.py" --vault "$VAULT_PATH" --check --json
 ```
 
 2. Inspect `components`, `skill_reinstall_recommended`, and `runtime_actions_required`.
 3. Apply changed components only:
 
 ```bash
-python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --apply --pull-repo
+python3 "$REPO_PATH/tools/setup/upgrade.py" --vault "$VAULT_PATH" --apply --pull-repo
 ```
 
 4. For targeted repair, use:
 
 ```bash
-python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --apply --components dashboard_app --force
+python3 "$REPO_PATH/tools/setup/upgrade.py" --vault "$VAULT_PATH" --apply --components dashboard_app --force
 ```
 
 5. After apply, read `$VAULT_PATH/AGENTS.md` and `$VAULT_PATH/.llm-gtd/agent-cron-guide.md`.
@@ -216,7 +216,7 @@ python3 "$REPO_PATH/setup/upgrade.py" --vault "$VAULT_PATH" --apply --components
 1. Run:
 
 ```bash
-python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH"
+python3 "$REPO_PATH/tools/setup/uninstall.py" --vault "$VAULT_PATH"
 ```
 
 2. The script removes only scriptable Computer Tools. It cannot remove platform Agent cron, IM Gateway/webhooks, online doc credentials, or this installed skill package.
@@ -229,7 +229,7 @@ python3 "$REPO_PATH/setup/uninstall.py" --vault "$VAULT_PATH"
 ### doctor
 
 ```bash
-python3 "$REPO_PATH/setup/doctor.py" --vault "$VAULT_PATH" --check-updates --check-cron --json
+python3 "$REPO_PATH/tools/setup/doctor.py" --vault "$VAULT_PATH" --check-updates --check-cron --json
 ```
 
 Report issues by layer: Vault State, Computer Tools, Agent Runtime. Do not treat manual runtime verification as a local script failure.

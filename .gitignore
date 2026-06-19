@@ -7,7 +7,7 @@ __pycache__/
 *.tmp
 
 # Swift build products
-scripts/quickcapture/.build/
+tools/scripts/quickcapture/.build/
 *.bin
 
 # Local work, never commit

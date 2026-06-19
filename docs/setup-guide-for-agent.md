@@ -11,7 +11,7 @@ LLM-GTD installs three layers and is produced by one Factory/Distribution layer:
 | Agent Runtime | `SKILL.md`, rendered `AGENTS.md`, agent cron, IM MCP/Gateway, online docs | Complete what scripts cannot: scheduler jobs, IM/doc integrations, skill package updates |
 | Computer Tools | Dashboard.app, launchd, QuickCapture, local scripts | Let repo scripts install/upgrade/remove; verify with doctor |
 | Vault State | `00 - Inbox` through `07 - Achievements` | Preserve always; this is user data |
-| Factory/Distribution | `setup/*`, `vault-template/*`, `components.json`, packaged skill | Source of setup and component upgrades |
+| Factory/Distribution | `tools/setup/*`, `vaults/template/*`, `components.json`, packaged skill | Source of setup and component upgrades |
 
 `AGENTS.md` is canonical for GTD behavior. `SKILL.md` is the loader/action protocol.
 
@@ -61,7 +61,7 @@ Check for `AGENTS.md` / `CLAUDE.md` in `~/Documents/GTD` or `$GTD_VAULT`. If pre
 Do **not** pass `--no-open`, `--no-app`, `--skip-automation`, or `--skip-quickcapture` for real users.
 
 ```bash
-python3 <repo-path>/setup/init.py \
+python3 <repo-path>/tools/setup/init.py \
   --vault "<vault-path>" \
   --agent-platform "<detected>" \
   --im-platform "<feishu|dingtalk|telegram|wecom|wechat|none>" \
@@ -93,8 +93,8 @@ Vault + QUICKSTART + automation summary. Ask user to try `加到 GTD：…` or `
 Upgrade is component-level. Do not blindly rerun full setup.
 
 ```bash
-python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --check --json
-python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --pull-repo
+python3 <repo-path>/tools/setup/upgrade.py --vault "<vault-path>" --check --json
+python3 <repo-path>/tools/setup/upgrade.py --vault "<vault-path>" --apply --pull-repo
 ```
 
 `--check --json` returns `components`, `runtime_actions_required`, and `skill_reinstall_recommended`.
@@ -102,8 +102,8 @@ python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --pull-repo
 Use targeted repair when appropriate:
 
 ```bash
-python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --components dashboard_app --force
-python3 <repo-path>/setup/upgrade.py --vault "<vault-path>" --apply --components agent_instructions
+python3 <repo-path>/tools/setup/upgrade.py --vault "<vault-path>" --apply --components dashboard_app --force
+python3 <repo-path>/tools/setup/upgrade.py --vault "<vault-path>" --apply --components agent_instructions
 ```
 
 Rules:
@@ -117,7 +117,7 @@ Rules:
 ## Uninstall Mode
 
 ```bash
-python3 <repo-path>/setup/uninstall.py --vault "<vault-path>"
+python3 <repo-path>/tools/setup/uninstall.py --vault "<vault-path>"
 ```
 
 The script removes scriptable Computer Tools only:

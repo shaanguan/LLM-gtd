@@ -18,7 +18,7 @@ Press **Cmd+I** anywhere on your Mac to summon a floating HUD panel. Type your t
 Run the installer from the repository root after your vault has been initialized:
 
 ```bash
-python3 setup/install_quickcapture.py --vault "$GTD_VAULT" --repo "$(pwd)"
+python3 tools/setup/install_quickcapture.py --vault "$GTD_VAULT" --repo "$(pwd)"
 ```
 
 The installer:
@@ -31,7 +31,7 @@ The installer:
 ## Manual installation
 
 ```bash
-cd scripts/quickcapture
+cd tools/scripts/quickcapture
 swift build -c release
 cp .build/release/QuickCapture "$GTD_VAULT/Scripts/QuickCapture.bin"
 ```
@@ -79,7 +79,7 @@ RegisterEventHotKey(
 
 Then rebuild:
 ```bash
-cd scripts/quickcapture && swift build -c release
+cd tools/scripts/quickcapture && swift build -c release
 cp .build/release/QuickCapture "$GTD_VAULT/Scripts/QuickCapture.bin"
 # Restart the daemon:
 launchctl kickstart -k gui/$(id -u)/com.gtd.quickcapture

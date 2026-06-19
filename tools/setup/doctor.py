@@ -3,7 +3,7 @@
 llm-gtd doctor — verify your vault setup is healthy.
 
 Usage:
-    python3 setup/doctor.py [--vault PATH] [--check-cron]
+    python3 tools/setup/doctor.py [--vault PATH] [--check-cron]
 
 Checks:
   1. $GTD_VAULT is set and directory exists
@@ -218,14 +218,14 @@ def check_version(vault: Path) -> list:
     vault_version = read_vault_version(vault)
     repo_version = read_repo_version()
     if vault_version is None:
-        issues.append(("INFO", "No .llm-gtd/version file — run setup/upgrade.py --apply to stamp version"))
+        issues.append(("INFO", "No .llm-gtd/version file — run tools/setup/upgrade.py --apply to stamp version"))
         return issues
 
     if compare_versions(vault_version, repo_version) < 0:
         issues.append((
             "WARN",
             f"Vault version {vault_version} < repo version {repo_version}. "
-            f"Run: python3 setup/upgrade.py --vault \"{vault}\" --apply"
+            f"Run: python3 tools/setup/upgrade.py --vault \"{vault}\" --apply"
         ))
     return issues
 
@@ -250,7 +250,7 @@ def check_remote_updates(vault: Path) -> list:
         issues.append((
             "WARN",
             f"Local repo {repo_version} is behind GitHub release {remote}. "
-            f"Run: git pull && python3 setup/upgrade.py --vault \"{vault}\" --apply"
+            f"Run: git pull && python3 tools/setup/upgrade.py --vault \"{vault}\" --apply"
         ))
     if status.get("update_available"):
         issues.append((
@@ -400,7 +400,7 @@ def check_launchd(vault: Path) -> list:
             issues.append((
                 "WARN",
                 f"LaunchAgent '{label}' not loaded. "
-                f"Run: python3 setup/create_launchd.py --vault \"{vault}\""
+                f"Run: python3 tools/setup/create_launchd.py --vault \"{vault}\""
             ))
 
     return issues

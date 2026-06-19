@@ -53,7 +53,7 @@ def create_dashboard_app(vault_path: str, repo_path: str = None, install_dir: st
     if install_dir is None:
         install_dir = os.path.expanduser("~/Applications")
     if repo_path is None:
-        repo_path = str(Path(__file__).resolve().parent.parent)
+        repo_path = str(Path(__file__).resolve().parent.parent.parent)
 
     dashboard_html = os.path.join(vault_path, "Dashboard.html")
     app_dir = os.path.join(install_dir, "GTD Dashboard.app")
@@ -85,7 +85,7 @@ def create_dashboard_app(vault_path: str, repo_path: str = None, install_dir: st
     os.chmod(launch_path, os.stat(launch_path).st_mode | stat.S_IXUSR | stat.S_IXGRP)
 
     # Icons
-    icons_src = os.path.join(repo_path, "resources")
+    icons_src = os.path.join(repo_path, "tools", "resources")
     for icon in ("AppIcon.icns", "AppIcon.png"):
         src = os.path.join(icons_src, icon)
         if os.path.exists(src):
